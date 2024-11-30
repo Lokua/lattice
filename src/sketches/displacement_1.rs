@@ -105,57 +105,52 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
-    frame.clear(BLACK);
     let draw = app.draw();
-    draw.background().color(rgb(0.1, 0.1, 0.1));
     let window = app.window_rect();
-
     let grid =
         create_grid(window.w(), window.h(), model.grid_size, |x, y| vec2(x, y));
+    let gradient = Gradient::new(vec![
+        LinSrgb::new(
+            BEIGE.red as f32 / 255.0,
+            BEIGE.green as f32 / 255.0,
+            BEIGE.blue as f32 / 255.0,
+        ),
+        LinSrgb::new(
+            PURPLE.red as f32 / 255.0,
+            PURPLE.green as f32 / 255.0,
+            PURPLE.blue as f32 / 255.0,
+        ),
+    ]);
+
+    draw.background().color(rgb(0.1, 0.1, 0.1));
+    frame.clear(BLACK);
 
     for point in grid {
-        let displacements = model.displacer_configs.iter().fold(
-            Vec::new(),
-            |mut acc, config| {
-                acc.push(config.displacer.influence(point));
-                acc
-            },
-        );
+        let mut total_displacement = vec2(0.0, 0.0);
+        let mut total_influence = 0.0;
 
-        let total_displacement = displacements
+        let displacements: Vec<(Vec2, f32)> = model
+            .displacer_configs
             .iter()
-            .fold(vec2(0.0, 0.0), |acc, displacement| acc + *displacement);
+            .map(|config| {
+                let displacement = config.displacer.influence(point);
+                let influence = displacement.length();
+                total_displacement += displacement;
+                total_influence += influence;
+                (displacement, influence)
+            })
+            .collect();
 
-        let total_influence = displacements
-            .iter()
-            .fold(0.0, |acc, displacement| acc + displacement.length());
+        let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
+        for (index, config) in model.displacer_configs.iter().enumerate() {
+            let (_displacement, influence) = displacements[index];
+            let color_position = influence / (config.displacer.strength * 1.5);
+            let color = gradient.get(color_position.clamp(0.0, 1.0));
+            let weight = influence / total_influence.max(1.0);
+            colors.push((color, weight));
+        }
 
-        let gradient = Gradient::new(vec![
-            LinSrgb::new(
-                BEIGE.red as f32 / 255.0,
-                BEIGE.green as f32 / 255.0,
-                BEIGE.blue as f32 / 255.0,
-            ),
-            LinSrgb::new(
-                PURPLE.red as f32 / 255.0,
-                PURPLE.green as f32 / 255.0,
-                PURPLE.blue as f32 / 255.0,
-            ),
-        ]);
-
-        let colors = displacements.iter().enumerate().fold(
-            Vec::new(),
-            |mut acc, (index, displacement)| {
-                let color_position = displacement.length()
-                    / (model.displacer_configs[index].displacer.strength * 1.5);
-                let color = gradient.get(color_position);
-                let weight = displacement.length() / total_influence;
-                acc.push((color, weight));
-                acc
-            },
-        );
-
-        let color = colors
+        let blended_color = colors
             .iter()
             .fold(gradient.get(0.0), |acc, (color, weight)| {
                 acc.mix(color, *weight)
@@ -164,7 +159,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         draw.ellipse()
             .radius(model.circle_radius)
             .xy(point + total_displacement)
-            .color(color);
+            .color(blended_color);
     }
 
     draw.to_frame(app, &frame).unwrap()
