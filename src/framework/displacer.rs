@@ -4,11 +4,10 @@ use nannou::prelude::*;
 pub struct Displacer {
     pub position: Vec2,
     pub radius: f32,
-    pub strength: f32, // Added strength as a property
+    pub strength: f32,
 }
 
 impl Displacer {
-    /// Create a new Displacer with position, radius, and strength
     pub fn new(position: Vec2, radius: f32, strength: f32) -> Self {
         Self {
             position,
@@ -17,7 +16,6 @@ impl Displacer {
         }
     }
 
-    /// Update the position, radius, or strength of the Displacer
     pub fn update(&mut self, state: Option<DisplacerState>) {
         if let Some(state) = state {
             if let Some(position) = state.position {
@@ -32,7 +30,6 @@ impl Displacer {
         }
     }
 
-    /// Influence a grid point based on the Displacer's state
     pub fn influence(&self, grid_point: Vec2) -> Vec2 {
         let radius = self.radius.max(f32::EPSILON);
         let distance_to_center = grid_point.distance(self.position);
@@ -53,10 +50,9 @@ impl Displacer {
     }
 }
 
-/// Optional state updates for Displacer
 #[derive(Debug, Clone)]
 pub struct DisplacerState {
     pub position: Option<Vec2>,
     pub radius: Option<f32>,
-    pub strength: Option<f32>, // Added strength to the state
+    pub strength: Option<f32>,
 }
