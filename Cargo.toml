@@ -1,5 +1,5 @@
 [package]
-name = "learning-nannou"
+name = "lattice"
 version = "0.1.0"
 authors = ["Lokua <dev@lokua.net>"]
 edition = "2021"
