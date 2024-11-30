@@ -30,3 +30,14 @@ where
 
     grid
 }
+
+/// Determines whether the current frame should be processed based on the desired FPS.
+/// Returns `true` if the frame should be processed, `false` otherwise.
+pub fn should_render_frame(app: &App, target_fps: f64) -> bool {
+    let app_fps = app.fps() as f64;
+    let target_fps = target_fps;
+    let desired_frame_interval =
+        ((app_fps / target_fps).round()).max(1.0) as u64;
+    let elapsed_frames = app.elapsed_frames();
+    elapsed_frames % desired_frame_interval == 0
+}

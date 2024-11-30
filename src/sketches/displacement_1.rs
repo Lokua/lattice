@@ -3,7 +3,13 @@ use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
 
 use crate::framework::displacer::{Displacer, DisplacerState};
-use crate::framework::util::create_grid;
+use crate::framework::metadata::SketchMetadata;
+use crate::framework::util::{create_grid, should_render_frame};
+
+pub const METADATA: SketchMetadata = SketchMetadata {
+    name: "displacement_1",
+    fps: 60.0,
+};
 
 struct DisplacerConfig {
     displacer: Displacer,
@@ -61,13 +67,13 @@ pub fn model(app: &App) -> Model {
 
     let mut displacer_configs = vec![
         DisplacerConfig::new(
-            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0),
+            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
             Box::new(|_time, displacer| displacer.position),
-            Box::new(|time, _d| 50.0 + 40.0 * (time * 16.0).sin()),
-            Box::new(|time, _d| 50.0 + 40.0 * (time * 8.0).sin()),
+            Box::new(|time, _d| 200.0 + 100.0 * (time * 24.0).sin()),
+            Box::new(|time, _d| 60.0 + 50.0 * (time * 12.0).cos()),
         ),
         DisplacerConfig::new(
-            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0),
+            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
             Box::new(|time, _d| vec2(200.0 * time.cos(), 200.0 * time.sin())),
             Box::new(|time, _d| 200.0 + 100.0 * (time * 24.0).sin()),
             Box::new(|time, _d| 60.0 + 50.0 * (time * 12.0).cos()),
@@ -83,7 +89,7 @@ pub fn model(app: &App) -> Model {
     ];
     for corner in corner_placements {
         displacer_configs.push(DisplacerConfig::new(
-            Displacer::new(corner, 10.0, 20.0),
+            Displacer::new(corner, 10.0, 20.0, None),
             Box::new(|_time, displacer| displacer.position),
             Box::new(|time, _d| 20.0 + 20.0 * ((time * 16.0).sin())),
             Box::new(|_time, displacer| displacer.strength),
@@ -105,6 +111,10 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
+    if !should_render_frame(app, METADATA.fps) {
+        return;
+    }
+
     let draw = app.draw();
     let window = app.window_rect();
     let grid =
@@ -144,7 +154,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
         for (index, config) in model.displacer_configs.iter().enumerate() {
             let (_displacement, influence) = displacements[index];
-            let color_position = influence / (config.displacer.strength * 1.5);
+            let color_position = influence / config.displacer.strength;
             let color = gradient.get(color_position.clamp(0.0, 1.0));
             let weight = influence / total_influence.max(1.0);
             colors.push((color, weight));

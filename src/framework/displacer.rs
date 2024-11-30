@@ -1,18 +1,35 @@
 use nannou::prelude::*;
 
-#[derive(Debug, Clone)]
+impl std::fmt::Debug for Displacer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Displacer")
+            .field("position", &self.position)
+            .field("radius", &self.radius)
+            .field("strength", &self.strength)
+            .field("custom_distance_fn", &"<function>")
+            .finish()
+    }
+}
+
 pub struct Displacer {
     pub position: Vec2,
     pub radius: f32,
     pub strength: f32,
+    pub custom_distance_fn: Option<Box<dyn Fn(Vec2, Vec2) -> f32>>,
 }
 
 impl Displacer {
-    pub fn new(position: Vec2, radius: f32, strength: f32) -> Self {
+    pub fn new(
+        position: Vec2,
+        radius: f32,
+        strength: f32,
+        custom_distance_fn: Option<Box<dyn Fn(Vec2, Vec2) -> f32>>,
+    ) -> Self {
         Self {
             position,
             radius,
             strength,
+            custom_distance_fn,
         }
     }
 
@@ -32,7 +49,11 @@ impl Displacer {
 
     pub fn influence(&self, grid_point: Vec2) -> Vec2 {
         let radius = self.radius.max(f32::EPSILON);
-        let distance_to_center = grid_point.distance(self.position);
+
+        let distance_to_center = match &self.custom_distance_fn {
+            Some(f) => f(grid_point, self.position),
+            None => grid_point.distance(self.position),
+        };
 
         if distance_to_center == 0.0 {
             return vec2(0.0, 0.0);
