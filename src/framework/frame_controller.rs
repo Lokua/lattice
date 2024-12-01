@@ -1,3 +1,4 @@
+use log::debug;
 use nannou::prelude::*;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
@@ -49,13 +50,13 @@ impl FrameController {
         }
 
         if self.render_flag {
-            // println!(
-            //     "Rendering. Time since last: {:?}",
-            //     now - self.last_render_time
-            // );
+            debug!(
+                "Rendering. Time since last: {:?}",
+                now - self.last_render_time
+            );
             self.last_render_time = now;
         } else {
-            // println!("Skipping render this frame.");
+            debug!("Skipping render this frame.");
         }
     }
 

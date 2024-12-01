@@ -1,48 +1,36 @@
-use std::sync::Arc;
-
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
 
 use crate::framework::animation::Animation;
-use crate::framework::displacer::{Displacer, DisplacerState};
+use crate::framework::displacer::Displacer;
 use crate::framework::metadata::SketchMetadata;
 use crate::framework::util::create_grid;
 
 pub const METADATA: SketchMetadata = SketchMetadata {
     name: "displacement_1",
+    display_name: "Displacement v1",
     fps: 30.0,
     bpm: 134.0,
 };
 
 struct DisplacerConfig {
     displacer: Displacer,
-    animate_position: Box<dyn Fn(f32, &Displacer) -> Vec2>,
-    animate_radius: Box<dyn Fn(f32, &Displacer) -> f32>,
-    animate_strength: Box<dyn Fn(f32, &Displacer) -> f32>,
+    position_animation: Option<Vec2>,
+    radius_animation: Option<(f32, f32, f32)>,
 }
 
 impl DisplacerConfig {
     pub fn new(
         displacer: Displacer,
-        animate_position: Box<dyn Fn(f32, &Displacer) -> Vec2>,
-        animate_radius: Box<dyn Fn(f32, &Displacer) -> f32>,
-        animate_strength: Box<dyn Fn(f32, &Displacer) -> f32>,
+        position_animation: Option<Vec2>,
+        radius_animation: Option<(f32, f32, f32)>,
     ) -> Self {
         Self {
             displacer,
-            animate_position,
-            animate_radius,
-            animate_strength,
+            position_animation,
+            radius_animation,
         }
-    }
-
-    pub fn update(&mut self, time: f32) {
-        self.displacer.update(Some(DisplacerState {
-            position: Some((self.animate_position)(time, &self.displacer)),
-            radius: Some((self.animate_radius)(time, &self.displacer)),
-            strength: Some((self.animate_strength)(time, &self.displacer)),
-        }));
     }
 }
 
@@ -50,94 +38,84 @@ pub struct Model {
     _window: window::Id,
     circle_radius: f32,
     grid_size: usize,
-    displacer_configs: Vec<DisplacerConfig>,
-    #[allow(dead_code)]
-    animation: Arc<Animation>,
+    displacer_configs: [DisplacerConfig; 6],
+    animation: Animation,
 }
 
 pub fn model(app: &App) -> Model {
     let w: i32 = 700;
     let h: i32 = 700;
 
-    let _window = app.new_window().size(w as u32, h as u32).build().unwrap();
+    let _window = app
+        .new_window()
+        .title(METADATA.display_name)
+        .size(w as u32, h as u32)
+        .build()
+        .unwrap();
 
     let window = app.window(_window).unwrap();
     let winit_window: &WinitWindow = window.winit_window();
     winit_window
         .set_outer_position(nannou::winit::dpi::PhysicalPosition::new(0, 0));
 
-    // let mut animation = Animation::new(METADATA.bpm);
-    let animation = Arc::new(Animation::new(METADATA.bpm));
-
-    let dc1 = DisplacerConfig::new(
-        Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
-        Box::new(|_time, displacer| displacer.position),
-        Box::new({
-            let animation = Arc::clone(&animation);
-            move |_time, _displacer| {
-                map_range(
-                    animation.as_ref().get_ping_pong_loop_progress(0.5),
-                    0.0,
-                    1.0,
-                    50.0,
-                    150.0,
-                )
-            }
-        }),
-        Box::new({
-            let animation = Arc::clone(&animation);
-            move |_time, _displacer| {
-                map_range(
-                    animation.as_ref().get_ping_pong_loop_progress(0.5),
-                    0.0,
-                    1.0,
-                    20.0,
-                    100.0,
-                )
-            }
-        }),
-    );
-
-    let mut displacer_configs = vec![
-        dc1,
-        DisplacerConfig::new(
-            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
-            Box::new(move |time, _displacer| {
-                vec2(200.0 * time.cos(), 200.0 * time.sin())
-            }),
-            Box::new({
-                let animation = Arc::clone(&animation);
-                move |_time, _displacer| {
-                    map_range(
-                        animation.as_ref().get_ping_pong_loop_progress(3.0),
-                        0.0,
-                        1.0,
-                        70.0,
-                        250.0,
-                    )
-                }
-            }),
-            Box::new(move |_time, _displacer| 60.0 + 50.0 * (1.0 * 12.0).cos()),
-        ),
-    ];
+    let animation = Animation::new(METADATA.bpm);
 
     let pad = 40.0;
-    let corner_placements = vec![
-        vec2((w as f32 / 2.0) - pad, (h as f32 / 2.0) - pad),
-        vec2((-w as f32 / 2.0) + pad, (h as f32 / 2.0) - pad),
-        vec2((-w as f32 / 2.0) + pad, (-h as f32 / 2.0) + pad),
-        vec2((w as f32 / 2.0) - pad, (-h as f32 / 2.0) + pad),
+    let corner_radius_animation = Some((25.0, 50.0, 1.0));
+    let corner_strength = 25.0;
+
+    let displacer_configs = [
+        DisplacerConfig::new(
+            Displacer::new(vec2(0.0, 0.0), 10.0, 50.0, None),
+            None,
+            Some((50.0, 300.0, 0.5)),
+        ),
+        DisplacerConfig::new(
+            Displacer::new(vec2(200.0, 200.0), 150.0, 50.0, None),
+            Some(vec2(200.0, 200.0)),
+            Some((25.0, 250.0, 1.5)),
+        ),
+        DisplacerConfig::new(
+            Displacer::new(
+                vec2((w as f32 / 2.0) - pad, (h as f32 / 2.0) - pad),
+                10.0,
+                corner_strength,
+                None,
+            ),
+            None,
+            corner_radius_animation,
+        ),
+        DisplacerConfig::new(
+            Displacer::new(
+                vec2((-w as f32 / 2.0) + pad, (h as f32 / 2.0) - pad),
+                10.0,
+                corner_strength,
+                None,
+            ),
+            None,
+            corner_radius_animation,
+        ),
+        DisplacerConfig::new(
+            Displacer::new(
+                vec2((-w as f32 / 2.0) + pad, (-h as f32 / 2.0) + pad),
+                10.0,
+                corner_strength,
+                None,
+            ),
+            None,
+            corner_radius_animation,
+        ),
+        DisplacerConfig::new(
+            Displacer::new(
+                vec2((w as f32 / 2.0) - pad, (-h as f32 / 2.0) + pad),
+                10.0,
+                corner_strength,
+                None,
+            ),
+            None,
+            corner_radius_animation,
+        ),
     ];
-    for corner in corner_placements {
-        displacer_configs.push(DisplacerConfig::new(
-            Displacer::new(corner, 10.0, 20.0, None),
-            Box::new(|_time, displacer| displacer.position),
-            Box::new(move |_time, _displacer| {
-                20.0 + 20.0 * ((1.0 * 16.0).sin())
-            }),
-            Box::new(|_time, displacer| displacer.strength),
-        ));
-    }
 
     Model {
         _window,
@@ -150,7 +128,16 @@ pub fn model(app: &App) -> Model {
 
 pub fn update(app: &App, model: &mut Model, _update: Update) {
     for config in &mut model.displacer_configs {
-        config.update(app.time);
+        if let Some((min, max, duration)) = config.radius_animation {
+            let value = model.animation.get_ping_pong_loop_progress(duration);
+            let radius = map_range(value, 0.0, 1.0, min, max);
+            config.displacer.set_radius(radius);
+        }
+        if let Some(v) = config.position_animation {
+            config
+                .displacer
+                .set_position(vec2(v.x * app.time.cos(), v.y * app.time.sin()));
+        }
     }
 }
 

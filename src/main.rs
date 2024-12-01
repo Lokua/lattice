@@ -1,11 +1,15 @@
 use crate::framework::frame_controller;
+use crate::framework::logger::init_logger;
+use log::info;
 
 pub mod framework;
 mod sketches;
 
 fn main() {
+    init_logger();
+
     use sketches::displacement_1;
-    println!("Loading {}", displacement_1::METADATA.name);
+    info!("Loading {}", displacement_1::METADATA.display_name);
 
     frame_controller::init_controller(displacement_1::METADATA.fps);
 

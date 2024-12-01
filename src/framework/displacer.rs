@@ -69,6 +69,18 @@ impl Displacer {
 
         vec2(dx, dy)
     }
+
+    pub fn set_position(&mut self, position: Vec2) {
+        self.position = position;
+    }
+
+    pub fn set_radius(&mut self, radius: f32) {
+        self.radius = radius;
+    }
+
+    pub fn set_strength(&mut self, strength: f32) {
+        self.strength = strength;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -76,4 +88,29 @@ pub struct DisplacerState {
     pub position: Option<Vec2>,
     pub radius: Option<f32>,
     pub strength: Option<f32>,
+}
+
+impl DisplacerState {
+    pub fn new() -> Self {
+        Self {
+            position: None,
+            radius: None,
+            strength: None,
+        }
+    }
+
+    pub fn with_position(mut self, position: Vec2) -> Self {
+        self.position = Some(position);
+        self
+    }
+
+    pub fn with_radius(mut self, radius: f32) -> Self {
+        self.radius = Some(radius);
+        self
+    }
+
+    pub fn with_strength(mut self, strength: f32) -> Self {
+        self.strength = Some(strength);
+        self
+    }
 }
