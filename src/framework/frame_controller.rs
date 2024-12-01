@@ -28,32 +28,24 @@ impl FrameController {
     pub fn update(&mut self) {
         let now = Instant::now();
         let elapsed = now - self.last_frame_time;
+        self.accumulator += elapsed;
+        self.last_frame_time = now;
+        self.render_flag = false;
 
-        if elapsed >= Duration::from_millis(1) {
-            println!("\nFrame Controller Debug:");
-            println!("  Elapsed since last check: {:?}", elapsed);
-            println!("  Current accumulator: {:?}", self.accumulator);
+        // Render frames for each interval the accumulator surpasses
+        while self.accumulator >= self.frame_duration {
+            self.accumulator -= self.frame_duration;
+            self.frame_count += 1;
+            self.render_flag = true;
+        }
 
-            self.accumulator += elapsed;
-            println!(
-                "  Accumulator after adding elapsed: {:?}",
-                self.accumulator
-            );
-            println!("  Target frame duration: {:?}", self.frame_duration);
+        // Adjust for small drifts (if the drift is negligible, round up to the next frame)
+        if self.accumulator < Duration::from_millis(1) {
+            self.accumulator = Duration::ZERO;
+        }
 
-            self.last_frame_time = now;
-
-            self.render_flag = self.accumulator >= self.frame_duration;
-            if self.render_flag {
-                self.accumulator -= self.frame_duration;
-                self.frame_count += 1;
-                println!("  WILL RENDER - Frame {}", self.frame_count);
-                println!("  Remaining accumulator: {:?}", self.accumulator);
-            } else {
-                println!("  Skipping render");
-            }
-        } else {
-            self.render_flag = false;
+        if !self.render_flag {
+            println!("Skipping render this frame.");
         }
     }
 
@@ -109,4 +101,9 @@ where
     if should_render {
         view_fn(app, model, frame);
     }
+}
+
+pub fn get_frame_count() -> u64 {
+    let controller = CONTROLLER.lock().unwrap();
+    controller.as_ref().map_or(0, |c| c.get_frame_count())
 }
