@@ -1,6 +1,7 @@
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
+use nannou_egui::{self, egui, Egui};
 
 use crate::framework::animation::Animation;
 use crate::framework::displacer::Displacer;
@@ -13,6 +14,10 @@ pub const METADATA: SketchMetadata = SketchMetadata {
     fps: 30.0,
     bpm: 134.0,
 };
+
+struct Settings {
+    strength: f32,
+}
 
 struct DisplacerConfig {
     displacer: Displacer,
@@ -36,6 +41,8 @@ impl DisplacerConfig {
 
 pub struct Model {
     _window: window::Id,
+    egui: Egui,
+    settings: Settings,
     circle_radius: f32,
     grid_size: usize,
     displacer_configs: [DisplacerConfig; 6],
@@ -50,6 +57,7 @@ pub fn model(app: &App) -> Model {
         .new_window()
         .title(METADATA.display_name)
         .size(w as u32, h as u32)
+        .raw_event(raw_window_event)
         .build()
         .unwrap();
 
@@ -57,6 +65,8 @@ pub fn model(app: &App) -> Model {
     let winit_window: &WinitWindow = window.winit_window();
     winit_window
         .set_outer_position(nannou::winit::dpi::PhysicalPosition::new(0, 0));
+
+    let egui = Egui::from_window(&window);
 
     let animation = Animation::new(METADATA.bpm);
 
@@ -119,6 +129,8 @@ pub fn model(app: &App) -> Model {
 
     Model {
         _window,
+        egui,
+        settings: Settings { strength: 50.0 },
         circle_radius: 2.0,
         grid_size: 64,
         displacer_configs,
@@ -126,19 +138,41 @@ pub fn model(app: &App) -> Model {
     }
 }
 
-pub fn update(app: &App, model: &mut Model, _update: Update) {
+pub fn update(app: &App, model: &mut Model, update: Update) {
+    let egui = &mut model.egui;
+    let settings = &mut model.settings;
+    egui.set_elapsed_time(update.since_start);
+    let ctx = egui.begin_frame();
+
+    egui::Window::new("Settings").show(&ctx, |ui| {
+        ui.label("Strength:");
+        ui.add(egui::Slider::new(&mut settings.strength, 1.0..=200.0));
+    });
+
     for config in &mut model.displacer_configs {
+        config.displacer.set_strength(settings.strength);
+
         if let Some((min, max, duration)) = config.radius_animation {
             let value = model.animation.get_ping_pong_loop_progress(duration);
             let radius = map_range(value, 0.0, 1.0, min, max);
             config.displacer.set_radius(radius);
         }
+
         if let Some(v) = config.position_animation {
             config
                 .displacer
                 .set_position(vec2(v.x * app.time.cos(), v.y * app.time.sin()));
         }
     }
+}
+
+fn raw_window_event(
+    _app: &App,
+    model: &mut Model,
+    event: &nannou::winit::event::WindowEvent,
+) {
+    // Let egui handle things like keyboard and mouse input.
+    model.egui.handle_raw_event(event);
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
@@ -199,5 +233,6 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .color(blended_color);
     }
 
-    draw.to_frame(app, &frame).unwrap()
+    draw.to_frame(app, &frame).unwrap();
+    model.egui.draw_to_frame(&frame).unwrap();
 }
