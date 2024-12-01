@@ -1,4 +1,4 @@
-use nannou::LoopMode;
+use crate::framework::frame_controller;
 
 pub mod framework;
 mod sketches;
@@ -6,9 +6,25 @@ mod sketches;
 fn main() {
     use sketches::displacement_1;
     println!("Loading {}", displacement_1::METADATA.name);
+
+    frame_controller::init_controller(displacement_1::METADATA.fps);
+
     nannou::app(displacement_1::model)
-        .loop_mode(LoopMode::rate_fps(displacement_1::METADATA.fps))
-        .update(displacement_1::update)
-        .view(displacement_1::view)
+        .update(|app, model, update| {
+            frame_controller::wrapped_update(
+                app,
+                model,
+                update,
+                displacement_1::update,
+            );
+        })
+        .view(|app, model, frame| {
+            frame_controller::wrapped_view(
+                app,
+                model,
+                frame,
+                displacement_1::view,
+            );
+        })
         .run();
 }

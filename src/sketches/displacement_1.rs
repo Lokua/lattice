@@ -1,14 +1,17 @@
+use std::cell::RefCell;
+use std::time::Instant;
+
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
 
 use crate::framework::displacer::{Displacer, DisplacerState};
 use crate::framework::metadata::SketchMetadata;
-use crate::framework::util::{create_grid, should_render_frame};
+use crate::framework::util::create_grid;
 
 pub const METADATA: SketchMetadata = SketchMetadata {
     name: "displacement_1",
-    fps: 60.0,
+    fps: 30.0,
 };
 
 struct DisplacerConfig {
@@ -47,6 +50,7 @@ pub struct Model {
     circle_radius: f32,
     grid_size: usize,
     displacer_configs: Vec<DisplacerConfig>,
+    last_frame_time: RefCell<Instant>,
 }
 
 pub fn model(app: &App) -> Model {
@@ -56,7 +60,7 @@ pub fn model(app: &App) -> Model {
     let _window = app
         .new_window()
         .size(w as u32, h as u32)
-        .view(view)
+        // .view(view)
         .build()
         .unwrap();
 
@@ -101,6 +105,7 @@ pub fn model(app: &App) -> Model {
         circle_radius: 2.0,
         grid_size: 64,
         displacer_configs,
+        last_frame_time: RefCell::new(Instant::now()),
     }
 }
 
@@ -111,9 +116,14 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
-    if !should_render_frame(app, METADATA.fps) {
-        return;
-    }
+    let start_now = Instant::now();
+    let start_duration =
+        start_now.duration_since(*model.last_frame_time.borrow());
+    println!("Start - Time since last frame: {:?}", start_duration);
+    println!("View function start");
+    // if !should_render_frame(app, METADATA.fps) {
+    //     return;
+    // }
 
     let draw = app.draw();
     let window = app.window_rect();
@@ -171,6 +181,12 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .xy(point + total_displacement)
             .color(blended_color);
     }
+
+    let end_now = Instant::now();
+    let end_duration = end_now.duration_since(*model.last_frame_time.borrow());
+    println!("End - Time since last frame: {:?}", end_duration);
+    *model.last_frame_time.borrow_mut() = end_now;
+    println!("View function end");
 
     draw.to_frame(app, &frame).unwrap()
 }

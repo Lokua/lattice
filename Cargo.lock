@@ -901,6 +901,7 @@ name = "lattice"
 version = "0.1.0"
 dependencies = [
  "nannou",
+ "once_cell",
 ]
 
 [[package]]
