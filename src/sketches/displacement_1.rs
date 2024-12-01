@@ -1,10 +1,10 @@
-use std::cell::RefCell;
-use std::time::Instant;
+use std::sync::Arc;
 
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
 
+use crate::framework::animation::Animation;
 use crate::framework::displacer::{Displacer, DisplacerState};
 use crate::framework::metadata::SketchMetadata;
 use crate::framework::util::create_grid;
@@ -12,6 +12,7 @@ use crate::framework::util::create_grid;
 pub const METADATA: SketchMetadata = SketchMetadata {
     name: "displacement_1",
     fps: 30.0,
+    bpm: 134.0,
 };
 
 struct DisplacerConfig {
@@ -50,37 +51,73 @@ pub struct Model {
     circle_radius: f32,
     grid_size: usize,
     displacer_configs: Vec<DisplacerConfig>,
-    last_frame_time: RefCell<Instant>,
+    #[allow(dead_code)]
+    animation: Arc<Animation>,
 }
 
 pub fn model(app: &App) -> Model {
     let w: i32 = 700;
     let h: i32 = 700;
 
-    let _window = app
-        .new_window()
-        .size(w as u32, h as u32)
-        // .view(view)
-        .build()
-        .unwrap();
+    let _window = app.new_window().size(w as u32, h as u32).build().unwrap();
 
     let window = app.window(_window).unwrap();
     let winit_window: &WinitWindow = window.winit_window();
     winit_window
         .set_outer_position(nannou::winit::dpi::PhysicalPosition::new(0, 0));
 
+    // let mut animation = Animation::new(METADATA.bpm);
+    let animation = Arc::new(Animation::new(METADATA.bpm));
+
+    let dc1 = DisplacerConfig::new(
+        Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
+        Box::new(|_time, displacer| displacer.position),
+        Box::new({
+            let animation = Arc::clone(&animation);
+            move |_time, _displacer| {
+                map_range(
+                    animation.as_ref().get_ping_pong_loop_progress(0.5),
+                    0.0,
+                    1.0,
+                    50.0,
+                    150.0,
+                )
+            }
+        }),
+        Box::new({
+            let animation = Arc::clone(&animation);
+            move |_time, _displacer| {
+                map_range(
+                    animation.as_ref().get_ping_pong_loop_progress(0.5),
+                    0.0,
+                    1.0,
+                    20.0,
+                    100.0,
+                )
+            }
+        }),
+    );
+
     let mut displacer_configs = vec![
+        dc1,
         DisplacerConfig::new(
             Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
-            Box::new(|_time, displacer| displacer.position),
-            Box::new(|time, _d| 200.0 + 100.0 * (time * 24.0).sin()),
-            Box::new(|time, _d| 60.0 + 50.0 * (time * 12.0).cos()),
-        ),
-        DisplacerConfig::new(
-            Displacer::new(vec2(0.0, 0.0), 100.0, 50.0, None),
-            Box::new(|time, _d| vec2(200.0 * time.cos(), 200.0 * time.sin())),
-            Box::new(|time, _d| 200.0 + 100.0 * (time * 24.0).sin()),
-            Box::new(|time, _d| 60.0 + 50.0 * (time * 12.0).cos()),
+            Box::new(move |time, _displacer| {
+                vec2(200.0 * time.cos(), 200.0 * time.sin())
+            }),
+            Box::new({
+                let animation = Arc::clone(&animation);
+                move |_time, _displacer| {
+                    map_range(
+                        animation.as_ref().get_ping_pong_loop_progress(3.0),
+                        0.0,
+                        1.0,
+                        70.0,
+                        250.0,
+                    )
+                }
+            }),
+            Box::new(move |_time, _displacer| 60.0 + 50.0 * (1.0 * 12.0).cos()),
         ),
     ];
 
@@ -95,7 +132,9 @@ pub fn model(app: &App) -> Model {
         displacer_configs.push(DisplacerConfig::new(
             Displacer::new(corner, 10.0, 20.0, None),
             Box::new(|_time, displacer| displacer.position),
-            Box::new(|time, _d| 20.0 + 20.0 * ((time * 16.0).sin())),
+            Box::new(move |_time, _displacer| {
+                20.0 + 20.0 * ((1.0 * 16.0).sin())
+            }),
             Box::new(|_time, displacer| displacer.strength),
         ));
     }
@@ -105,7 +144,7 @@ pub fn model(app: &App) -> Model {
         circle_radius: 2.0,
         grid_size: 64,
         displacer_configs,
-        last_frame_time: RefCell::new(Instant::now()),
+        animation,
     }
 }
 
@@ -116,15 +155,6 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
-    let start_now = Instant::now();
-    let start_duration =
-        start_now.duration_since(*model.last_frame_time.borrow());
-    println!("Start - Time since last frame: {:?}", start_duration);
-    println!("View function start");
-    // if !should_render_frame(app, METADATA.fps) {
-    //     return;
-    // }
-
     let draw = app.draw();
     let window = app.window_rect();
     let grid =
@@ -181,12 +211,6 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .xy(point + total_displacement)
             .color(blended_color);
     }
-
-    let end_now = Instant::now();
-    let end_duration = end_now.duration_since(*model.last_frame_time.borrow());
-    println!("End - Time since last frame: {:?}", end_duration);
-    *model.last_frame_time.borrow_mut() = end_now;
-    println!("View function end");
 
     draw.to_frame(app, &frame).unwrap()
 }

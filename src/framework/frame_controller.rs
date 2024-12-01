@@ -7,7 +7,9 @@ pub struct FrameController {
     #[allow(dead_code)]
     target_fps: f64,
     frame_duration: Duration,
+    // Captured every loop regardless of skipped/rendered frames
     last_frame_time: Instant,
+    last_render_time: Instant,
     accumulator: Duration,
     frame_count: u64,
     render_flag: bool,
@@ -15,10 +17,12 @@ pub struct FrameController {
 
 impl FrameController {
     pub fn new(target_fps: f64) -> Self {
+        let now = Instant::now();
         Self {
             target_fps,
             frame_duration: Duration::from_secs_f64(1.0 / target_fps),
-            last_frame_time: Instant::now(),
+            last_frame_time: now,
+            last_render_time: now,
             accumulator: Duration::ZERO,
             frame_count: 0,
             render_flag: false,
@@ -44,8 +48,14 @@ impl FrameController {
             self.accumulator = Duration::ZERO;
         }
 
-        if !self.render_flag {
-            println!("Skipping render this frame.");
+        if self.render_flag {
+            // println!(
+            //     "Rendering. Time since last: {:?}",
+            //     now - self.last_render_time
+            // );
+            self.last_render_time = now;
+        } else {
+            // println!("Skipping render this frame.");
         }
     }
 
@@ -55,6 +65,10 @@ impl FrameController {
 
     pub fn get_frame_count(&self) -> u64 {
         self.frame_count
+    }
+
+    pub fn get_fps(&self) -> f64 {
+        self.target_fps
     }
 }
 
@@ -106,4 +120,9 @@ where
 pub fn get_frame_count() -> u64 {
     let controller = CONTROLLER.lock().unwrap();
     controller.as_ref().map_or(0, |c| c.get_frame_count())
+}
+
+pub fn get_fps() -> f64 {
+    let controller = CONTROLLER.lock().unwrap();
+    controller.as_ref().map_or(0.0, |c| c.get_fps())
 }
