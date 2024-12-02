@@ -1,3 +1,3 @@
 max_width = 80
-# tab_spaces = 2  # Change to 2 spaces if preferred
+# tab_spaces = 2 
 # brace_style = "AlwaysNextLine"  # Puts opening braces on a new line
