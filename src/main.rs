@@ -47,7 +47,7 @@ fn main() {
 
     match sketch_name {
         "template" => run_sketch!(template),
-        // "displacement_1" => run_sketch!(displacement_1),
+        "displacement_1" => run_sketch!(displacement_1),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)
@@ -69,24 +69,27 @@ fn model<S: 'static>(
     init_sketch_model: fn() -> S,
     sketch_config: &'static SketchConfig,
 ) -> AppModel<S> {
+    let w = sketch_config.w as u32;
+    let h = sketch_config.h as u32;
+
     let main_window_id = app
         .new_window()
         .title(sketch_config.display_name)
-        .size(sketch_config.w, sketch_config.h)
+        .size(w, h)
         .build()
         .unwrap();
 
     let gui_window_id = app
         .new_window()
         .title(format!("{} Controls", sketch_config.display_name))
-        .size(sketch_config.w / 2, sketch_config.h / 2)
+        .size(w / 2, h / 2)
         .view(view_gui::<S>)
         .raw_event(raw_window_event::<S>)
         .build()
         .unwrap();
 
     set_window_position(app, main_window_id, 0, 0);
-    set_window_position(app, gui_window_id, (sketch_config.w * 2) as i32, 0);
+    set_window_position(app, gui_window_id, sketch_config.w * 2, 0);
 
     let egui = Egui::from_window(&app.window(gui_window_id).unwrap());
 
