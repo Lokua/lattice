@@ -1,13 +1,15 @@
 use nannou::prelude::*;
 
 use crate::framework::animation::Animation;
-use crate::framework::metadata::SketchMetadata;
+use crate::framework::sketch::SketchConfig;
 
-pub const METADATA: SketchMetadata = SketchMetadata {
+pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "template",
     display_name: "Template",
     fps: 60.0,
     bpm: 134.0,
+    w: 700,
+    h: 700,
 };
 
 struct Object {
@@ -64,7 +66,7 @@ pub struct Model {
 }
 
 pub fn init_model() -> Model {
-    let animation = Animation::new(METADATA.bpm);
+    let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let object_configs = vec![
         ObjectConfig {
