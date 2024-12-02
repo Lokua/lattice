@@ -10,10 +10,28 @@ pub mod framework;
 mod sketches;
 
 macro_rules! run_sketch {
-    ($sketch:ident) => {{
-        info!("Loading {}", sketches::$sketch::METADATA.display_name);
-        frame_controller::init_controller(sketches::$sketch::METADATA.fps);
-        nannou::app(model).update(update).view(view).run();
+    ($sketch_module:ident) => {{
+        info!(
+            "Loading {}",
+            sketches::$sketch_module::METADATA.display_name
+        );
+        frame_controller::init_controller(
+            sketches::$sketch_module::METADATA.fps,
+        );
+
+        nannou::app(|app| model(app, sketches::$sketch_module::init_model))
+            .update(|app, model, nannou_update| {
+                update(
+                    app,
+                    model,
+                    nannou_update,
+                    sketches::$sketch_module::update,
+                )
+            })
+            .view(|app, model, frame| {
+                view(app, model, frame, sketches::$sketch_module::view)
+            })
+            .run();
     }};
 }
 
@@ -25,7 +43,7 @@ fn main() {
 
     match sketch_name {
         "template" => run_sketch!(template),
-        "displacement_1" => run_sketch!(displacement_1),
+        // "displacement_1" => run_sketch!(displacement_1),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)
@@ -33,34 +51,31 @@ fn main() {
     }
 }
 
-struct AppModel {
+struct AppModel<S> {
     main_window_id: window::Id,
     #[allow(dead_code)]
     gui_window_id: window::Id,
     egui: Egui,
-    sketch_model: sketches::template::Model,
+    sketch_model: S,
 }
 
-fn model(app: &App) -> AppModel {
+fn model<S: 'static>(app: &App, init_sketch_model: fn() -> S) -> AppModel<S> {
     let w: i32 = 700;
     let h: i32 = 700;
 
     let main_window_id = app
         .new_window()
-        .title(sketches::template::METADATA.display_name)
+        .title("Main Window")
         .size(w as u32, h as u32)
         .build()
         .unwrap();
 
     let gui_window_id = app
         .new_window()
-        .title(format!(
-            "{} Controls",
-            sketches::template::METADATA.display_name
-        ))
+        .title("Controls")
         .size(w as u32 / 2, h as u32 / 2)
-        .view(view_gui)
-        .raw_event(raw_window_event)
+        .view(view_gui::<S>)
+        .raw_event(raw_window_event::<S>)
         .build()
         .unwrap();
 
@@ -69,7 +84,7 @@ fn model(app: &App) -> AppModel {
 
     let egui = Egui::from_window(&app.window(gui_window_id).unwrap());
 
-    let sketch_model = sketches::template::init_model();
+    let sketch_model = init_sketch_model();
 
     AppModel {
         main_window_id,
@@ -79,12 +94,18 @@ fn model(app: &App) -> AppModel {
     }
 }
 
-fn update(app: &App, model: &mut AppModel, update: Update) {
+fn update<S>(
+    app: &App,
+    model: &mut AppModel<S>,
+    update: Update,
+    sketch_update_fn: fn(&App, &mut S, Update),
+    // sketch_gui_fn: fn(&egui::Context, &mut egui::Ui, &mut S),
+) {
     frame_controller::wrapped_update(
         app,
         &mut model.sketch_model,
         update,
-        sketches::template::update,
+        sketch_update_fn,
     );
 
     model.egui.set_elapsed_time(update.since_start);
@@ -93,11 +114,7 @@ fn update(app: &App, model: &mut AppModel, update: Update) {
     egui::CentralPanel::default().show(&ctx, |ui| {
         if ui.button("Capture Frame").clicked() {
             if let Some(window) = app.window(model.main_window_id) {
-                let filename = format!(
-                    "{}-{}.png",
-                    sketches::template::METADATA.name,
-                    uuid_5()
-                );
+                let filename = format!("screenshot-{}.png", uuid_5());
                 let file_path =
                     app.project_path().unwrap().join("images").join(filename);
                 window.capture_frame(file_path);
@@ -105,26 +122,31 @@ fn update(app: &App, model: &mut AppModel, update: Update) {
         }
 
         // Sketch-specific controls
-        // sketches::template::gui(&ctx, ui, &mut model.sketch_model);
+        // sketch_gui_fn(&ctx, ui, &mut model.sketch_model);
     });
 }
 
-fn view(app: &App, model: &AppModel, frame: Frame) {
+fn view<S>(
+    app: &App,
+    model: &AppModel<S>,
+    frame: Frame,
+    sketch_view_fn: fn(&App, &S, Frame),
+) {
     frame_controller::wrapped_view(
         app,
         &model.sketch_model,
         frame,
-        sketches::template::view,
+        sketch_view_fn,
     );
 }
 
-fn view_gui(_app: &App, model: &AppModel, frame: Frame) {
+fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
 }
 
-fn raw_window_event(
+fn raw_window_event<S>(
     _app: &App,
-    model: &mut AppModel,
+    model: &mut AppModel<S>,
     event: &nannou::winit::event::WindowEvent,
 ) {
     model.egui.handle_raw_event(event);
