@@ -41,3 +41,10 @@ pub fn should_render_frame(app: &App, target_fps: f64) -> bool {
     let elapsed_frames = app.elapsed_frames();
     elapsed_frames % desired_frame_interval == 0
 }
+
+pub fn set_window_position(app: &App, window_id: window::Id, x: i32, y: i32) {
+    app.window(window_id)
+        .unwrap()
+        .winit_window()
+        .set_outer_position(nannou::winit::dpi::PhysicalPosition::new(x, y));
+}
