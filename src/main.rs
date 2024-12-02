@@ -1,6 +1,9 @@
 use crate::framework::frame_controller;
 use crate::framework::logger::init_logger;
-use framework::util::{set_window_position, uuid_5};
+use framework::{
+    sketch::SketchConfig,
+    util::{set_window_position, uuid_5},
+};
 use log::{info, warn};
 use nannou::prelude::*;
 use nannou_egui::{self, egui, Egui};
@@ -13,25 +16,26 @@ macro_rules! run_sketch {
     ($sketch_module:ident) => {{
         info!(
             "Loading {}",
-            sketches::$sketch_module::METADATA.display_name
+            sketches::$sketch_module::SKETCH_CONFIG.display_name
         );
         frame_controller::init_controller(
-            sketches::$sketch_module::METADATA.fps,
+            sketches::$sketch_module::SKETCH_CONFIG.fps,
         );
 
-        nannou::app(|app| model(app, sketches::$sketch_module::init_model))
-            .update(|app, model, nannou_update| {
-                update(
-                    app,
-                    model,
-                    nannou_update,
-                    sketches::$sketch_module::update,
-                )
-            })
-            .view(|app, model, frame| {
-                view(app, model, frame, sketches::$sketch_module::view)
-            })
-            .run();
+        nannou::app(|app| {
+            model(
+                app,
+                sketches::$sketch_module::init_model,
+                &sketches::$sketch_module::SKETCH_CONFIG,
+            )
+        })
+        .update(|app, model, nannou_update| {
+            update(app, model, nannou_update, sketches::$sketch_module::update)
+        })
+        .view(|app, model, frame| {
+            view(app, model, frame, sketches::$sketch_module::view)
+        })
+        .run();
     }};
 }
 
@@ -57,30 +61,32 @@ struct AppModel<S> {
     gui_window_id: window::Id,
     egui: Egui,
     sketch_model: S,
+    sketch_config: &'static SketchConfig,
 }
 
-fn model<S: 'static>(app: &App, init_sketch_model: fn() -> S) -> AppModel<S> {
-    let w: i32 = 700;
-    let h: i32 = 700;
-
+fn model<S: 'static>(
+    app: &App,
+    init_sketch_model: fn() -> S,
+    sketch_config: &'static SketchConfig,
+) -> AppModel<S> {
     let main_window_id = app
         .new_window()
-        .title("Main Window")
-        .size(w as u32, h as u32)
+        .title(sketch_config.display_name)
+        .size(sketch_config.w, sketch_config.h)
         .build()
         .unwrap();
 
     let gui_window_id = app
         .new_window()
-        .title("Controls")
-        .size(w as u32 / 2, h as u32 / 2)
+        .title(format!("{} Controls", sketch_config.display_name))
+        .size(sketch_config.w / 2, sketch_config.h / 2)
         .view(view_gui::<S>)
         .raw_event(raw_window_event::<S>)
         .build()
         .unwrap();
 
     set_window_position(app, main_window_id, 0, 0);
-    set_window_position(app, gui_window_id, w * 2, 0);
+    set_window_position(app, gui_window_id, (sketch_config.w * 2) as i32, 0);
 
     let egui = Egui::from_window(&app.window(gui_window_id).unwrap());
 
@@ -91,6 +97,7 @@ fn model<S: 'static>(app: &App, init_sketch_model: fn() -> S) -> AppModel<S> {
         gui_window_id,
         egui,
         sketch_model,
+        sketch_config,
     }
 }
 
@@ -114,7 +121,8 @@ fn update<S>(
     egui::CentralPanel::default().show(&ctx, |ui| {
         if ui.button("Capture Frame").clicked() {
             if let Some(window) = app.window(model.main_window_id) {
-                let filename = format!("screenshot-{}.png", uuid_5());
+                let filename =
+                    format!("{}-{}.png", model.sketch_config.name, uuid_5());
                 let file_path =
                     app.project_path().unwrap().join("images").join(filename);
                 window.capture_frame(file_path);
