@@ -2,6 +2,7 @@ use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use nannou::winit::window::Window as WinitWindow;
 use nannou_egui::{self, egui, Egui};
+use std::f32::consts::PI;
 
 use crate::framework::animation::Animation;
 use crate::framework::displacer::Displacer;
@@ -22,20 +23,37 @@ struct Settings {
 
 struct DisplacerConfig {
     displacer: Displacer,
-    position_animation: Option<Vec2>,
-    radius_animation: Option<(f32, f32, f32)>,
+    position_animation:
+        Option<Box<dyn Fn(&Displacer, &Animation, &Settings) -> Vec2>>,
+    radius_animation:
+        Option<Box<dyn Fn(&Displacer, &Animation, &Settings) -> f32>>,
 }
 
 impl DisplacerConfig {
     pub fn new(
         displacer: Displacer,
-        position_animation: Option<Vec2>,
-        radius_animation: Option<(f32, f32, f32)>,
+        position_animation: Option<
+            Box<dyn Fn(&Displacer, &Animation, &Settings) -> Vec2>,
+        >,
+        radius_animation: Option<
+            Box<dyn Fn(&Displacer, &Animation, &Settings) -> f32>,
+        >,
     ) -> Self {
         Self {
             displacer,
             position_animation,
             radius_animation,
+        }
+    }
+
+    pub fn update(&mut self, animation: &Animation, settings: &Settings) {
+        if let Some(position_fn) = &self.position_animation {
+            self.displacer.position =
+                position_fn(&self.displacer, animation, settings);
+        }
+        if let Some(radius_fn) = &self.radius_animation {
+            self.displacer.radius =
+                radius_fn(&self.displacer, animation, settings);
         }
     }
 }
@@ -72,19 +90,40 @@ pub fn model(app: &App) -> Model {
     let animation = Animation::new(METADATA.bpm);
 
     let pad = 40.0;
-    let corner_radius_animation = Some((25.0, 50.0, 1.0));
+    // let corner_radius_animation = Some((25.0, 50.0, 1.0));
     let corner_strength = 25.0;
+
+    let settings = Settings {
+        strength: 50.0,
+        max_radius: 200.0,
+    };
 
     let displacer_configs = [
         DisplacerConfig::new(
             Displacer::new(vec2(0.0, 0.0), 10.0, 50.0, None),
             None,
-            Some((50.0, 300.0, 0.5)),
+            Some(Box::new(|_displacer, ax, settings| {
+                let value = ax.get_ping_pong_loop_progress(0.5);
+                let radius =
+                    map_range(value, 0.0, 1.0, 50.0, settings.max_radius);
+                radius
+            })),
         ),
         DisplacerConfig::new(
             Displacer::new(vec2(200.0, 200.0), 150.0, 50.0, None),
-            Some(vec2(200.0, 200.0)),
-            Some((25.0, 250.0, 1.5)),
+            Some(Box::new(|_displacer, ax, _settings| {
+                let movement_radius = 175.0;
+                let angle = ax.get_loop_progress(8.0) * PI * 2.0;
+                let x = angle.cos() * movement_radius;
+                let y = angle.sin() * movement_radius;
+                vec2(x, y)
+            })),
+            Some(Box::new(|_displacer, ax, settings| {
+                let progress = ax.get_ping_pong_loop_progress(1.5);
+                let radius =
+                    map_range(progress, 0.0, 1.0, 50.0, settings.max_radius);
+                radius
+            })),
         ),
         DisplacerConfig::new(
             Displacer::new(
@@ -94,7 +133,7 @@ pub fn model(app: &App) -> Model {
                 None,
             ),
             None,
-            corner_radius_animation,
+            None,
         ),
         DisplacerConfig::new(
             Displacer::new(
@@ -104,7 +143,7 @@ pub fn model(app: &App) -> Model {
                 None,
             ),
             None,
-            corner_radius_animation,
+            None,
         ),
         DisplacerConfig::new(
             Displacer::new(
@@ -114,7 +153,7 @@ pub fn model(app: &App) -> Model {
                 None,
             ),
             None,
-            corner_radius_animation,
+            None,
         ),
         DisplacerConfig::new(
             Displacer::new(
@@ -124,17 +163,14 @@ pub fn model(app: &App) -> Model {
                 None,
             ),
             None,
-            corner_radius_animation,
+            None,
         ),
     ];
 
     Model {
         _window,
         egui,
-        settings: Settings {
-            strength: 50.0,
-            max_radius: 200.0,
-        },
+        settings,
         circle_radius: 2.0,
         grid_size: 64,
         displacer_configs,
@@ -142,7 +178,7 @@ pub fn model(app: &App) -> Model {
     }
 }
 
-pub fn update(app: &App, model: &mut Model, update: Update) {
+pub fn update(_app: &App, model: &mut Model, update: Update) {
     let egui = &mut model.egui;
     let settings = &mut model.settings;
     egui.set_elapsed_time(update.since_start);
@@ -156,19 +192,8 @@ pub fn update(app: &App, model: &mut Model, update: Update) {
     });
 
     for config in &mut model.displacer_configs {
-        config.displacer.set_strength(settings.strength);
-
-        if let Some((min, _max, duration)) = config.radius_animation {
-            let value = model.animation.get_ping_pong_loop_progress(duration);
-            let radius = map_range(value, 0.0, 1.0, min, settings.max_radius);
-            config.displacer.set_radius(radius);
-        }
-
-        if let Some(v) = config.position_animation {
-            config
-                .displacer
-                .set_position(vec2(v.x * app.time.cos(), v.y * app.time.sin()));
-        }
+        config.displacer.set_strength(model.settings.strength);
+        config.update(&model.animation, &model.settings);
     }
 }
 

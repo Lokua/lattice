@@ -34,6 +34,7 @@ impl ObjectConfig {
             radius_fn,
         }
     }
+
     pub fn update(&mut self, animation: &Animation) {
         if let Some(radius_fn) = &self.radius_fn {
             self.object.radius = radius_fn(animation);
