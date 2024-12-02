@@ -3,18 +3,28 @@ use nannou_egui::{self, egui, Egui};
 
 use crate::framework::animation::Animation;
 use crate::framework::metadata::SketchMetadata;
-use crate::framework::util::set_window_position;
+use crate::framework::util::{set_window_position, uuid_5};
 
 pub const METADATA: SketchMetadata = SketchMetadata {
     name: "template",
     display_name: "Template",
-    fps: 30.0,
+    fps: 60.0,
     bpm: 134.0,
 };
 
 struct Object {
     position: Vec2,
     radius: f32,
+    color: Rgb,
+}
+impl Default for Object {
+    fn default() -> Self {
+        Self {
+            position: vec2(0.0, 0.0),
+            radius: 50.0,
+            color: rgb(1.0, 0.0, 0.0),
+        }
+    }
 }
 
 type AnimationFn<R> = Option<Box<dyn Fn(&Object, &Animation, &Settings) -> R>>;
@@ -38,10 +48,7 @@ impl ObjectConfig {
 impl Default for ObjectConfig {
     fn default() -> Self {
         Self {
-            object: Object {
-                position: vec2(0.0, 0.0),
-                radius: 50.0,
-            },
+            object: Default::default(),
             position_fn: None,
             radius_fn: None,
         }
@@ -62,6 +69,11 @@ pub struct Model {
 }
 
 pub fn model(app: &App) -> Model {
+    // let primary_monitor = app.primary_monitor().unwrap();
+    // let screen_size = primary_monitor.size();
+    // let screen_width = screen_size.width;
+    // let w: i32 = (screen_width / 4) as i32;
+    // let h: i32 = (screen_width / 4) as i32;
     let w: i32 = 700;
     let h: i32 = 700;
 
@@ -92,6 +104,7 @@ pub fn model(app: &App) -> Model {
             object: Object {
                 position: vec2(-w as f32 / 4.0, 0.0),
                 radius: 50.0,
+                ..Default::default()
             },
             radius_fn: Some(Box::new(|_object, animation, settings| {
                 animation.get_ping_pong_loop_progress(2.0) * settings.radius
@@ -102,6 +115,7 @@ pub fn model(app: &App) -> Model {
             object: Object {
                 position: vec2(w as f32 / 4.0, 0.0),
                 radius: 50.0,
+                color: rgb(0.0, 0.0, 1.0),
             },
             radius_fn: Some(Box::new(|_object, animation, settings| {
                 animation.get_ping_pong_loop_progress(3.0) * settings.radius
@@ -120,7 +134,7 @@ pub fn model(app: &App) -> Model {
     }
 }
 
-pub fn update(_app: &App, model: &mut Model, update: Update) {
+pub fn update(app: &App, model: &mut Model, update: Update) {
     for config in &mut model.object_configs {
         config.update(&model.animation, &model.settings)
     }
@@ -128,23 +142,48 @@ pub fn update(_app: &App, model: &mut Model, update: Update) {
     let egui = &mut model.egui;
     egui.set_elapsed_time(update.since_start);
     let ctx = egui.begin_frame();
-    egui::Window::new("Settings").show(&ctx, |ui| {
-        ui.label("Radius:");
-        ui.add(egui::Slider::new(&mut model.settings.radius, 1.0..=500.0));
-    });
+
+    egui::CentralPanel::default()
+        .frame(
+            egui::Frame::default()
+                .fill(egui::Color32::from_rgb(3, 3, 3))
+                .inner_margin(egui::Margin::same(16.0)),
+        )
+        .show(&ctx, |ui| {
+            let mut style = (*ctx.style()).clone();
+            style.visuals.override_text_color =
+                Some(egui::Color32::from_rgb(200, 200, 200));
+            ctx.set_style(style);
+
+            if ui.button("Capture Frame").clicked() {
+                if let Some(window) = app.window(model._main_window_id) {
+                    let filename =
+                        format!("{}-{}.png", METADATA.name, uuid_5());
+                    let file_path = app
+                        .project_path()
+                        .unwrap()
+                        .join("images")
+                        .join(filename);
+                    window.capture_frame(file_path);
+                }
+            }
+
+            ui.label("Radius:");
+            ui.add(egui::Slider::new(&mut model.settings.radius, 1.0..=500.0));
+        });
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
-    draw.background().color(rgb(0.1, 0.1, 0.1));
     frame.clear(BLACK);
+    draw.background().color(rgb(0.1, 0.1, 0.1));
 
     for config in &model.object_configs {
         draw.ellipse()
             .radius(config.object.radius)
             .xy(config.object.position)
-            .color(RED);
+            .color(config.object.color);
     }
 
     draw.to_frame(app, &frame).unwrap();

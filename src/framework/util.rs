@@ -1,4 +1,7 @@
-use nannou::prelude::*;
+use nannou::{
+    prelude::*,
+    rand::{thread_rng, Rng},
+};
 
 pub fn create_grid<F>(
     w: f32,
@@ -47,4 +50,32 @@ pub fn set_window_position(app: &App, window_id: window::Id, x: i32, y: i32) {
         .unwrap()
         .winit_window()
         .set_outer_position(nannou::winit::dpi::PhysicalPosition::new(x, y));
+}
+
+pub fn uuid_5() -> String {
+    uuid(5)
+}
+
+/// Generate a random string of the specified length consisting of
+/// lowercase letters and numbers.
+pub fn uuid(length: usize) -> String {
+    const LETTERS: &str = "abcdefghijklmnopqrstuvwxyz";
+    const NUMBERS: &str = "0123456789";
+
+    let mut rng = thread_rng();
+    (0..length)
+        .map(|_| {
+            if rng.gen_bool(0.5) {
+                LETTERS
+                    .chars()
+                    .nth(rng.gen_range(0..LETTERS.len()))
+                    .unwrap()
+            } else {
+                NUMBERS
+                    .chars()
+                    .nth(rng.gen_range(0..NUMBERS.len()))
+                    .unwrap()
+            }
+        })
+        .collect()
 }

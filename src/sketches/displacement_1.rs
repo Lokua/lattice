@@ -224,8 +224,8 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         ),
     ]);
 
-    draw.background().color(rgb(0.1, 0.1, 0.1));
     frame.clear(BLACK);
+    draw.background().color(rgb(0.1, 0.1, 0.1));
 
     for point in grid {
         let mut total_displacement = vec2(0.0, 0.0);
