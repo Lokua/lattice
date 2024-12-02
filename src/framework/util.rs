@@ -1,7 +1,22 @@
+use nannou::color::{LinSrgb, Srgb};
 use nannou::{
     prelude::*,
     rand::{thread_rng, Rng},
 };
+
+pub trait IntoLinSrgb {
+    fn into_lin_srgb(self) -> LinSrgb;
+}
+
+impl IntoLinSrgb for Srgb<u8> {
+    fn into_lin_srgb(self) -> LinSrgb {
+        LinSrgb::new(
+            self.red as f32 / 255.0,
+            self.green as f32 / 255.0,
+            self.blue as f32 / 255.0,
+        )
+    }
+}
 
 pub fn create_grid<F>(
     w: f32,
@@ -32,17 +47,6 @@ where
     }
 
     grid
-}
-
-/// Determines whether the current frame should be processed based on the desired FPS.
-/// Returns `true` if the frame should be processed, `false` otherwise.
-pub fn should_render_frame(app: &App, target_fps: f64) -> bool {
-    let app_fps = app.fps() as f64;
-    let target_fps = target_fps;
-    let desired_frame_interval =
-        ((app_fps / target_fps).round()).max(1.0) as u64;
-    let elapsed_frames = app.elapsed_frames();
-    elapsed_frames % desired_frame_interval == 0
 }
 
 pub fn set_window_position(app: &App, window_id: window::Id, x: i32, y: i32) {

@@ -1,3 +1,155 @@
+# Max width of each line
 max_width = 80
-# tab_spaces = 2 
-# brace_style = "AlwaysNextLine"  # Puts opening braces on a new line
+
+# Number of spaces per tab
+#tab_spaces = 4
+
+# Use tab characters for indentation
+#hard_tabs = false
+
+# Maximum number of blank lines to retain
+#blank_lines_upper_bound = 1
+
+# Minimum number of blank lines required before an item
+#blank_lines_lower_bound = 0
+
+# Place a trailing comma after each item in a multiline list
+#trailing_comma = "Always"
+
+# Control the layout of match arms
+#match_arm_leading_pipes = "Never"
+
+# Put single-expression functions on a single line
+#use_small_heuristics = "Max"
+
+# Format code in macros declarations
+#format_macro_matchers = true
+
+# Format string literals where possible
+#format_strings = true
+
+# Format code embedded in strings
+#format_code_in_doc_comments = true
+
+# Chain calls on a single line if they fit
+#use_try_shorthand = false
+
+# Format where clauses on a separate line
+#where_single_line = false
+
+# Put a space after the opening parenthesis and before the closing parenthesis
+#spaces_around_ranges = false
+
+# Combine consecutive imports
+#merge_imports = true
+
+# Format imports with one item per line
+#imports_layout = "Mixed"
+
+# Group imports by crate
+#group_imports = "StdExternalCrate"
+
+# Format argument lists based on their length
+#fn_args_layout = "Compressed"
+
+# Format return type on the same line as function declaration
+#fn_single_line = false
+
+# Control space before/after function argument parentheses
+#space_before_fn_paren = false
+
+# Control space around angles in generics
+#spaces_around_angle_brackets = false
+
+# Control space after struct field colons
+#space_after_colon = true
+
+# Control space before struct field colons
+#space_before_colon = false
+
+# Control newlines between items
+#empty_item_single_line = true
+
+# Allow closing delimiter to hug right side of expression
+#trailing_semicolon = true
+
+# Format control flow expressions
+#control_brace_style = "AlwaysSameLine"
+
+# Break lines at commas in function arguments
+#fn_call_width = 60
+
+# Format array expressions
+#array_width = 60
+
+# Format struct literal expressions
+#struct_lit_width = 50
+
+# Format struct variant expressions
+#struct_variant_width = 35
+
+# Format multi-line chain calls
+#chain_width = 60
+
+# Format comments
+#normalize_comments = true
+
+# Format doc comments
+#wrap_comments = false
+
+# Ignore macros that match this regex
+#ignore = []
+
+# Format code inside macro declarations that match this regex
+#format_macro_bodies = true
+
+# Skip formatting files that match this regex
+#skip_children = false
+
+# Format code inside these attributes
+#format_code_in_attributes = true
+
+# Force formatting of items inside these attributes
+#force_format_strings = false
+
+# Use field initialize shorthand when possible
+#use_field_init_shorthand = true
+
+# Break single-expression blocks across multiple lines
+#force_multiline_blocks = false
+
+# Format type parameters
+#type_punctuation_density = "Wide"
+
+# Format visibility modifiers
+#reorder_imports = true
+
+# Group imports by module
+#reorder_modules = true
+
+# Format attributes
+#format_attributes = true
+
+# Format generated files
+#format_generated_files = false
+
+# Unstable features (requires nightly)
+#unstable_features = false
+
+# Version of formatting rules to use
+#version = "Two"
+
+# Error if unable to get formatting done
+#error_on_unformatted = false
+
+# Emit json formatting errors
+#emit_mode = "Files"
+
+# Make backup of modified files
+#make_backup = false
+
+# Path to rustfmt's configuration file
+#config_path = ""
+
+# Format only these files
+#file_lines = []

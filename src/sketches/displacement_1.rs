@@ -5,7 +5,7 @@ use std::f32::consts::PI;
 use crate::framework::animation::Animation;
 use crate::framework::displacer::Displacer;
 use crate::framework::sketch::SketchConfig;
-use crate::framework::util::create_grid;
+use crate::framework::util::{create_grid, IntoLinSrgb};
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "displacement_1",
@@ -62,6 +62,8 @@ pub struct Model {
     settings: Settings,
     circle_radius: f32,
     grid_size: usize,
+    grid_w: f32,
+    grid_h: f32,
     displacer_configs: [DisplacerConfig; 6],
     animation: Animation,
 }
@@ -69,6 +71,8 @@ pub struct Model {
 pub fn init_model() -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
+    let grid_w = w as f32 - 80.0;
+    let grid_h = h as f32 - 80.0;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let pad = 40.0;
@@ -109,7 +113,7 @@ pub fn init_model() -> Model {
         ),
         DisplacerConfig::new(
             Displacer::new(
-                vec2((w as f32 / 2.0) - pad, (h as f32 / 2.0) - pad),
+                vec2((grid_w / 2.0) - pad, (grid_h / 2.0) - pad),
                 10.0,
                 corner_strength,
                 None,
@@ -119,7 +123,7 @@ pub fn init_model() -> Model {
         ),
         DisplacerConfig::new(
             Displacer::new(
-                vec2((-w as f32 / 2.0) + pad, (h as f32 / 2.0) - pad),
+                vec2((-grid_w / 2.0) + pad, (grid_h / 2.0) - pad),
                 10.0,
                 corner_strength,
                 None,
@@ -129,7 +133,7 @@ pub fn init_model() -> Model {
         ),
         DisplacerConfig::new(
             Displacer::new(
-                vec2((-w as f32 / 2.0) + pad, (-h as f32 / 2.0) + pad),
+                vec2((-grid_w / 2.0) + pad, (-grid_h / 2.0) + pad),
                 10.0,
                 corner_strength,
                 None,
@@ -139,7 +143,7 @@ pub fn init_model() -> Model {
         ),
         DisplacerConfig::new(
             Displacer::new(
-                vec2((w as f32 / 2.0) - pad, (-h as f32 / 2.0) + pad),
+                vec2((grid_w / 2.0) - pad, (-grid_h / 2.0) + pad),
                 10.0,
                 corner_strength,
                 None,
@@ -153,6 +157,8 @@ pub fn init_model() -> Model {
         settings,
         circle_radius: 2.0,
         grid_size: 64,
+        grid_w,
+        grid_h,
         displacer_configs,
         animation,
     }
@@ -167,21 +173,16 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-    let window = app.window_rect();
+
+    // TODO: opt move to model
     let grid =
-        create_grid(window.w(), window.h(), model.grid_size, |x, y| vec2(x, y));
-    let gradient = Gradient::new(vec![
-        LinSrgb::new(
-            BEIGE.red as f32 / 255.0,
-            BEIGE.green as f32 / 255.0,
-            BEIGE.blue as f32 / 255.0,
-        ),
-        LinSrgb::new(
-            PURPLE.red as f32 / 255.0,
-            PURPLE.green as f32 / 255.0,
-            PURPLE.blue as f32 / 255.0,
-        ),
-    ]);
+        create_grid(model.grid_w, model.grid_h, model.grid_size, |x, y| {
+            vec2(x, y)
+        });
+
+    // TODO: opt move to model
+    let gradient =
+        Gradient::new(vec![BEIGE.into_lin_srgb(), PURPLE.into_lin_srgb()]);
 
     frame.clear(BLACK);
     draw.background().color(rgb(0.1, 0.1, 0.1));
