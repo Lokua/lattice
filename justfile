@@ -1,5 +1,5 @@
-start:
-  RUST_LOG=lattice=info cargo run --release
+start *ARGS:
+  RUST_LOG=lattice=info cargo run --release {{ARGS}}
 
-debug:
-  RUST_LOG=lattice=debug cargo run --release
+debug *ARGS:
+  RUST_LOG=lattice=debug cargo run --release {{ARGS}}

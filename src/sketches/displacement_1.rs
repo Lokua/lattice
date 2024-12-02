@@ -17,6 +17,7 @@ pub const METADATA: SketchMetadata = SketchMetadata {
 
 struct Settings {
     strength: f32,
+    max_radius: f32,
 }
 
 struct DisplacerConfig {
@@ -130,7 +131,10 @@ pub fn model(app: &App) -> Model {
     Model {
         _window,
         egui,
-        settings: Settings { strength: 50.0 },
+        settings: Settings {
+            strength: 50.0,
+            max_radius: 200.0,
+        },
         circle_radius: 2.0,
         grid_size: 64,
         displacer_configs,
@@ -147,14 +151,16 @@ pub fn update(app: &App, model: &mut Model, update: Update) {
     egui::Window::new("Settings").show(&ctx, |ui| {
         ui.label("Strength:");
         ui.add(egui::Slider::new(&mut settings.strength, 1.0..=200.0));
+        ui.label("Max Radius:");
+        ui.add(egui::Slider::new(&mut settings.max_radius, 1.0..=500.0));
     });
 
     for config in &mut model.displacer_configs {
         config.displacer.set_strength(settings.strength);
 
-        if let Some((min, max, duration)) = config.radius_animation {
+        if let Some((min, _max, duration)) = config.radius_animation {
             let value = model.animation.get_ping_pong_loop_progress(duration);
-            let radius = map_range(value, 0.0, 1.0, min, max);
+            let radius = map_range(value, 0.0, 1.0, min, settings.max_radius);
             config.displacer.set_radius(radius);
         }
 
