@@ -1,4 +1,3 @@
-use log::debug;
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use std::f32::consts::PI;

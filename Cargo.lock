@@ -1072,6 +1072,7 @@ name = "lattice"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "lazy_static",
  "log",
  "nannou",
  "nannou_egui",
