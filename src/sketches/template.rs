@@ -81,6 +81,7 @@ pub fn init_model() -> Model {
         value: 150.0,
         min: 10.0,
         max: 500.0,
+        step: 1.0,
     }]);
 
     let mut object_configs = vec![
