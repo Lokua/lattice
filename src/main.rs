@@ -1,6 +1,10 @@
 use log::{info, warn};
 use nannou::prelude::*;
-use nannou_egui::{self, egui, Egui};
+use nannou_egui::{
+    self,
+    egui::{self, Color32},
+    Egui,
+};
 use std::env;
 
 use framework::{
@@ -133,28 +137,66 @@ fn update<S: SketchModel>(
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
 
+    let mut style = (*ctx.style()).clone();
+    style.visuals.button_frame = true;
+
+    style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
+    style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
+
+    // Unfortunately padding also impacts the "text-input" next to sliders.
+    // style.spacing.button_padding = egui::Vec2::new(12.0, 4.0);
+
+    style.spacing.slider_width = 160.0;
+
+    // nannou_egui is behind
+    // style.spacing.slider_rail_height = 4.0;
+    ctx.set_style(style);
+
+    let bg_color = Color32::from_gray(3);
+
     egui::CentralPanel::default()
         .frame(
             egui::Frame::default()
-                .fill(egui::Color32::from_rgb(3, 3, 3))
+                .fill(bg_color)
                 .inner_margin(egui::Margin::same(16.0)),
         )
         .show(&ctx, |ui| {
-            if ui.button("Capture Frame").clicked() {
-                if let Some(window) = app.window(model.main_window_id) {
-                    let filename = format!(
-                        "{}-{}.png",
-                        model.sketch_config.name,
-                        uuid_5()
-                    );
-                    let file_path = app
-                        .project_path()
-                        .unwrap()
-                        .join("images")
-                        .join(filename);
-                    window.capture_frame(file_path);
-                }
-            }
+            ui.horizontal(|ui| {
+                ui.add(egui::Button::new("Capture Frame")).clicked().then(
+                    || {
+                        if let Some(window) = app.window(model.main_window_id) {
+                            let filename = format!(
+                                "{}-{}.png",
+                                model.sketch_config.name,
+                                uuid_5()
+                            );
+
+                            let file_path = app
+                                .project_path()
+                                .unwrap()
+                                .join("images")
+                                .join(filename);
+
+                            window.capture_frame(file_path.clone());
+                            info!("Image saved to {:?}", file_path);
+                        }
+                    },
+                );
+
+                ui.add(egui::Button::new(if frame_controller::is_paused() {
+                    "Resume"
+                } else {
+                    "Pause"
+                }))
+                .clicked()
+                .then(|| {
+                    let next_is_paused = !frame_controller::is_paused();
+                    frame_controller::set_paused(next_is_paused);
+                    info!("Paused: {}", next_is_paused);
+                });
+            });
+
+            ui.separator();
 
             if let Some(controls) = model.sketch_model.controls() {
                 draw_controls(controls, ui);
