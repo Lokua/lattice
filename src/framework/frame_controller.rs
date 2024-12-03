@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, warn};
 use nannou::prelude::*;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
@@ -14,6 +14,7 @@ pub struct FrameController {
     accumulator: Duration,
     frame_count: u64,
     render_flag: bool,
+    paused: bool,
 }
 
 impl FrameController {
@@ -27,6 +28,7 @@ impl FrameController {
             accumulator: Duration::ZERO,
             frame_count: 0,
             render_flag: false,
+            paused: false,
         }
     }
 
@@ -61,7 +63,7 @@ impl FrameController {
     }
 
     pub fn should_render(&self) -> bool {
-        self.render_flag
+        self.render_flag && !self.paused
     }
 
     pub fn get_frame_count(&self) -> u64 {
@@ -70,6 +72,14 @@ impl FrameController {
 
     pub fn get_fps(&self) -> f64 {
         self.target_fps
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.paused
+    }
+
+    pub fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
     }
 }
 
@@ -126,4 +136,18 @@ pub fn get_frame_count() -> u64 {
 pub fn get_fps() -> f64 {
     let controller = CONTROLLER.lock().unwrap();
     controller.as_ref().map_or(0.0, |c| c.get_fps())
+}
+
+pub fn is_paused() -> bool {
+    let controller = CONTROLLER.lock().unwrap();
+    controller.as_ref().map_or(false, |c| c.is_paused())
+}
+
+pub fn set_paused(paused: bool) {
+    let mut controller = CONTROLLER.lock().unwrap();
+    if let Some(controller) = controller.as_mut() {
+        controller.set_paused(paused);
+    } else {
+        warn!("Unable to paused frame_controller");
+    }
 }
