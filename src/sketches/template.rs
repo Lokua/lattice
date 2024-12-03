@@ -1,7 +1,10 @@
 use nannou::prelude::*;
 
-use crate::framework::animation::Animation;
-use crate::framework::sketch::SketchConfig;
+use crate::framework::{
+    animation::Animation,
+    controls::{Control, Controls},
+    sketch::{SketchConfig, SketchModel},
+};
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "template",
@@ -27,7 +30,7 @@ impl Default for Object {
     }
 }
 
-type AnimationFn<R> = Option<Box<dyn Fn(&Object, &Animation, &Settings) -> R>>;
+type AnimationFn<R> = Option<Box<dyn Fn(&Object, &Animation, &Controls) -> R>>;
 
 struct ObjectConfig {
     object: Object,
@@ -35,13 +38,13 @@ struct ObjectConfig {
     radius_fn: AnimationFn<f32>,
 }
 impl ObjectConfig {
-    pub fn update(&mut self, animation: &Animation, settings: &Settings) {
+    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
         if let Some(radius_fn) = &self.radius_fn {
-            self.object.radius = radius_fn(&self.object, animation, settings);
+            self.object.radius = radius_fn(&self.object, animation, controls);
         }
         if let Some(position_fn) = &self.position_fn {
             self.object.position =
-                position_fn(&self.object, animation, settings);
+                position_fn(&self.object, animation, controls);
         }
     }
 }
@@ -55,18 +58,26 @@ impl Default for ObjectConfig {
     }
 }
 
-pub struct Settings {
-    radius: f32,
-}
-
 pub struct Model {
     animation: Animation,
     object_configs: Vec<ObjectConfig>,
-    settings: Settings,
+    controls: Controls,
+}
+impl SketchModel for Model {
+    fn controls(&mut self) -> Option<&mut Controls> {
+        Some(&mut self.controls)
+    }
 }
 
 pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
+
+    let controls = Controls::new(vec![Control::Slider {
+        name: "radius".to_string(),
+        value: 50.0,
+        min: 10.0,
+        max: 500.0,
+    }]);
 
     let object_configs = vec![
         ObjectConfig {
@@ -75,8 +86,9 @@ pub fn init_model() -> Model {
                 radius: 50.0,
                 ..Default::default()
             },
-            radius_fn: Some(Box::new(|_object, animation, settings| {
-                animation.get_ping_pong_loop_progress(2.0) * settings.radius
+            radius_fn: Some(Box::new(|_object, animation, controls| {
+                animation.get_ping_pong_loop_progress(2.0)
+                    * controls.get_float("radius")
             })),
             ..Default::default()
         },
@@ -86,8 +98,9 @@ pub fn init_model() -> Model {
                 radius: 50.0,
                 color: rgb(0.0, 0.0, 1.0),
             },
-            radius_fn: Some(Box::new(|_object, animation, settings| {
-                animation.get_ping_pong_loop_progress(3.0) * settings.radius
+            radius_fn: Some(Box::new(|_object, animation, controls| {
+                animation.get_ping_pong_loop_progress(3.0)
+                    * controls.get_float("radius")
             })),
             ..Default::default()
         },
@@ -96,13 +109,13 @@ pub fn init_model() -> Model {
     Model {
         animation,
         object_configs,
-        settings: Settings { radius: 50.0 },
+        controls,
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     for config in &mut model.object_configs {
-        config.update(&model.animation, &model.settings)
+        config.update(&model.animation, &model.controls)
     }
 }
 

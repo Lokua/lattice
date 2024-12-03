@@ -47,7 +47,7 @@ max_width = 80
 #imports_layout = "Mixed"
 
 # Group imports by crate
-#group_imports = "StdExternalCrate"
+# group_imports = "StdExternalCrate"
 
 # Format argument lists based on their length
 #fn_args_layout = "Compressed"
