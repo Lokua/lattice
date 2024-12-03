@@ -132,21 +132,33 @@ fn update<S: SketchModel>(
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
 
-    egui::CentralPanel::default().show(&ctx, |ui| {
-        if ui.button("Capture Frame").clicked() {
-            if let Some(window) = app.window(model.main_window_id) {
-                let filename =
-                    format!("{}-{}.png", model.sketch_config.name, uuid_5());
-                let file_path =
-                    app.project_path().unwrap().join("images").join(filename);
-                window.capture_frame(file_path);
+    egui::CentralPanel::default()
+        .frame(
+            egui::Frame::default()
+                .fill(egui::Color32::from_rgb(3, 3, 3))
+                .inner_margin(egui::Margin::same(16.0)),
+        )
+        .show(&ctx, |ui| {
+            if ui.button("Capture Frame").clicked() {
+                if let Some(window) = app.window(model.main_window_id) {
+                    let filename = format!(
+                        "{}-{}.png",
+                        model.sketch_config.name,
+                        uuid_5()
+                    );
+                    let file_path = app
+                        .project_path()
+                        .unwrap()
+                        .join("images")
+                        .join(filename);
+                    window.capture_frame(file_path);
+                }
             }
-        }
 
-        if let Some(controls) = model.sketch_model.controls() {
-            draw_controls(controls, ui);
-        }
-    });
+            if let Some(controls) = model.sketch_model.controls() {
+                draw_controls(controls, ui);
+            }
+        });
 }
 
 fn view<S>(

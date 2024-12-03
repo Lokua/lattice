@@ -1,9 +1,12 @@
+use nannou::color::named::*;
+use nannou::color::*;
 use nannou::prelude::*;
 
 use crate::framework::{
     animation::Animation,
     controls::{Control, Controls},
     sketch::{SketchConfig, SketchModel},
+    util::IntoLinSrgb,
 };
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -18,14 +21,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 struct Object {
     position: Vec2,
     radius: f32,
-    color: Rgb,
+    color: LinSrgb,
 }
 impl Default for Object {
     fn default() -> Self {
         Self {
             position: vec2(0.0, 0.0),
             radius: 50.0,
-            color: rgb(1.0, 0.0, 0.0),
+            color: MAGENTA.into_lin_srgb(),
         }
     }
 }
@@ -63,6 +66,7 @@ pub struct Model {
     object_configs: Vec<ObjectConfig>,
     controls: Controls,
 }
+
 impl SketchModel for Model {
     fn controls(&mut self) -> Option<&mut Controls> {
         Some(&mut self.controls)
@@ -74,37 +78,58 @@ pub fn init_model() -> Model {
 
     let controls = Controls::new(vec![Control::Slider {
         name: "radius".to_string(),
-        value: 50.0,
+        value: 150.0,
         min: 10.0,
         max: 500.0,
     }]);
 
-    let object_configs = vec![
+    let mut object_configs = vec![
         ObjectConfig {
             object: Object {
-                position: vec2(-350.0 / 4.0, 0.0),
                 radius: 50.0,
                 ..Default::default()
             },
-            radius_fn: Some(Box::new(|_object, animation, controls| {
-                animation.get_ping_pong_loop_progress(2.0)
+            radius_fn: Some(Box::new(|_object, ah, controls| {
+                ah.get_ping_pong_loop_progress(2.0)
                     * controls.get_float("radius")
             })),
             ..Default::default()
         },
         ObjectConfig {
             object: Object {
-                position: vec2(350.0 / 4.0, 0.0),
+                position: vec2(0.0, 0.0),
                 radius: 50.0,
-                color: rgb(0.0, 0.0, 1.0),
+                color: CYAN.into_lin_srgb(),
             },
-            radius_fn: Some(Box::new(|_object, animation, controls| {
-                animation.get_ping_pong_loop_progress(3.0)
+            radius_fn: Some(Box::new(|_object, ah, controls| {
+                ah.get_ping_pong_loop_progress(3.0)
                     * controls.get_float("radius")
             })),
             ..Default::default()
         },
     ];
+
+    let count = 10;
+    let angle_step = (PI * 2.0) / count as f32;
+    for i in 0..10 {
+        object_configs.push(ObjectConfig {
+            object: Object {
+                color: BEIGE.into_lin_srgb(),
+                radius: 10.0,
+                ..Default::default()
+            },
+            position_fn: Some(Box::new(move |_object, ah, controls| {
+                let global_angle = ah.get_loop_progress(8.0) * (PI * 2.0);
+                let angle = i as f32 * angle_step + global_angle;
+                let movement_radius = controls.get_float("radius") * 2.0;
+                vec2(
+                    movement_radius * angle.cos(),
+                    movement_radius * angle.sin(),
+                )
+            })),
+            ..Default::default()
+        })
+    }
 
     Model {
         animation,
@@ -127,9 +152,9 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
 
     for config in &model.object_configs {
         draw.ellipse()
+            .color(config.object.color)
             .radius(config.object.radius)
-            .xy(config.object.position)
-            .color(config.object.color);
+            .xy(config.object.position);
     }
 
     draw.to_frame(app, &frame).unwrap();
