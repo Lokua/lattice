@@ -1,4 +1,5 @@
 use nannou::prelude::*;
+use std::sync::Arc;
 
 impl std::fmt::Debug for Displacer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -11,11 +12,13 @@ impl std::fmt::Debug for Displacer {
     }
 }
 
+pub type CustomDistanceFn = Option<Arc<dyn Fn(Vec2, Vec2) -> f32>>;
+
 pub struct Displacer {
     pub position: Vec2,
     pub radius: f32,
     pub strength: f32,
-    pub custom_distance_fn: Option<Box<dyn Fn(Vec2, Vec2) -> f32>>,
+    pub custom_distance_fn: CustomDistanceFn,
 }
 
 impl Displacer {
@@ -23,7 +26,7 @@ impl Displacer {
         position: Vec2,
         radius: f32,
         strength: f32,
-        custom_distance_fn: Option<Box<dyn Fn(Vec2, Vec2) -> f32>>,
+        custom_distance_fn: CustomDistanceFn,
     ) -> Self {
         Self {
             position,
@@ -81,6 +84,13 @@ impl Displacer {
 
     pub fn set_strength(&mut self, strength: f32) {
         self.strength = strength;
+    }
+
+    pub fn set_custom_distance_fn(
+        &mut self,
+        custom_distance_fn: CustomDistanceFn,
+    ) {
+        self.custom_distance_fn = custom_distance_fn;
     }
 }
 
