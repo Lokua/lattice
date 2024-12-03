@@ -34,6 +34,15 @@ creation and GUI controls.
 The project is under active development. Basic animation features are working,
 with more functionality planned.
 
+## Requirements
+
+This project requires or optionally needs
+
+- Rust
+- Git LFS for screenshot storage (perhaps this is optional? I'm not too familar
+  with Git LFS but I'm using it for this so you might want to too)
+- (optional) [just](https://github.com/casey/just) for running commands
+
 ## Usage
 
 To create a new sketch:
@@ -45,5 +54,4 @@ To create a new sketch:
 3. Add that file to the [sketches module](src/sketches/mod.res)
 4. Run that sketch via command line by `cargo run --release <name>` or
    `just start <name>` where `name` is what you put in your file's
-   SKETCH_CONFIG.name field (requires that [just](https://github.com/casey/just)
-   is installed globally).
+   SKETCH_CONFIG.name field.
