@@ -60,6 +60,7 @@ impl Displacer {
         }
 
         let proximity = 1.0 - distance_to_center / (radius * 2.0);
+        // let proximity = 1.0 - distance_to_center / (radius + self.strength);
         let distance_factor = proximity.max(0.0);
         let angle = (grid_point.y - self.position.y)
             .atan2(grid_point.x - self.position.x);
