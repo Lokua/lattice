@@ -20,6 +20,7 @@ pub enum Control {
         value: f32,
         min: f32,
         max: f32,
+        step: f32,
     },
     Button {
         name: String,
@@ -107,10 +108,20 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) {
 
     for control in controls_list {
         match control {
-            Control::Slider { name, min, max, .. } => {
+            Control::Slider {
+                name,
+                min,
+                max,
+                step,
+                ..
+            } => {
                 let mut value = controls.get_float(&name);
                 if ui
-                    .add(egui::Slider::new(&mut value, min..=max).text(&name))
+                    .add(
+                        egui::Slider::new(&mut value, min..=max)
+                            .text(&name)
+                            .step_by(step.into()),
+                    )
                     .changed()
                 {
                     controls.update_value(&name, ControlValue::Float(value));

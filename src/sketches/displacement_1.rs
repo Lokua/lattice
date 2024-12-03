@@ -86,24 +86,28 @@ pub fn init_model() -> Model {
             value: 210.0,
             min: 0.0,
             max: 500.0,
+            step: 1.0,
         },
         Control::Slider {
             name: "strength".to_string(),
             value: 95.0,
             min: 0.0,
             max: 500.0,
+            step: 1.0,
         },
         Control::Slider {
             name: "corner_radius".to_string(),
             value: 54.0,
             min: 0.0,
             max: 100.0,
+            step: 1.0,
         },
         Control::Slider {
             name: "corner_strength".to_string(),
             value: 25.0,
             min: 0.0,
             max: 100.0,
+            step: 1.0,
         },
     ]);
 
