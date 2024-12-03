@@ -1,13 +1,15 @@
-use crate::framework::frame_controller;
-use crate::framework::logger::init_logger;
-use framework::{
-    sketch::SketchConfig,
-    util::{set_window_position, uuid_5},
-};
 use log::{info, warn};
 use nannou::prelude::*;
 use nannou_egui::{self, egui, Egui};
 use std::env;
+
+use framework::{
+    controls::draw_controls,
+    frame_controller,
+    logger::init_logger,
+    sketch::{SketchConfig, SketchModel},
+    util::{set_window_position, uuid_5},
+};
 
 pub mod framework;
 mod sketches;
@@ -30,10 +32,20 @@ macro_rules! run_sketch {
             )
         })
         .update(|app, model, nannou_update| {
-            update(app, model, nannou_update, sketches::$sketch_module::update)
+            update::<sketches::$sketch_module::Model>(
+                app,
+                model,
+                nannou_update,
+                sketches::$sketch_module::update,
+            )
         })
         .view(|app, model, frame| {
-            view(app, model, frame, sketches::$sketch_module::view)
+            view::<sketches::$sketch_module::Model>(
+                app,
+                model,
+                frame,
+                sketches::$sketch_module::view,
+            )
         })
         .run();
     }};
@@ -104,12 +116,11 @@ fn model<S: 'static>(
     }
 }
 
-fn update<S>(
+fn update<S: SketchModel>(
     app: &App,
     model: &mut AppModel<S>,
     update: Update,
     sketch_update_fn: fn(&App, &mut S, Update),
-    // sketch_gui_fn: fn(&egui::Context, &mut egui::Ui, &mut S),
 ) {
     frame_controller::wrapped_update(
         app,
@@ -132,8 +143,9 @@ fn update<S>(
             }
         }
 
-        // Sketch-specific controls
-        // sketch_gui_fn(&ctx, ui, &mut model.sketch_model);
+        if let Some(controls) = model.sketch_model.controls() {
+            draw_controls(controls, ui);
+        }
     });
 }
 

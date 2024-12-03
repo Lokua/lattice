@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 
 use crate::framework::animation::Animation;
 use crate::framework::displacer::Displacer;
-use crate::framework::sketch::SketchConfig;
+use crate::framework::sketch::{SketchConfig, SketchModel};
 use crate::framework::util::{create_grid, IntoLinSrgb};
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -67,6 +67,7 @@ pub struct Model {
     displacer_configs: [DisplacerConfig; 6],
     animation: Animation,
 }
+impl SketchModel for Model {}
 
 pub fn init_model() -> Model {
     let w = SKETCH_CONFIG.w;
