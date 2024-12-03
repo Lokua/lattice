@@ -1,3 +1,4 @@
+use log::debug;
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use std::f32::consts::PI;
@@ -81,6 +82,13 @@ pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![
+        Control::Slider {
+            name: "gradient_spread".to_string(),
+            value: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.0001,
+        },
         Control::Slider {
             name: "max_radius".to_string(),
             value: 210.0,
@@ -246,6 +254,8 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let gradient =
         Gradient::new(vec![BEIGE.into_lin_srgb(), PURPLE.into_lin_srgb()]);
 
+    let gradient_spread = model.controls.get_float("gradient_spread");
+
     frame.clear(BLACK);
     draw.background().color(rgb(0.1, 0.1, 0.1));
 
@@ -266,10 +276,13 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .collect();
 
         let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
+
         for (index, config) in model.displacer_configs.iter().enumerate() {
             let (_displacement, influence) = displacements[index];
-            let color_position = influence / config.displacer.strength;
-            let color = gradient.get(color_position.clamp(0.0, 1.0));
+            let color_position = (influence / config.displacer.strength)
+                .powf(gradient_spread)
+                .clamp(0.0, 1.0);
+            let color = gradient.get(color_position);
             let weight = influence / total_influence.max(1.0);
             colors.push((color, weight));
         }
