@@ -58,6 +58,7 @@ impl Control {
     }
 }
 
+#[derive(Clone)]
 pub struct Controls {
     controls: Vec<Control>,
     values: HashMap<String, ControlValue>,

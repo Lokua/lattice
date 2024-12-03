@@ -58,8 +58,9 @@ fn main() {
     let sketch_name = args.get(1).map(|s| s.as_str()).unwrap_or("template");
 
     match sketch_name {
-        "template" => run_sketch!(template),
         "displacement_1" => run_sketch!(displacement_1),
+        "displacement_2" => run_sketch!(displacement_2),
+        "template" => run_sketch!(template),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)
