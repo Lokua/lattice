@@ -1,4 +1,5 @@
 use nannou_egui::egui;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Any sketch using controls needs to implement this trait for the model
@@ -6,14 +7,14 @@ pub trait HasControls {
     fn controls(&mut self) -> &mut Controls;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ControlValue {
     Float(f32),
     Bool(bool),
     String(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Control {
     Slider {
         name: String,
@@ -58,10 +59,12 @@ impl Control {
     }
 }
 
-#[derive(Clone)]
+pub type ControlValues = HashMap<String, ControlValue>;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Controls {
     controls: Vec<Control>,
-    values: HashMap<String, ControlValue>,
+    values: ControlValues,
 }
 
 impl Controls {
@@ -76,6 +79,10 @@ impl Controls {
 
     pub fn get_controls(&self) -> &Vec<Control> {
         &self.controls
+    }
+
+    pub fn get_values(&self) -> &ControlValues {
+        &self.values
     }
 
     pub fn get_float(&self, name: &str) -> f32 {
@@ -104,8 +111,10 @@ impl Controls {
     }
 }
 
-pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) {
+pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
     let controls_list = controls.get_controls().clone();
+    // the version of egui we're stuck with doesn't support "catch all" handler :(
+    let mut any_changed = false;
 
     for control in controls_list {
         match control {
@@ -126,12 +135,14 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) {
                     .changed()
                 {
                     controls.update_value(&name, ControlValue::Float(value));
+                    any_changed = true;
                 }
             }
             Control::Checkbox { name, .. } => {
                 let mut value = controls.get_bool(&name);
                 if ui.checkbox(&mut value, &name).changed() {
                     controls.update_value(&name, ControlValue::Bool(value));
+                    any_changed = true;
                 }
             }
             Control::Button { name } => if ui.button(&name).clicked() {},
@@ -153,10 +164,13 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) {
                                     &name,
                                     ControlValue::String(value.clone()),
                                 );
+                                any_changed = true;
                             }
                         }
                     });
             }
         }
     }
+
+    any_changed
 }
