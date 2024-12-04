@@ -92,6 +92,10 @@ pub fn init_model() -> Model {
             name: "clamp_circle_radii".into(),
             value: false,
         },
+        Control::Checkbox {
+            name: "animate_frequency".into(),
+            value: false,
+        },
         Control::Slider {
             name: "gradient_spread".into(),
             value: 0.99,
@@ -237,10 +241,20 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     for config in &mut model.displacer_configs {
         let displacer_radius = model.controls.get_float("displacer_radius");
         let displacer_strength = model.controls.get_float("displacer_strength");
-        let weave_frequency = model.controls.get_float("weave_frequency");
         let weave_scale = model.controls.get_float("weave_scale");
         let weave_amplitude = model.controls.get_float("weave_amplitude");
         let pattern = model.controls.get_string("pattern");
+        let weave_frequency = if model.controls.get_bool("animate_frequency") {
+            map_range(
+                model.animation.get_ping_pong_loop_progress(32.0),
+                0.0,
+                1.0,
+                0.01,
+                model.controls.get_float("weave_frequency"),
+            )
+        } else {
+            model.controls.get_float("weave_frequency")
+        };
 
         let distance_fn: CustomDistanceFn =
             Some(Arc::new(move |grid_point, position| {
