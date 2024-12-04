@@ -1,15 +1,15 @@
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
+use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::framework::displacer::CustomDistanceFn;
 use crate::framework::{
     animation::Animation,
     controls::{Control, Controls},
-    displacer::Displacer,
-    distance::weave,
+    displacer::{CustomDistanceFn, Displacer},
+    logging::*,
     sketch::{SketchConfig, SketchModel},
-    util::{create_grid, IntoLinSrgb},
+    util::{create_grid, IntoLinSrgb, TrigonometricExt},
 };
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -17,8 +17,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Displacement v2",
     fps: 30.0,
     bpm: 134.0,
-    w: 700,
-    h: 700,
+    w: 1000,
+    h: 1000,
 };
 
 type AnimationFn<R> =
@@ -60,11 +60,10 @@ impl DisplacerConfig {
 }
 
 pub struct Model {
-    circle_radius: f32,
     grid_size: usize,
     grid_w: f32,
     grid_h: f32,
-    displacer_configs: [DisplacerConfig; 2],
+    displacer_configs: Vec<DisplacerConfig>,
     animation: Animation,
     controls: Controls,
 }
@@ -83,41 +82,72 @@ pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![
+        Control::Select {
+            name: "pattern".into(),
+            value: "cos,sin".into(),
+            options: generate_pattern_options(),
+        },
         Control::Slider {
-            name: "gradient_spread".to_string(),
+            name: "gradient_spread".into(),
             value: 0.99,
             min: 0.0,
             max: 1.0,
             step: 0.0001,
         },
         Control::Slider {
-            name: "radius".to_string(),
-            value: 210.0,
-            min: 0.0001,
-            max: 500.0,
-            step: 1.0,
+            name: "circle_radius_min".into(),
+            value: 1.0,
+            min: 0.1,
+            max: 12.0,
+            step: 0.1,
         },
         Control::Slider {
-            name: "strength".to_string(),
-            value: 34.0,
+            name: "circle_radius_max".into(),
+            value: 5.0,
+            min: 0.1,
+            max: 12.0,
+            step: 0.1,
+        },
+        Control::Slider {
+            name: "displacer_radius".into(),
+            value: 0.001,
             min: 0.0001,
+            max: 0.01,
+            step: 0.0001,
+        },
+        Control::Slider {
+            name: "displacer_strength".into(),
+            value: 34.0,
+            min: 0.01,
             max: 100.0,
             step: 1.0,
         },
         Control::Slider {
-            name: "frequency".to_string(),
+            name: "weave_frequency".into(),
+            value: 0.01,
+            min: 0.01,
+            max: 0.2,
+            step: 0.001,
+        },
+        Control::Slider {
+            name: "weave_distance_scale".into(),
             value: 0.05,
-            min: 0.0,
+            min: 0.001,
             max: 0.1,
             step: 0.001,
         },
+        Control::Checkbox {
+            name: "clamp_circle_radii".into(),
+            value: false,
+        },
     ]);
 
-    let displacer_configs = [
+    let displacer_configs = vec![
         DisplacerConfig::new(
             "center",
             Displacer::new(
-                vec2(w as f32 / 4.0, h as f32 / 4.0),
+                vec2(0.0, 0.0),
+                // vec2(w as f32 / 4.0, h as f32 / 4.0),
                 20.0,
                 10.0,
                 None,
@@ -125,22 +155,21 @@ pub fn init_model() -> Model {
             None,
             None,
         ),
-        DisplacerConfig::new(
-            "center",
-            Displacer::new(
-                vec2(-w as f32 / 4.0, -h as f32 / 4.0),
-                20.0,
-                10.0,
-                None,
-            ),
-            None,
-            None,
-        ),
+        // DisplacerConfig::new(
+        //     "center",
+        //     Displacer::new(
+        //         vec2(-w as f32 / 4.0, -h as f32 / 4.0),
+        //         20.0,
+        //         10.0,
+        //         None,
+        //     ),
+        //     None,
+        //     None,
+        // ),
     ];
 
     Model {
-        circle_radius: 12.0,
-        grid_size: 64,
+        grid_size: 128,
         grid_w,
         grid_h,
         displacer_configs,
@@ -151,9 +180,13 @@ pub fn init_model() -> Model {
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     for config in &mut model.displacer_configs {
-        let radius = model.controls.get_float("radius");
-        let strength = model.controls.get_float("strength");
-        let frequency = model.controls.get_float("frequency");
+        let displacer_radius = model.controls.get_float("displacer_radius");
+        let displacer_strength = model.controls.get_float("displacer_strength");
+        let weave_frequency = model.controls.get_float("weave_frequency");
+        let weave_distance_scale =
+            model.controls.get_float("weave_distance_scale");
+        // let weave_amplitude = model.controls.get_float("weave_amplitude");
+        let pattern = model.controls.get_string("pattern");
 
         let distance_fn: CustomDistanceFn =
             Some(Arc::new(move |grid_point, position| {
@@ -162,14 +195,17 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     grid_point.y,
                     position.x,
                     position.y,
-                    frequency,
+                    weave_frequency,
+                    weave_distance_scale,
+                    0.001, // weave_amplitude,
+                    pattern.clone(),
                 )
             }));
 
         config.update(&model.animation, &model.controls);
         config.displacer.set_custom_distance_fn(distance_fn);
-        config.displacer.set_strength(strength);
-        config.displacer.set_radius(radius);
+        config.displacer.set_radius(displacer_radius);
+        config.displacer.set_strength(displacer_strength);
     }
 }
 
@@ -189,7 +225,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.background().color(rgb(0.1, 0.1, 0.1));
 
     let max_mag = model.displacer_configs.len() as f32
-        * model.controls.get_float("strength");
+        * model.controls.get_float("displacer_strength");
 
     for point in grid {
         let mut total_displacement = vec2(0.0, 0.0);
@@ -225,12 +261,17 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
                 acc.mix(color, *weight)
             });
 
+        let magnitude = if model.controls.get_bool("clamp_circle_radii") {
+            total_displacement.length().clamp(0.0, max_mag)
+        } else {
+            total_displacement.length()
+        };
         let radius = map_range(
-            total_displacement.length(),
+            magnitude,
             0.0,
             max_mag,
-            model.circle_radius / 3.0,
-            model.circle_radius,
+            model.controls.get_float("circle_radius_min"),
+            model.controls.get_float("circle_radius_max"),
         );
 
         draw.ellipse()
@@ -242,4 +283,87 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     draw.to_frame(app, &frame).unwrap();
+}
+
+pub fn weave(
+    grid_x: f32,
+    grid_y: f32,
+    center_x: f32,
+    center_y: f32,
+    frequency: f32,
+    distance_scale: f32,
+    amplitude: f32,
+    pattern: String,
+) -> f32 {
+    let x = grid_x * frequency;
+    let y = grid_y * frequency;
+
+    let position_pattern = match pattern.as_str() {
+        "Comp1" => (x.sin() * y.cos()) + (x - y).tanh() * (x + y).tan(),
+        _ => parse_dynamic_pattern(&pattern, x, y),
+    };
+
+    let distance =
+        ((center_x - grid_x).powi(2) + (center_y - grid_y).powi(2)).sqrt();
+
+    let distance_pattern = (distance * distance_scale).sin();
+
+    position_pattern * distance_pattern * amplitude
+}
+
+fn generate_pattern_options() -> Vec<String> {
+    let functions = vec![
+        "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
+        "coth",
+    ];
+
+    let mut options: Vec<String> = functions
+        .iter()
+        .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
+        .collect();
+
+    let custom_algs = vec!["Comp1".into()];
+
+    // Append custom algorithms
+    options.extend(custom_algs);
+
+    options
+}
+
+fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
+    let mut map = HashMap::new();
+    map.insert("cos", f32::cos as fn(f32) -> f32);
+    map.insert("sin", f32::sin as fn(f32) -> f32);
+    map.insert("tan", f32::tan as fn(f32) -> f32);
+    map.insert("tanh", f32::tanh as fn(f32) -> f32);
+    map.insert("sec", f32::sec as fn(f32) -> f32);
+    map.insert("csc", f32::csc as fn(f32) -> f32);
+    map.insert("cot", f32::cot as fn(f32) -> f32);
+    map.insert("sech", f32::sech as fn(f32) -> f32);
+    map.insert("csch", f32::csch as fn(f32) -> f32);
+    map.insert("coth", f32::coth as fn(f32) -> f32);
+    map
+}
+
+pub fn parse_dynamic_pattern(pattern: &str, x: f32, y: f32) -> f32 {
+    let lookup = trig_fn_lookup();
+    let parts: Vec<&str> = pattern.split(',').collect();
+
+    if parts.len() != 2 {
+        error!("Invalid pattern: {}", pattern);
+        return 0.0;
+    }
+
+    let (a, b) = (parts[0], parts[1]);
+
+    let func_a = lookup.get(a);
+    let func_b = lookup.get(b);
+
+    match (func_a, func_b) {
+        (Some(&f_a), Some(&f_b)) => f_a(x) + f_b(y),
+        _ => {
+            error!("Unknown function(s) in pattern: {}", pattern);
+            0.0
+        }
+    }
 }

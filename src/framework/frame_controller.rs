@@ -1,8 +1,9 @@
-use log::{debug, warn};
 use nannou::prelude::*;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+
+use super::logging::*;
 
 pub struct FrameController {
     #[allow(dead_code)]
@@ -52,13 +53,13 @@ impl FrameController {
         }
 
         if self.render_flag {
-            debug!(
+            trace!(
                 "Rendering. Time since last: {:?}",
                 now - self.last_render_time
             );
             self.last_render_time = now;
         } else {
-            debug!("Skipping render this frame.");
+            trace!("Skipping render this frame.");
         }
     }
 

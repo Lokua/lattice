@@ -1,5 +1,4 @@
 use dirs;
-use log::{error, info, warn};
 use nannou::prelude::*;
 use nannou_egui::{
     self,
@@ -12,7 +11,7 @@ use std::{path::PathBuf, str};
 use framework::{
     controls::{draw_controls, ControlValues, Controls},
     frame_controller,
-    logger::init_logger,
+    logging::*,
     sketch::{SketchConfig, SketchModel},
     util::{set_window_position, uuid_5},
 };
@@ -101,7 +100,7 @@ fn model<S: SketchModel + 'static>(
     let gui_window_id = app
         .new_window()
         .title(format!("{} Controls", sketch_config.display_name))
-        .size(w / 2, h / 2)
+        .size(350, 350)
         .view(view_gui::<S>)
         .raw_event(raw_window_event::<S>)
         .build()
@@ -114,7 +113,7 @@ fn model<S: SketchModel + 'static>(
 
     let mut sketch_model = init_sketch_model();
 
-    if let Some(values) = get_stored_control_values(&sketch_config.name) {
+    if let Some(values) = get_stored_controls(&sketch_config.name) {
         if let Some(controls) = sketch_model.controls() {
             for (name, value) in values.into_iter() {
                 controls.update_value(&name, value);
@@ -199,16 +198,21 @@ fn update<S: SketchModel>(
                     frame_controller::set_paused(next_is_paused);
                     info!("Paused: {}", next_is_paused);
                 });
+
+                ui.add(egui::Button::new("Clear Cache"))
+                    .clicked()
+                    .then(|| delete_stored_controls(model.sketch_config.name));
             });
 
             ui.separator();
 
             if let Some(controls) = model.sketch_model.controls() {
-                draw_controls(controls, ui);
-                if let Err(e) =
-                    persist_controls(model.sketch_config.name, controls)
-                {
-                    error!("Failed to persist controls: {}", e);
+                let any_changed = draw_controls(controls, ui);
+                if any_changed {
+                    match persist_controls(model.sketch_config.name, controls) {
+                        Ok(_) => debug!("Controls persisted"),
+                        Err(e) => error!("Failed to persist controls: {}", e),
+                    }
                 }
             }
         });
@@ -254,12 +258,24 @@ fn persist_controls(
     Ok(())
 }
 
-fn get_stored_control_values(sketch_name: &str) -> Option<ControlValues> {
+fn get_stored_controls(sketch_name: &str) -> Option<ControlValues> {
     let path = get_controls_storage_path(sketch_name)?;
     let bytes = fs::read(path).ok()?;
     let string = str::from_utf8(&bytes).ok()?;
     let controls = serde_json::from_str::<Controls>(string).ok()?;
     Some(controls.get_values().clone())
+}
+
+fn delete_stored_controls(sketch_name: &str) -> Result<(), Box<dyn Error>> {
+    let path = get_controls_storage_path(sketch_name)
+        .ok_or("Could not determine the configuration directory")?;
+    if path.exists() {
+        fs::remove_file(path)?;
+        info!("Deleted controls for sketch: {}", sketch_name);
+    } else {
+        warn!("No stored controls found for sketch: {}", sketch_name);
+    }
+    Ok(())
 }
 
 fn get_controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
