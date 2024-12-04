@@ -1,0 +1,54 @@
+{
+  "controls": [
+    {
+      "Slider": {
+        "name": "gradient_spread",
+        "value": 0.99,
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.0001
+      }
+    },
+    {
+      "Slider": {
+        "name": "radius",
+        "value": 210.0,
+        "min": 0.0001,
+        "max": 500.0,
+        "step": 1.0
+      }
+    },
+    {
+      "Slider": {
+        "name": "strength",
+        "value": 34.0,
+        "min": 0.0001,
+        "max": 100.0,
+        "step": 1.0
+      }
+    },
+    {
+      "Slider": {
+        "name": "frequency",
+        "value": 0.05,
+        "min": 0.0,
+        "max": 0.1,
+        "step": 0.001
+      }
+    }
+  ],
+  "values": {
+    "radius": {
+      "Float": 0.0
+    },
+    "frequency": {
+      "Float": 0.0
+    },
+    "gradient_spread": {
+      "Float": 0.0
+    },
+    "strength": {
+      "Float": 100.0
+    }
+  }
+}

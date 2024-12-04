@@ -1,14 +1,16 @@
-use log::{info, warn};
+use dirs;
+use log::{error, info, warn};
 use nannou::prelude::*;
 use nannou_egui::{
     self,
     egui::{self, Color32},
     Egui,
 };
-use std::env;
+use std::{env, error::Error, fs};
+use std::{path::PathBuf, str};
 
 use framework::{
-    controls::draw_controls,
+    controls::{draw_controls, ControlValues, Controls},
     frame_controller,
     logger::init_logger,
     sketch::{SketchConfig, SketchModel},
@@ -81,7 +83,7 @@ struct AppModel<S> {
     sketch_config: &'static SketchConfig,
 }
 
-fn model<S: 'static>(
+fn model<S: SketchModel + 'static>(
     app: &App,
     init_sketch_model: fn() -> S,
     sketch_config: &'static SketchConfig,
@@ -110,7 +112,16 @@ fn model<S: 'static>(
 
     let egui = Egui::from_window(&app.window(gui_window_id).unwrap());
 
-    let sketch_model = init_sketch_model();
+    let mut sketch_model = init_sketch_model();
+
+    if let Some(values) = get_stored_control_values(&sketch_config.name) {
+        if let Some(controls) = sketch_model.controls() {
+            for (name, value) in values.into_iter() {
+                controls.update_value(&name, value);
+            }
+            info!("Controls restored")
+        }
+    }
 
     AppModel {
         main_window_id,
@@ -139,25 +150,19 @@ fn update<S: SketchModel>(
 
     let mut style = (*ctx.style()).clone();
     style.visuals.button_frame = true;
-
     style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
     style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
-
     // Unfortunately padding also impacts the "text-input" next to sliders.
     // style.spacing.button_padding = egui::Vec2::new(12.0, 4.0);
-
     style.spacing.slider_width = 160.0;
-
     // nannou_egui is behind
     // style.spacing.slider_rail_height = 4.0;
     ctx.set_style(style);
 
-    let bg_color = Color32::from_gray(3);
-
     egui::CentralPanel::default()
         .frame(
             egui::Frame::default()
-                .fill(bg_color)
+                .fill(Color32::from_gray(3))
                 .inner_margin(egui::Margin::same(16.0)),
         )
         .show(&ctx, |ui| {
@@ -200,6 +205,11 @@ fn update<S: SketchModel>(
 
             if let Some(controls) = model.sketch_model.controls() {
                 draw_controls(controls, ui);
+                if let Err(e) =
+                    persist_controls(model.sketch_config.name, controls)
+                {
+                    error!("Failed to persist controls: {}", e);
+                }
             }
         });
 }
@@ -228,4 +238,34 @@ fn raw_window_event<S>(
     event: &nannou::winit::event::WindowEvent,
 ) {
     model.egui.handle_raw_event(event);
+}
+
+fn persist_controls(
+    sketch_name: &str,
+    controls: &Controls,
+) -> Result<(), Box<dyn Error>> {
+    let path = get_controls_storage_path(sketch_name)
+        .ok_or("Could not determine the configuration directory")?;
+    if let Some(parent_dir) = path.parent() {
+        fs::create_dir_all(parent_dir)?;
+    }
+    let json = serde_json::to_string_pretty(controls)?;
+    fs::write(&path, json)?;
+    Ok(())
+}
+
+fn get_stored_control_values(sketch_name: &str) -> Option<ControlValues> {
+    let path = get_controls_storage_path(sketch_name)?;
+    let bytes = fs::read(path).ok()?;
+    let string = str::from_utf8(&bytes).ok()?;
+    let controls = serde_json::from_str::<Controls>(string).ok()?;
+    Some(controls.get_values().clone())
+}
+
+fn get_controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
+    dirs::config_dir().map(|config_dir| {
+        config_dir
+            .join("Lattice")
+            .join(format!("{}_controls.json", sketch_name))
+    })
 }
