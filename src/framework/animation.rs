@@ -11,7 +11,7 @@ impl Animation {
 
     pub fn get_loop_progress(&self, duration: f32) -> f32 {
         let frame_count = frame_controller::get_frame_count();
-        if frame_count == 0 {
+        if frame_count == 0 || frame_count == 1 {
             debug!("frame_count init {}", frame_count);
         }
         let fps = frame_controller::get_fps();
