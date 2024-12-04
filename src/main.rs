@@ -232,6 +232,10 @@ fn create_and_update_gui<S: SketchModel>(
                     info!("Paused: {}", next_is_paused);
                 });
 
+                ui.add(egui::Button::new("Reset"))
+                    .clicked()
+                    .then(|| frame_controller::reset_frame_count());
+
                 ui.add(egui::Button::new("Clear Cache"))
                     .clicked()
                     .then(|| delete_stored_controls(sketch_config.name));
