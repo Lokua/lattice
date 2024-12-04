@@ -3,14 +3,7 @@ use nannou::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::framework::{
-    animation::Animation,
-    controls::{Control, Controls},
-    displacer::{CustomDistanceFn, Displacer},
-    logging::*,
-    sketch::{SketchConfig, SketchModel},
-    util::{create_grid, IntoLinSrgb, TrigonometricExt},
-};
+use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "displacement_2",
