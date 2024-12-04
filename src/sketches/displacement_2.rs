@@ -19,13 +19,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     bpm: 134.0,
     w: 1000,
     h: 1000,
+    gui_w: None,
+    gui_h: Some(400),
 };
 
 type AnimationFn<R> =
     Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R>>;
 
 struct DisplacerConfig {
-    #[allow(dead_code)]
     kind: &'static str,
     displacer: Displacer,
     position_animation: AnimationFn<Vec2>,
@@ -87,6 +88,10 @@ pub fn init_model() -> Model {
             value: "cos,sin".into(),
             options: generate_pattern_options(),
         },
+        Control::Checkbox {
+            name: "clamp_circle_radii".into(),
+            value: false,
+        },
         Control::Slider {
             name: "gradient_spread".into(),
             value: 0.99,
@@ -118,9 +123,9 @@ pub fn init_model() -> Model {
         Control::Slider {
             name: "displacer_strength".into(),
             value: 34.0,
-            min: 0.01,
+            min: 0.5,
             max: 100.0,
-            step: 1.0,
+            step: 0.5,
         },
         Control::Slider {
             name: "weave_frequency".into(),
@@ -130,14 +135,37 @@ pub fn init_model() -> Model {
             step: 0.001,
         },
         Control::Slider {
-            name: "weave_distance_scale".into(),
+            name: "weave_scale".into(),
             value: 0.05,
             min: 0.001,
             max: 0.1,
             step: 0.001,
         },
+        Control::Slider {
+            name: "weave_amplitude".into(),
+            value: 0.001,
+            min: 0.0001,
+            max: 0.01,
+            step: 0.0001,
+        },
         Control::Checkbox {
-            name: "clamp_circle_radii".into(),
+            name: "center".into(),
+            value: true,
+        },
+        Control::Checkbox {
+            name: "quad_1".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_2".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_3".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_4".into(),
             value: false,
         },
     ]);
@@ -145,9 +173,14 @@ pub fn init_model() -> Model {
     let displacer_configs = vec![
         DisplacerConfig::new(
             "center",
+            Displacer::new(vec2(0.0, 0.0), 20.0, 10.0, None),
+            None,
+            None,
+        ),
+        DisplacerConfig::new(
+            "quad_1",
             Displacer::new(
-                vec2(0.0, 0.0),
-                // vec2(w as f32 / 4.0, h as f32 / 4.0),
+                vec2(w as f32 / 4.0, h as f32 / 4.0),
                 20.0,
                 10.0,
                 None,
@@ -155,17 +188,39 @@ pub fn init_model() -> Model {
             None,
             None,
         ),
-        // DisplacerConfig::new(
-        //     "center",
-        //     Displacer::new(
-        //         vec2(-w as f32 / 4.0, -h as f32 / 4.0),
-        //         20.0,
-        //         10.0,
-        //         None,
-        //     ),
-        //     None,
-        //     None,
-        // ),
+        DisplacerConfig::new(
+            "quad_2",
+            Displacer::new(
+                vec2(w as f32 / 4.0, -h as f32 / 4.0),
+                20.0,
+                10.0,
+                None,
+            ),
+            None,
+            None,
+        ),
+        DisplacerConfig::new(
+            "quad_3",
+            Displacer::new(
+                vec2(-w as f32 / 4.0, -h as f32 / 4.0),
+                20.0,
+                10.0,
+                None,
+            ),
+            None,
+            None,
+        ),
+        DisplacerConfig::new(
+            "quad_4",
+            Displacer::new(
+                vec2(-w as f32 / 4.0, h as f32 / 4.0),
+                20.0,
+                10.0,
+                None,
+            ),
+            None,
+            None,
+        ),
     ];
 
     Model {
@@ -183,9 +238,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         let displacer_radius = model.controls.get_float("displacer_radius");
         let displacer_strength = model.controls.get_float("displacer_strength");
         let weave_frequency = model.controls.get_float("weave_frequency");
-        let weave_distance_scale =
-            model.controls.get_float("weave_distance_scale");
-        // let weave_amplitude = model.controls.get_float("weave_amplitude");
+        let weave_scale = model.controls.get_float("weave_scale");
+        let weave_amplitude = model.controls.get_float("weave_amplitude");
         let pattern = model.controls.get_string("pattern");
 
         let distance_fn: CustomDistanceFn =
@@ -196,8 +250,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     position.x,
                     position.y,
                     weave_frequency,
-                    weave_distance_scale,
-                    0.001, // weave_amplitude,
+                    weave_scale,
+                    weave_amplitude,
                     pattern.clone(),
                 )
             }));
@@ -227,12 +281,18 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let max_mag = model.displacer_configs.len() as f32
         * model.controls.get_float("displacer_strength");
 
+    let enabled_displacer_configs: Vec<&DisplacerConfig> = model
+        .displacer_configs
+        .iter()
+        .filter(|x| model.controls.get_bool(x.kind))
+        .collect();
+
     for point in grid {
         let mut total_displacement = vec2(0.0, 0.0);
         let mut total_influence = 0.0;
+        let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
 
-        let displacements: Vec<(Vec2, f32)> = model
-            .displacer_configs
+        let displacements: Vec<(Vec2, f32)> = enabled_displacer_configs
             .iter()
             .map(|config| {
                 let displacement = config.displacer.influence(point);
@@ -243,9 +303,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             })
             .collect();
 
-        let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
-
-        for (index, config) in model.displacer_configs.iter().enumerate() {
+        for (index, config) in enabled_displacer_configs.iter().enumerate() {
             let (_displacement, influence) = displacements[index];
             let color_position = (influence / config.displacer.strength)
                 .powf(gradient_spread)

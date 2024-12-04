@@ -7,6 +7,8 @@ pub struct SketchConfig {
     pub bpm: f32,
     pub w: i32,
     pub h: i32,
+    pub gui_w: Option<u32>,
+    pub gui_h: Option<u32>,
 }
 
 pub trait SketchModel {
