@@ -2,7 +2,7 @@ use nannou_egui::egui;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Any sketch using controls needs to implement this trait for the model
+/// Any sketch using controls needs to implement this trait for the Model
 pub trait HasControls {
     fn controls(&mut self) -> &mut Controls;
 }

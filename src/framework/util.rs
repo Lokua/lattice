@@ -83,3 +83,38 @@ pub fn uuid(length: usize) -> String {
         })
         .collect()
 }
+
+pub trait TrigonometricExt {
+    fn sec(self) -> Self;
+    fn csc(self) -> Self;
+    fn cot(self) -> Self;
+    fn sech(self) -> Self;
+    fn csch(self) -> Self;
+    fn coth(self) -> Self;
+}
+
+impl TrigonometricExt for f32 {
+    fn sec(self) -> Self {
+        1.0 / self.cos()
+    }
+
+    fn csc(self) -> Self {
+        1.0 / self.sin()
+    }
+
+    fn cot(self) -> Self {
+        1.0 / self.tan()
+    }
+
+    fn sech(self) -> Self {
+        1.0 / self.cosh()
+    }
+
+    fn csch(self) -> Self {
+        1.0 / self.sinh()
+    }
+
+    fn coth(self) -> Self {
+        1.0 / self.tanh()
+    }
+}
