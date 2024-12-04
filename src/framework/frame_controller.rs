@@ -9,7 +9,7 @@ pub struct FrameController {
     #[allow(dead_code)]
     target_fps: f64,
     frame_duration: Duration,
-    // Captured every loop regardless of skipped/rendered frames
+    /// Captured every update call regardless if the frame is skipped or rendered
     last_frame_time: Instant,
     last_render_time: Instant,
     accumulator: Duration,
@@ -69,6 +69,10 @@ impl FrameController {
 
     pub fn get_frame_count(&self) -> u64 {
         self.frame_count
+    }
+
+    pub fn reset_frame_count(&mut self) {
+        self.frame_count = 0;
     }
 
     pub fn get_fps(&self) -> f64 {
@@ -132,6 +136,13 @@ where
 pub fn get_frame_count() -> u64 {
     let controller = CONTROLLER.lock().unwrap();
     controller.as_ref().map_or(0, |c| c.get_frame_count())
+}
+
+pub fn reset_frame_count() {
+    let mut controller = CONTROLLER.lock().unwrap();
+    if let Some(controller) = controller.as_mut() {
+        controller.reset_frame_count();
+    }
 }
 
 pub fn get_fps() -> f64 {

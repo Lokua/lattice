@@ -1,4 +1,4 @@
-use crate::framework::frame_controller::{get_fps, get_frame_count};
+use crate::framework::prelude::*;
 
 pub struct Animation {
     bpm: f32,
@@ -10,10 +10,15 @@ impl Animation {
     }
 
     pub fn get_loop_progress(&self, duration: f32) -> f32 {
+        let frame_count = frame_controller::get_frame_count();
+        if frame_count == 0 {
+            debug!("frame_count init {}", frame_count);
+        }
+        let fps = frame_controller::get_fps();
         let beat_duration = 60.0 / self.bpm;
         let total_frames =
-            (beat_duration * duration * get_fps() as f32).round() as u64;
-        let current_frame = get_frame_count() % total_frames;
+            (beat_duration * duration * fps as f32).round() as u64;
+        let current_frame = frame_count % total_frames;
         let progress = current_frame as f32 / total_frames as f32;
         progress as f32
     }
