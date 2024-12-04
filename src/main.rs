@@ -72,6 +72,7 @@ struct AppModel<S> {
     #[allow(dead_code)]
     gui_window_id: window::Id,
     egui: Egui,
+    alert_text: String,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
 }
@@ -99,7 +100,9 @@ fn model<S: SketchModel + 'static>(
             sketch_config.gui_h.unwrap_or(350),
         )
         .view(view_gui::<S>)
-        .raw_event(raw_window_event::<S>)
+        .raw_event(|_app, model: &mut AppModel<S>, event| {
+            model.egui.handle_raw_event(event);
+        })
         .build()
         .unwrap();
 
@@ -123,6 +126,7 @@ fn model<S: SketchModel + 'static>(
         main_window_id,
         gui_window_id,
         egui,
+        alert_text: "".into(),
         sketch_model,
         sketch_config,
     }
@@ -144,11 +148,12 @@ fn update<S: SketchModel>(
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
 
-    create_and_update_gui(
+    update_gui(
         app,
         model.main_window_id,
         model.sketch_config,
         &mut model.sketch_model,
+        &mut model.alert_text,
         &ctx,
     );
 }
@@ -167,23 +172,12 @@ fn view<S>(
     );
 }
 
-fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
-    model.egui.draw_to_frame(&frame).unwrap();
-}
-
-fn raw_window_event<S>(
-    _app: &App,
-    model: &mut AppModel<S>,
-    event: &nannou::winit::event::WindowEvent,
-) {
-    model.egui.handle_raw_event(event);
-}
-
-fn create_and_update_gui<S: SketchModel>(
+fn update_gui<S: SketchModel>(
     app: &App,
     main_window_id: window::Id,
     sketch_config: &SketchConfig,
     sketch_model: &mut S,
+    alert_text: &mut String,
     ctx: &egui::Context,
 ) {
     let mut style = (*ctx.style()).clone();
@@ -217,6 +211,7 @@ fn create_and_update_gui<S: SketchModel>(
 
                         window.capture_frame(file_path.clone());
                         info!("Image saved to {:?}", file_path);
+                        *alert_text = format!("Image saved to {:?}", file_path);
                     }
                 });
 
@@ -230,38 +225,66 @@ fn create_and_update_gui<S: SketchModel>(
                     let next_is_paused = !frame_controller::is_paused();
                     frame_controller::set_paused(next_is_paused);
                     info!("Paused: {}", next_is_paused);
+                    *alert_text =
+                        (if next_is_paused { "Paused" } else { "Resumed" })
+                            .into();
                 });
 
-                ui.add(egui::Button::new("Reset"))
-                    .clicked()
-                    .then(|| frame_controller::reset_frame_count());
+                ui.add(egui::Button::new("Reset")).clicked().then(|| {
+                    frame_controller::reset_frame_count();
+                    info!("Frame count reset");
+                    *alert_text = "Reset".into()
+                });
 
-                ui.add(egui::Button::new("Clear Cache"))
-                    .clicked()
-                    .then(|| delete_stored_controls(sketch_config.name));
+                ui.add(egui::Button::new("Clear Cache")).clicked().then(|| {
+                    if let Err(e) = delete_stored_controls(sketch_config.name) {
+                        error!("Failed to clear controls cache: {}", e);
+                    } else {
+                        *alert_text = "Controls cache cleared".into();
+                    }
+                });
             });
-
-            ui.separator();
 
             if let Some(controls) = sketch_model.controls() {
                 let any_changed = draw_controls(controls, ui);
                 if any_changed {
-                    if let Err(e) =
-                        persist_controls(sketch_config.name, controls)
-                    {
-                        error!("Failed to persist controls: {}", e);
-                    } else {
-                        debug!("Controls persisted");
+                    match persist_controls(sketch_config.name, controls) {
+                        Ok(path_buf) => {
+                            *alert_text =
+                                format!("Controls persisted at {:?}", path_buf);
+                            debug!("Controls persisted at {:?}", path_buf);
+                        }
+                        Err(e) => {
+                            error!("Failed to persist controls: {}", e);
+                            *alert_text = "Failed to persist controls".into();
+                        }
                     }
                 }
             }
+
+            egui::TopBottomPanel::bottom("alerts")
+                .frame(
+                    egui::Frame::default()
+                        .fill(Color32::from_gray(2))
+                        .outer_margin(egui::Margin::same(6.0))
+                        .inner_margin(egui::Margin::same(4.0)),
+                )
+                .show_separator_line(false)
+                .min_height(40.0)
+                .show(ctx, |ui| {
+                    ui.colored_label(Color32::from_gray(180), alert_text);
+                });
         });
+}
+
+fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
+    model.egui.draw_to_frame(&frame).unwrap();
 }
 
 fn persist_controls(
     sketch_name: &str,
     controls: &Controls,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<PathBuf, Box<dyn Error>> {
     let path = get_controls_storage_path(sketch_name)
         .ok_or("Could not determine the configuration directory")?;
     if let Some(parent_dir) = path.parent() {
@@ -269,7 +292,7 @@ fn persist_controls(
     }
     let json = serde_json::to_string_pretty(controls)?;
     fs::write(&path, json)?;
-    Ok(())
+    Ok(path)
 }
 
 fn get_stored_controls(sketch_name: &str) -> Option<ControlValues> {
