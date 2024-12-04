@@ -2,7 +2,7 @@ use dirs;
 use nannou::prelude::*;
 use nannou_egui::{
     self,
-    egui::{self, Color32},
+    egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
 use std::{env, error::Error, fs};
@@ -100,7 +100,10 @@ fn model<S: SketchModel + 'static>(
     let gui_window_id = app
         .new_window()
         .title(format!("{} Controls", sketch_config.display_name))
-        .size(350, 350)
+        .size(
+            sketch_config.gui_w.unwrap_or(350),
+            sketch_config.gui_h.unwrap_or(350),
+        )
         .view(view_gui::<S>)
         .raw_event(raw_window_event::<S>)
         .build()
@@ -157,6 +160,7 @@ fn update<S: SketchModel>(
     // nannou_egui is behind
     // style.spacing.slider_rail_height = 4.0;
     ctx.set_style(style);
+    setup_monospaced_fonts(&ctx);
 
     egui::CentralPanel::default()
         .frame(
@@ -284,4 +288,38 @@ fn get_controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
             .join("Lattice")
             .join(format!("{}_controls.json", sketch_name))
     })
+}
+
+fn setup_monospaced_fonts(ctx: &egui::Context) {
+    let mut fonts = FontDefinitions::default();
+
+    // Map the Monospace family to a valid font
+    fonts
+        .families
+        .insert(FontFamily::Monospace, vec!["Hack".to_owned()]);
+
+    ctx.set_fonts(fonts);
+
+    // Customize text styles for controls and other UI elements
+    let mut style = (*ctx.style()).clone();
+
+    // Adjust the font size for buttons (controls) specifically
+    style.text_styles.insert(
+        egui::TextStyle::Button,
+        egui::FontId::new(10.0, FontFamily::Monospace),
+    );
+
+    // Optionally, adjust other styles like Body or Heading
+    style.text_styles.insert(
+        egui::TextStyle::Body,
+        egui::FontId::new(10.0, FontFamily::Monospace),
+    );
+
+    style.text_styles.insert(
+        egui::TextStyle::Heading,
+        egui::FontId::new(12.0, FontFamily::Monospace),
+    );
+
+    // Apply the updated style
+    ctx.set_style(style);
 }

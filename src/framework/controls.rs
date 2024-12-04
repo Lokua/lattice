@@ -113,7 +113,6 @@ impl Controls {
 
 pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
     let controls_list = controls.get_controls().clone();
-    // the version of egui we're stuck with doesn't support "catch all" handler :(
     let mut any_changed = false;
 
     for control in controls_list {

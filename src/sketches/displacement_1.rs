@@ -18,6 +18,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     bpm: 134.0,
     w: 700,
     h: 700,
+    gui_w: None,
+    gui_h: None,
 };
 
 type AnimationFn<R> =
