@@ -154,8 +154,6 @@ fn update<S: SketchModel>(
     style.visuals.button_frame = true;
     style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
     style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
-    // Unfortunately padding also impacts the "text-input" next to sliders.
-    // style.spacing.button_padding = egui::Vec2::new(12.0, 4.0);
     style.spacing.slider_width = 160.0;
     // nannou_egui is behind
     // style.spacing.slider_rail_height = 4.0;
@@ -170,26 +168,24 @@ fn update<S: SketchModel>(
         )
         .show(&ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.add(egui::Button::new("Capture Frame")).clicked().then(
-                    || {
-                        if let Some(window) = app.window(model.main_window_id) {
-                            let filename = format!(
-                                "{}-{}.png",
-                                model.sketch_config.name,
-                                uuid_5()
-                            );
+                ui.add(egui::Button::new("Save")).clicked().then(|| {
+                    if let Some(window) = app.window(model.main_window_id) {
+                        let filename = format!(
+                            "{}-{}.png",
+                            model.sketch_config.name,
+                            uuid_5()
+                        );
 
-                            let file_path = app
-                                .project_path()
-                                .unwrap()
-                                .join("images")
-                                .join(filename);
+                        let file_path = app
+                            .project_path()
+                            .unwrap()
+                            .join("images")
+                            .join(filename);
 
-                            window.capture_frame(file_path.clone());
-                            info!("Image saved to {:?}", file_path);
-                        }
-                    },
-                );
+                        window.capture_frame(file_path.clone());
+                        info!("Image saved to {:?}", file_path);
+                    }
+                });
 
                 ui.add(egui::Button::new(if frame_controller::is_paused() {
                     "Resume"
@@ -293,23 +289,19 @@ fn get_controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
 fn setup_monospaced_fonts(ctx: &egui::Context) {
     let mut fonts = FontDefinitions::default();
 
-    // Map the Monospace family to a valid font
     fonts
         .families
         .insert(FontFamily::Monospace, vec!["Hack".to_owned()]);
 
     ctx.set_fonts(fonts);
 
-    // Customize text styles for controls and other UI elements
     let mut style = (*ctx.style()).clone();
 
-    // Adjust the font size for buttons (controls) specifically
     style.text_styles.insert(
         egui::TextStyle::Button,
         egui::FontId::new(10.0, FontFamily::Monospace),
     );
 
-    // Optionally, adjust other styles like Body or Heading
     style.text_styles.insert(
         egui::TextStyle::Body,
         egui::FontId::new(10.0, FontFamily::Monospace),
@@ -320,6 +312,5 @@ fn setup_monospaced_fonts(ctx: &egui::Context) {
         egui::FontId::new(12.0, FontFamily::Monospace),
     );
 
-    // Apply the updated style
     ctx.set_style(style);
 }
