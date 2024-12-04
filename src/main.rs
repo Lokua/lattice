@@ -8,13 +8,7 @@ use nannou_egui::{
 use std::{env, error::Error, fs};
 use std::{path::PathBuf, str};
 
-use framework::{
-    controls::{draw_controls, ControlValues, Controls},
-    frame_controller,
-    logging::*,
-    sketch::{SketchConfig, SketchModel},
-    util::{set_window_position, uuid_5},
-};
+use framework::prelude::*;
 
 pub mod framework;
 mod sketches;
@@ -150,72 +144,13 @@ fn update<S: SketchModel>(
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
 
-    let mut style = (*ctx.style()).clone();
-    style.visuals.button_frame = true;
-    style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
-    style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
-    style.spacing.slider_width = 160.0;
-    // nannou_egui is behind
-    // style.spacing.slider_rail_height = 4.0;
-    ctx.set_style(style);
-    setup_monospaced_fonts(&ctx);
-
-    egui::CentralPanel::default()
-        .frame(
-            egui::Frame::default()
-                .fill(Color32::from_gray(3))
-                .inner_margin(egui::Margin::same(16.0)),
-        )
-        .show(&ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.add(egui::Button::new("Save")).clicked().then(|| {
-                    if let Some(window) = app.window(model.main_window_id) {
-                        let filename = format!(
-                            "{}-{}.png",
-                            model.sketch_config.name,
-                            uuid_5()
-                        );
-
-                        let file_path = app
-                            .project_path()
-                            .unwrap()
-                            .join("images")
-                            .join(filename);
-
-                        window.capture_frame(file_path.clone());
-                        info!("Image saved to {:?}", file_path);
-                    }
-                });
-
-                ui.add(egui::Button::new(if frame_controller::is_paused() {
-                    "Resume"
-                } else {
-                    "Pause"
-                }))
-                .clicked()
-                .then(|| {
-                    let next_is_paused = !frame_controller::is_paused();
-                    frame_controller::set_paused(next_is_paused);
-                    info!("Paused: {}", next_is_paused);
-                });
-
-                ui.add(egui::Button::new("Clear Cache"))
-                    .clicked()
-                    .then(|| delete_stored_controls(model.sketch_config.name));
-            });
-
-            ui.separator();
-
-            if let Some(controls) = model.sketch_model.controls() {
-                let any_changed = draw_controls(controls, ui);
-                if any_changed {
-                    match persist_controls(model.sketch_config.name, controls) {
-                        Ok(_) => debug!("Controls persisted"),
-                        Err(e) => error!("Failed to persist controls: {}", e),
-                    }
-                }
-            }
-        });
+    create_and_update_gui(
+        app,
+        model.main_window_id,
+        model.sketch_config,
+        &mut model.sketch_model,
+        &ctx,
+    );
 }
 
 fn view<S>(
@@ -242,6 +177,81 @@ fn raw_window_event<S>(
     event: &nannou::winit::event::WindowEvent,
 ) {
     model.egui.handle_raw_event(event);
+}
+
+fn create_and_update_gui<S: SketchModel>(
+    app: &App,
+    main_window_id: window::Id,
+    sketch_config: &SketchConfig,
+    sketch_model: &mut S,
+    ctx: &egui::Context,
+) {
+    let mut style = (*ctx.style()).clone();
+    style.visuals.button_frame = true;
+    style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
+    style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
+    style.spacing.slider_width = 160.0;
+    ctx.set_style(style);
+    setup_monospaced_fonts(ctx);
+
+    egui::CentralPanel::default()
+        .frame(
+            egui::Frame::default()
+                .fill(Color32::from_gray(3))
+                .inner_margin(egui::Margin::same(16.0)),
+        )
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                let main_window = app.window(main_window_id);
+
+                ui.add(egui::Button::new("Save")).clicked().then(|| {
+                    if let Some(window) = main_window {
+                        let filename =
+                            format!("{}-{}.png", sketch_config.name, uuid_5());
+
+                        let file_path = app
+                            .project_path()
+                            .unwrap()
+                            .join("images")
+                            .join(filename);
+
+                        window.capture_frame(file_path.clone());
+                        info!("Image saved to {:?}", file_path);
+                    }
+                });
+
+                ui.add(egui::Button::new(if frame_controller::is_paused() {
+                    "Resume"
+                } else {
+                    "Pause"
+                }))
+                .clicked()
+                .then(|| {
+                    let next_is_paused = !frame_controller::is_paused();
+                    frame_controller::set_paused(next_is_paused);
+                    info!("Paused: {}", next_is_paused);
+                });
+
+                ui.add(egui::Button::new("Clear Cache"))
+                    .clicked()
+                    .then(|| delete_stored_controls(sketch_config.name));
+            });
+
+            ui.separator();
+
+            if let Some(controls) = sketch_model.controls() {
+                let any_changed = draw_controls(controls, ui);
+                if any_changed {
+                    if let Err(e) =
+                        persist_controls(sketch_config.name, controls)
+                    {
+                        error!("Failed to persist controls: {}", e);
+                    } else {
+                        debug!("Controls persisted");
+                    }
+                }
+            }
+        });
 }
 
 fn persist_controls(
