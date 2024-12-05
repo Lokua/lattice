@@ -7,3 +7,4 @@ pub mod logging;
 pub mod prelude;
 pub mod sketch;
 pub mod util;
+pub mod video_export;
