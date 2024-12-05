@@ -6,6 +6,7 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
+
 use std::{cell::Cell, env, error::Error, fs};
 use std::{path::PathBuf, str};
 
@@ -199,114 +200,38 @@ fn update_gui<S: SketchModel>(
 
                 ui.add(egui::Button::new("Save")).clicked().then(|| {
                     if let Some(window) = main_window {
-                        let filename =
-                            format!("{}-{}.png", sketch_config.name, uuid_5());
-
-                        let file_path = app
-                            .project_path()
-                            .unwrap()
-                            .join("images")
-                            .join(filename);
-
-                        window.capture_frame(file_path.clone());
-                        info!("Image saved to {:?}", file_path);
-                        *alert_text = format!("Image saved to {:?}", file_path);
+                        capture_frame(
+                            &window,
+                            app,
+                            sketch_config.name,
+                            alert_text,
+                        );
                     }
                 });
 
-                ui.add(egui::Button::new(if frame_controller::is_paused() {
-                    "Resume"
-                } else {
-                    "Pause"
-                }))
-                .clicked()
-                .then(|| {
-                    let next_is_paused = !frame_controller::is_paused();
-                    frame_controller::set_paused(next_is_paused);
-                    info!("Paused: {}", next_is_paused);
-                    *alert_text =
-                        (if next_is_paused { "Paused" } else { "Resumed" })
-                            .into();
-                });
-
-                ui.add(egui::Button::new("Reset")).clicked().then(|| {
-                    frame_controller::reset_frame_count();
-                    info!("Frame count reset");
-                    *alert_text = "Reset".into()
-                });
-
-                ui.add(egui::Button::new("Clear Cache")).clicked().then(|| {
-                    if let Err(e) = delete_stored_controls(sketch_config.name) {
-                        error!("Failed to clear controls cache: {}", e);
-                    } else {
-                        *alert_text = "Controls cache cleared".into();
-                    }
-                });
-
-                let is_recording = *recording;
-                ui.add(egui::Button::new(if is_recording {
-                    "STOP"
-                } else {
-                    "Record"
-                }))
-                .clicked()
-                .then(|| {
-                    let current_recording_dir = recording_dir.clone();
-                    if let Some(path) = current_recording_dir {
-                        *recording = !is_recording;
-                        info!("Recording: {}, path: {:?}", recording, path);
-                        if *recording {
-                            *alert_text = format!(
-                                "Recording. Frames will be written to {:?}",
-                                path
-                            )
-                            .into();
-                        } else {
-                            recorded_frames.set(0);
-                            let new_path = frames_dir(sketch_config.name).unwrap();
-                            *recording_dir = Some(new_path);
-                            *alert_text = format!(
-                                "Recording stopped. Frames are available at {:?}",
-                                path
-                            )
-                            .into();
-                        }
-                    } else {
-                        error!("Unable to access recording path");
-                    }
-                });
+                draw_pause_button(ui, alert_text);
+                draw_reset_button(ui, alert_text);
+                draw_clear_cache_button(ui, sketch_config.name, alert_text);
+                draw_record_button(
+                    ui,
+                    sketch_config,
+                    recording,
+                    recording_dir,
+                    recorded_frames,
+                    alert_text,
+                );
             });
 
-            if let Some(controls) = sketch_model.controls() {
-                let any_changed = draw_controls(controls, ui);
-                if any_changed {
-                    match persist_controls(sketch_config.name, controls) {
-                        Ok(path_buf) => {
-                            *alert_text =
-                                format!("Controls persisted at {:?}", path_buf);
-                            debug!("Controls persisted at {:?}", path_buf);
-                        }
-                        Err(e) => {
-                            error!("Failed to persist controls: {}", e);
-                            *alert_text = "Failed to persist controls".into();
-                        }
-                    }
-                }
-            }
-
-            egui::TopBottomPanel::bottom("alerts")
-                .frame(
-                    egui::Frame::default()
-                        .fill(Color32::from_gray(2))
-                        .outer_margin(egui::Margin::same(6.0))
-                        .inner_margin(egui::Margin::same(4.0)),
-                )
-                .show_separator_line(false)
-                .min_height(40.0)
-                .show(ctx, |ui| {
-                    ui.colored_label(Color32::from_gray(180), alert_text);
-                });
+            ui.separator();
+            draw_sketch_controls(ui, sketch_model, sketch_config, alert_text);
+            draw_alert_panel(ctx, alert_text);
         });
+}
+
+// Hack. Rustfmt choked on some deep nesting; format! seemed to tip it out
+fn alert_recording_stopped_message(path: PathBuf) -> String {
+    // Inline this and rustfmt can't format anything in 1/2 the file
+    format!("Recording stopped. Frames are available at {:?}", path)
 }
 
 fn view<S>(
@@ -425,4 +350,130 @@ fn setup_monospaced_fonts(ctx: &egui::Context) {
     );
 
     ctx.set_style(style);
+}
+
+fn capture_frame(
+    window: &nannou::window::Window,
+    app: &App,
+    sketch_name: &str,
+    alert_text: &mut String,
+) {
+    let filename = format!("{}-{}.png", sketch_name, uuid_5());
+    let file_path = app.project_path().unwrap().join("images").join(&filename);
+
+    window.capture_frame(file_path.clone());
+    info!("Image saved to {:?}", file_path);
+    *alert_text = format!("Image saved to {:?}", file_path);
+}
+
+fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {
+    ui.add(egui::Button::new(if frame_controller::is_paused() {
+        "Resume"
+    } else {
+        "Pause"
+    }))
+    .clicked()
+    .then(|| {
+        let next_is_paused = !frame_controller::is_paused();
+        frame_controller::set_paused(next_is_paused);
+        info!("Paused: {}", next_is_paused);
+        *alert_text =
+            (if next_is_paused { "Paused" } else { "Resumed" }).into();
+    });
+}
+
+fn draw_reset_button(ui: &mut egui::Ui, alert_text: &mut String) {
+    ui.add(egui::Button::new("Reset")).clicked().then(|| {
+        frame_controller::reset_frame_count();
+        info!("Frame count reset");
+        *alert_text = "Reset".into()
+    });
+}
+
+fn draw_clear_cache_button(
+    ui: &mut egui::Ui,
+    sketch_name: &str,
+    alert_text: &mut String,
+) {
+    ui.add(egui::Button::new("Clear Cache")).clicked().then(|| {
+        if let Err(e) = delete_stored_controls(sketch_name) {
+            error!("Failed to clear controls cache: {}", e);
+        } else {
+            *alert_text = "Controls cache cleared".into();
+        }
+    });
+}
+
+fn draw_record_button(
+    ui: &mut egui::Ui,
+    sketch_config: &SketchConfig,
+    recording: &mut bool,
+    recording_dir: &mut Option<PathBuf>,
+    recorded_frames: &Cell<u32>,
+    alert_text: &mut String,
+) {
+    let is_recording = *recording;
+    let button_label = if is_recording { "STOP" } else { "Record" };
+
+    ui.add(egui::Button::new(button_label)).clicked().then(|| {
+        let current_recording_dir = recording_dir.clone();
+        if let Some(path) = current_recording_dir {
+            *recording = !is_recording;
+            info!("Recording: {}, path: {:?}", recording, path);
+
+            if *recording {
+                let message =
+                    format!("Recording. Frames will be written to {:?}", path);
+                *alert_text = message.into();
+            } else {
+                recorded_frames.set(0);
+                let new_path = frames_dir(sketch_config.name).unwrap();
+                *recording_dir = Some(new_path);
+
+                let message = alert_recording_stopped_message(path);
+                *alert_text = message.into();
+            }
+        } else {
+            error!("Unable to access recording path");
+        }
+    });
+}
+
+fn draw_sketch_controls<S: SketchModel>(
+    ui: &mut egui::Ui,
+    sketch_model: &mut S,
+    sketch_config: &SketchConfig,
+    alert_text: &mut String,
+) {
+    if let Some(controls) = sketch_model.controls() {
+        let any_changed = draw_controls(controls, ui);
+        if any_changed {
+            match persist_controls(sketch_config.name, controls) {
+                Ok(path_buf) => {
+                    *alert_text =
+                        format!("Controls persisted at {:?}", path_buf);
+                    debug!("Controls persisted at {:?}", path_buf);
+                }
+                Err(e) => {
+                    error!("Failed to persist controls: {}", e);
+                    *alert_text = "Failed to persist controls".into();
+                }
+            }
+        }
+    }
+}
+
+fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
+    egui::TopBottomPanel::bottom("alerts")
+        .frame(
+            egui::Frame::default()
+                .fill(Color32::from_gray(2))
+                .outer_margin(egui::Margin::same(6.0))
+                .inner_margin(egui::Margin::same(4.0)),
+        )
+        .show_separator_line(false)
+        .min_height(40.0)
+        .show(ctx, |ui| {
+            ui.colored_label(Color32::from_gray(180), alert_text);
+        });
 }

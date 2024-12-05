@@ -46,7 +46,7 @@ This project requires or optionally needs:
 
 ## Usage
 
-To create a new sketch:
+### Creating a new sketch:
 
 1. Copy the [template sketch][template-link] into a new file in sketches folder.
 2. Rename at a minimum the `SKETCH_CONFIG.name` field at the top of the file:
@@ -62,6 +62,18 @@ To create a new sketch:
 5. Run that sketch via command line by `cargo run --release <name>` or
    `just start <name>` where `name` is what you put in your file's
    `SKETCH_CONFIG.name` field.
+
+### Recording Video
+
+Currently using nannou's built in `window.capture_frame` mechanism to write to
+the OS config dir. The path that frames are dumped to will be printed in the
+controls GUI window. Manually stitching with ffmpeg is required. The command I'm
+using is:
+
+```sh
+# adjust framerate as needed
+ffmpeg -framerate 30 -i frame-%06d.png -c:v libx264 -crf 16 -preset veryslow -pix_fmt yuv444p ~/Movies/Lattice.mp4
+```
 
 [nannou-link]: https://github.com/nannou-org/nannou
 [p5-link]: https://github.com/Lokua/p5/tree/main
