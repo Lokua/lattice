@@ -228,12 +228,6 @@ fn update_gui<S: SketchModel>(
         });
 }
 
-// Hack. Rustfmt choked on some deep nesting; format! seemed to tip it out
-fn alert_recording_stopped_message(path: PathBuf) -> String {
-    // Inline this and rustfmt can't format anything in 1/2 the file
-    format!("Recording stopped. Frames are available at {:?}", path)
-}
-
 fn view<S>(
     app: &App,
     model: &AppModel<S>,
@@ -430,7 +424,10 @@ fn draw_record_button(
                 let new_path = frames_dir(sketch_config.name).unwrap();
                 *recording_dir = Some(new_path);
 
-                let message = alert_recording_stopped_message(path);
+                let message = format!(
+                    "Recording stopped. Frames are available at {:?}",
+                    path
+                );
                 *alert_text = message.into();
             }
         } else {
