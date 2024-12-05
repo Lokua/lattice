@@ -162,7 +162,8 @@ fn update<S: SketchModel>(
         &mut model.sketch_model,
         &mut model.alert_text,
         &mut model.recording,
-        &model.recording_dir,
+        &mut model.recording_dir,
+        &model.recorded_frames,
         &ctx,
     );
 }
@@ -174,7 +175,8 @@ fn update_gui<S: SketchModel>(
     sketch_model: &mut S,
     alert_text: &mut String,
     recording: &mut bool,
-    recording_dir: &Option<PathBuf>,
+    recording_dir: &mut Option<PathBuf>,
+    recorded_frames: &Cell<u32>,
     ctx: &egui::Context,
 ) {
     let mut style = (*ctx.style()).clone();
@@ -249,7 +251,8 @@ fn update_gui<S: SketchModel>(
                 }))
                 .clicked()
                 .then(|| {
-                    if let Some(path) = recording_dir {
+                    let current_recording_dir = recording_dir.clone();
+                    if let Some(path) = current_recording_dir {
                         *recording = !is_recording;
                         info!("Recording: {}, path: {:?}", recording, path);
                         if *recording {
@@ -259,6 +262,9 @@ fn update_gui<S: SketchModel>(
                             )
                             .into();
                         } else {
+                            recorded_frames.set(0);
+                            let new_path = frames_dir(sketch_config.name).unwrap();
+                            *recording_dir = Some(new_path);
                             *alert_text = format!(
                                 "Recording stopped. Frames are available at {:?}",
                                 path
