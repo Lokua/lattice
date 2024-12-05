@@ -81,7 +81,7 @@ impl Controls {
         &self.controls
     }
 
-    pub fn get_values(&self) -> &ControlValues {
+    pub fn values(&self) -> &ControlValues {
         &self.values
     }
 

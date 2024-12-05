@@ -7,7 +7,7 @@ use super::logging::*;
 
 pub struct FrameController {
     #[allow(dead_code)]
-    target_fps: f64,
+    fps: f64,
     frame_duration: Duration,
     /// Captured every update call regardless if the frame is skipped or rendered
     last_frame_time: Instant,
@@ -19,11 +19,11 @@ pub struct FrameController {
 }
 
 impl FrameController {
-    pub fn new(target_fps: f64) -> Self {
+    pub fn new(fps: f64) -> Self {
         let now = Instant::now();
         Self {
-            target_fps,
-            frame_duration: Duration::from_secs_f64(1.0 / target_fps),
+            fps,
+            frame_duration: Duration::from_secs_f64(1.0 / fps),
             last_frame_time: now,
             last_render_time: now,
             accumulator: Duration::ZERO,
@@ -67,7 +67,7 @@ impl FrameController {
         self.render_flag && !self.paused
     }
 
-    pub fn get_frame_count(&self) -> u64 {
+    pub fn frame_count(&self) -> u64 {
         self.frame_count
     }
 
@@ -75,8 +75,8 @@ impl FrameController {
         self.frame_count = 0;
     }
 
-    pub fn get_fps(&self) -> f64 {
-        self.target_fps
+    pub fn fps(&self) -> f64 {
+        self.fps
     }
 
     pub fn is_paused(&self) -> bool {
@@ -119,7 +119,12 @@ pub fn wrapped_update<M, F>(
     }
 }
 
-pub fn wrapped_view<M, F>(app: &App, model: &M, frame: Frame, view_fn: F)
+pub fn wrapped_view<M, F>(
+    app: &App,
+    model: &M,
+    frame: Frame,
+    view_fn: F,
+) -> bool
 where
     F: FnOnce(&App, &M, Frame),
 {
@@ -131,11 +136,13 @@ where
     if should_render {
         view_fn(app, model, frame);
     }
+
+    should_render
 }
 
-pub fn get_frame_count() -> u64 {
+pub fn frame_count() -> u64 {
     let controller = CONTROLLER.lock().unwrap();
-    controller.as_ref().map_or(0, |c| c.get_frame_count())
+    controller.as_ref().map_or(0, |c| c.frame_count())
 }
 
 pub fn reset_frame_count() {
@@ -145,9 +152,9 @@ pub fn reset_frame_count() {
     }
 }
 
-pub fn get_fps() -> f64 {
+pub fn fps() -> f64 {
     let controller = CONTROLLER.lock().unwrap();
-    controller.as_ref().map_or(0.0, |c| c.get_fps())
+    controller.as_ref().map_or(0.0, |c| c.fps())
 }
 
 pub fn is_paused() -> bool {

@@ -5,6 +5,7 @@ authors = ["Lokua <dev@lokua.net>"]
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.38"
 dirs = "5.0.1"
 env_logger = "0.11.5"
 lazy_static = "1.5.0"
