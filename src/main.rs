@@ -1,3 +1,4 @@
+use chrono::Local;
 use dirs;
 use nannou::prelude::*;
 use nannou_egui::{
@@ -5,7 +6,7 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
-use std::{env, error::Error, fs};
+use std::{cell::Cell, env, error::Error, fs};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -73,6 +74,9 @@ struct AppModel<S> {
     gui_window_id: window::Id,
     egui: Egui,
     alert_text: String,
+    recording: bool,
+    recording_dir: Option<PathBuf>,
+    recorded_frames: Cell<u32>,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
 }
@@ -113,7 +117,7 @@ fn model<S: SketchModel + 'static>(
 
     let mut sketch_model = init_sketch_model();
 
-    if let Some(values) = get_stored_controls(&sketch_config.name) {
+    if let Some(values) = stored_controls(&sketch_config.name) {
         if let Some(controls) = sketch_model.controls() {
             for (name, value) in values.into_iter() {
                 controls.update_value(&name, value);
@@ -127,6 +131,9 @@ fn model<S: SketchModel + 'static>(
         gui_window_id,
         egui,
         alert_text: "".into(),
+        recording: false,
+        recording_dir: frames_dir(sketch_config.name),
+        recorded_frames: Cell::new(0),
         sketch_model,
         sketch_config,
     }
@@ -154,21 +161,9 @@ fn update<S: SketchModel>(
         model.sketch_config,
         &mut model.sketch_model,
         &mut model.alert_text,
+        &mut model.recording,
+        &model.recording_dir,
         &ctx,
-    );
-}
-
-fn view<S>(
-    app: &App,
-    model: &AppModel<S>,
-    frame: Frame,
-    sketch_view_fn: fn(&App, &S, Frame),
-) {
-    frame_controller::wrapped_view(
-        app,
-        &model.sketch_model,
-        frame,
-        sketch_view_fn,
     );
 }
 
@@ -178,6 +173,8 @@ fn update_gui<S: SketchModel>(
     sketch_config: &SketchConfig,
     sketch_model: &mut S,
     alert_text: &mut String,
+    recording: &mut bool,
+    recording_dir: &Option<PathBuf>,
     ctx: &egui::Context,
 ) {
     let mut style = (*ctx.style()).clone();
@@ -243,6 +240,35 @@ fn update_gui<S: SketchModel>(
                         *alert_text = "Controls cache cleared".into();
                     }
                 });
+
+                let is_recording = *recording;
+                ui.add(egui::Button::new(if is_recording {
+                    "STOP"
+                } else {
+                    "Record"
+                }))
+                .clicked()
+                .then(|| {
+                    if let Some(path) = recording_dir {
+                        *recording = !is_recording;
+                        info!("Recording: {}, path: {:?}", recording, path);
+                        if *recording {
+                            *alert_text = format!(
+                                "Recording. Frames will be written to {:?}",
+                                path
+                            )
+                            .into();
+                        } else {
+                            *alert_text = format!(
+                                "Recording stopped. Frames are available at {:?}",
+                                path
+                            )
+                            .into();
+                        }
+                    } else {
+                        error!("Unable to access recording path");
+                    }
+                });
             });
 
             if let Some(controls) = sketch_model.controls() {
@@ -277,6 +303,35 @@ fn update_gui<S: SketchModel>(
         });
 }
 
+fn view<S>(
+    app: &App,
+    model: &AppModel<S>,
+    frame: Frame,
+    sketch_view_fn: fn(&App, &S, Frame),
+) {
+    let did_render = frame_controller::wrapped_view(
+        app,
+        &model.sketch_model,
+        frame,
+        sketch_view_fn,
+    );
+
+    if did_render && model.recording {
+        let frame_count = model.recorded_frames.get();
+        match app.window(model.main_window_id) {
+            Some(window) => match &model.recording_dir {
+                Some(path) => {
+                    let filename = format!("frame-{:06}.png", frame_count);
+                    window.capture_frame(path.join(filename));
+                }
+                None => error!("Unable to capture frame {}", frame_count),
+            },
+            None => panic!("Unable to attain app.window handle"),
+        }
+        model.recorded_frames.set(model.recorded_frames.get() + 1);
+    }
+}
+
 fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
 }
@@ -285,7 +340,7 @@ fn persist_controls(
     sketch_name: &str,
     controls: &Controls,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let path = get_controls_storage_path(sketch_name)
+    let path = controls_storage_path(sketch_name)
         .ok_or("Could not determine the configuration directory")?;
     if let Some(parent_dir) = path.parent() {
         fs::create_dir_all(parent_dir)?;
@@ -295,16 +350,16 @@ fn persist_controls(
     Ok(path)
 }
 
-fn get_stored_controls(sketch_name: &str) -> Option<ControlValues> {
-    let path = get_controls_storage_path(sketch_name)?;
+fn stored_controls(sketch_name: &str) -> Option<ControlValues> {
+    let path = controls_storage_path(sketch_name)?;
     let bytes = fs::read(path).ok()?;
     let string = str::from_utf8(&bytes).ok()?;
     let controls = serde_json::from_str::<Controls>(string).ok()?;
-    Some(controls.get_values().clone())
+    Some(controls.values().clone())
 }
 
 fn delete_stored_controls(sketch_name: &str) -> Result<(), Box<dyn Error>> {
-    let path = get_controls_storage_path(sketch_name)
+    let path = controls_storage_path(sketch_name)
         .ok_or("Could not determine the configuration directory")?;
     if path.exists() {
         fs::remove_file(path)?;
@@ -315,12 +370,26 @@ fn delete_stored_controls(sketch_name: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
-    dirs::config_dir().map(|config_dir| {
+fn controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
+    lattice_config_dir().map(|config_dir| {
         config_dir
-            .join("Lattice")
+            .join("Controls")
             .join(format!("{}_controls.json", sketch_name))
     })
+}
+
+fn frames_dir(sketch_name: &str) -> Option<PathBuf> {
+    let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    lattice_config_dir().map(|config_dir| {
+        config_dir
+            .join("Captures")
+            .join(sketch_name)
+            .join(timestamp)
+    })
+}
+
+fn lattice_config_dir() -> Option<PathBuf> {
+    dirs::config_dir().map(|config_dir| config_dir.join("Lattice"))
 }
 
 fn setup_monospaced_fonts(ctx: &egui::Context) {
