@@ -60,8 +60,6 @@ impl Animation {
     }
 
     pub fn animate(&self, keyframes: Vec<Keyframe>, delay: f32) -> f32 {
-        let current_frame = self.current_frame();
-
         let total_beats: f32 = keyframes
             .iter()
             .take(keyframes.len() - 1)
@@ -70,12 +68,12 @@ impl Animation {
 
         let total_frames = self.beats_to_frames(total_beats);
         let delay_frames = self.beats_to_frames(delay);
+        let wrapped_frame = self.current_frame() % total_frames;
 
-        if current_frame < delay_frames {
+        if wrapped_frame < delay_frames {
             return keyframes[0].value;
         }
-
-        if current_frame >= total_frames {
+        if wrapped_frame >= total_frames {
             return keyframes[keyframes.len() - 1].value;
         }
 
@@ -84,7 +82,9 @@ impl Animation {
             let duration_to_here: f32 =
                 keyframes.iter().take(index + 1).map(|kf| kf.duration).sum();
 
-            if current_frame < duration_to_here {
+            let frames_to_here = self.beats_to_frames(duration_to_here);
+
+            if wrapped_frame < frames_to_here {
                 current_segment_index = index;
                 break;
             }
@@ -100,7 +100,7 @@ impl Animation {
             .sum();
 
         let frame_in_segment =
-            current_frame - self.beats_to_frames(segment_start_beats);
+            wrapped_frame - self.beats_to_frames(segment_start_beats);
         let segment_progress =
             frame_in_segment / self.beats_to_frames(current_keyframe.duration);
         let value = lerp(
@@ -110,7 +110,7 @@ impl Animation {
         );
 
         trace!("---");
-        trace!("current_frame: {}", current_frame);
+        trace!("wrapped_frame: {}", wrapped_frame);
         trace!("total_beats: {}", total_beats);
         trace!("total_frames: {}", total_frames);
         trace!("current_segment_index: {}", current_segment_index);
@@ -178,17 +178,22 @@ mod tests {
 
     #[test]
     fn test_animate_consistently_returns_correct_value() {
-        let times = vec![1.5];
-        let a = create_instance();
         init(0);
+        let a = create_instance();
+        let times = vec![0.5, 1.5];
 
         for beats in times {
-            frame_controller::set_frame_count(a.beats_to_frames(beats) as u32);
+            let frame_count = a.beats_to_frames(beats) as u32;
+            frame_controller::set_frame_count(frame_count);
             let result = a.animate(
-                vec![Keyframe::new(1.0, 3.0), Keyframe::new(3.0, 0.0)],
+                vec![
+                    Keyframe::new(0.0, 1.0),
+                    Keyframe::new(1.0, 1.0),
+                    Keyframe::new(0.0, 0.0),
+                ],
                 0.0,
             );
-            assert_eq!(result, 2.0, "returns the last keyframe value");
+            assert_eq!(result, 0.5, "returns the last keyframe value");
         }
     }
 }
