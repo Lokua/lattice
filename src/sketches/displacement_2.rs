@@ -16,6 +16,46 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(450),
 };
 
+const GRID_SIZE: usize = 128;
+
+pub struct Model {
+    grid: Vec<Vec2>,
+    displacer_configs: Vec<DisplacerConfig>,
+    animation: Animation,
+    controls: Controls,
+    cached_pattern: String,
+    cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
+}
+
+impl SketchModel for Model {
+    fn controls(&mut self) -> Option<&mut Controls> {
+        Some(&mut self.controls)
+    }
+}
+
+impl Model {
+    fn update_trig_fns(&mut self) {
+        let pattern = self.controls.get_string("pattern");
+        let lookup = trig_fn_lookup();
+        let parts: Vec<&str> = pattern.split(',').collect();
+
+        self.cached_trig_fns = if parts.len() == 2 {
+            match (lookup.get(parts[0]), lookup.get(parts[1])) {
+                (Some(&f_a), Some(&f_b)) => Some((f_a, f_b)),
+                _ => {
+                    error!("Unknown function(s) in pattern: {}", pattern);
+                    None
+                }
+            }
+        } else if pattern == "Comp1" {
+            None // Special case handled separately
+        } else {
+            error!("Invalid pattern: {}", pattern);
+            None
+        };
+    }
+}
+
 type AnimationFn<R> =
     Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R>>;
 
@@ -53,26 +93,9 @@ impl DisplacerConfig {
     }
 }
 
-pub struct Model {
-    grid_size: usize,
-    grid_w: f32,
-    grid_h: f32,
-    displacer_configs: Vec<DisplacerConfig>,
-    animation: Animation,
-    controls: Controls,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
-}
-
 pub fn init_model() -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
-    let grid_w = w as f32 - 80.0;
-    let grid_h = h as f32 - 80.0;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![
@@ -220,17 +243,24 @@ pub fn init_model() -> Model {
         ),
     ];
 
+    let pad = 80.0;
+    let cached_pattern = controls.get_string("pattern");
+
     Model {
-        grid_size: 128,
-        grid_w,
-        grid_h,
+        grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2),
         displacer_configs,
         animation,
         controls,
+        cached_pattern,
+        cached_trig_fns: None,
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
+    if model.cached_pattern != model.controls.get_string("pattern") {
+        model.update_trig_fns();
+    }
+
     for config in &mut model.displacer_configs {
         // let displacer_radius = model.controls.get_float("displacer_radius");
         let displacer_radius = model.animation.animate(
@@ -257,6 +287,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             model.controls.get_float("weave_frequency")
         };
 
+        let cached_trig_fns = model.cached_trig_fns.clone();
         let distance_fn: CustomDistanceFn =
             Some(Arc::new(move |grid_point, position| {
                 weave(
@@ -268,6 +299,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     weave_scale,
                     weave_amplitude,
                     pattern.clone(),
+                    cached_trig_fns,
                 )
             }));
 
@@ -280,9 +312,6 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-
-    // TODO: opt move to model (unless we want dynamic grid)
-    let grid = create_grid(model.grid_w, model.grid_h, model.grid_size, vec2);
 
     // TODO: opt move to model
     let gradient =
@@ -302,7 +331,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .filter(|x| model.controls.get_bool(x.kind))
         .collect();
 
-    for point in grid {
+    for point in &model.grid {
         let mut total_displacement = vec2(0.0, 0.0);
         let mut total_influence = 0.0;
         let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
@@ -310,7 +339,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         let displacements: Vec<(Vec2, f32)> = enabled_displacer_configs
             .iter()
             .map(|config| {
-                let displacement = config.displacer.influence(point);
+                let displacement = config.displacer.influence(*point);
                 let influence = displacement.length();
                 total_displacement += displacement;
                 total_influence += influence;
@@ -352,7 +381,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .stroke(blended_color)
             .stroke_weight(0.5)
             .radius(radius)
-            .xy(point + total_displacement);
+            .xy(*point + total_displacement);
     }
 
     draw.to_frame(app, &frame).unwrap();
@@ -367,13 +396,17 @@ pub fn weave(
     distance_scale: f32,
     amplitude: f32,
     pattern: String,
+    trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
 ) -> f32 {
     let x = grid_x * frequency;
     let y = grid_y * frequency;
 
     let position_pattern = match pattern.as_str() {
         "Comp1" => (x.sin() * y.cos()) + (x - y).tanh() * (x + y).tan(),
-        _ => parse_dynamic_pattern(&pattern, x, y),
+        _ => match trig_fns {
+            Some((f_a, f_b)) => f_a(x) + f_b(y),
+            None => 0.0,
+        },
     };
 
     let distance =
@@ -382,25 +415,6 @@ pub fn weave(
     let distance_pattern = (distance * distance_scale).sin();
 
     position_pattern * distance_pattern * amplitude
-}
-
-fn generate_pattern_options() -> Vec<String> {
-    let functions = vec![
-        "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
-        "coth",
-    ];
-
-    let mut options: Vec<String> = functions
-        .iter()
-        .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
-        .collect();
-
-    let custom_algs = vec!["Comp1".into()];
-
-    // Append custom algorithms
-    options.extend(custom_algs);
-
-    options
 }
 
 fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
@@ -418,25 +432,20 @@ fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
     map
 }
 
-pub fn parse_dynamic_pattern(pattern: &str, x: f32, y: f32) -> f32 {
-    let lookup = trig_fn_lookup();
-    let parts: Vec<&str> = pattern.split(',').collect();
+fn generate_pattern_options() -> Vec<String> {
+    let functions = vec![
+        "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
+        "coth",
+    ];
 
-    if parts.len() != 2 {
-        error!("Invalid pattern: {}", pattern);
-        return 0.0;
-    }
+    let mut options: Vec<String> = functions
+        .iter()
+        .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
+        .collect();
 
-    let (a, b) = (parts[0], parts[1]);
+    let custom_algs = vec!["Comp1".into()];
 
-    let func_a = lookup.get(a);
-    let func_b = lookup.get(b);
+    options.extend(custom_algs);
 
-    match (func_a, func_b) {
-        (Some(&f_a), Some(&f_b)) => f_a(x) + f_b(y),
-        _ => {
-            error!("Unknown function(s) in pattern: {}", pattern);
-            0.0
-        }
-    }
+    options
 }
