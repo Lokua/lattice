@@ -12,7 +12,7 @@ controls.
 
 ## Planned Features TODO
 
-- [ ] Export frame captures and generate MP4 videos for any sketch
+- [x] Export frame captures and generate MP4 videos for any sketch
 - [ ] MIDI synchronization options:
   - Restart frame counter when receiving DAW start signal
   - Send start signal to DAW when starting sketch
@@ -28,7 +28,7 @@ controls.
     over musical beats
   - Basic normalized and normalized ping-pong animations implemented
   - More features in development
-- [ ] Automatic store/recall of GUI control/parameters
+- [x] Automatic store/recall of GUI control/parameters
 
 ## Status
 
@@ -43,6 +43,7 @@ This project requires or optionally needs:
 - Git LFS for screenshot storage (perhaps this is optional? I'm not too familiar
   with Git LFS but I'm using it for this so you might want to too)
 - (optional) [just][just-link] for running commands
+- (optional) ffmpeg available on your path for video exports
 
 ## Usage
 
@@ -62,18 +63,6 @@ This project requires or optionally needs:
 5. Run that sketch via command line by `cargo run --release <name>` or
    `just start <name>` where `name` is what you put in your file's
    `SKETCH_CONFIG.name` field.
-
-### Recording Video
-
-Currently using nannou's built in `window.capture_frame` mechanism to write to
-the OS config dir. The path that frames are dumped to will be printed in the
-controls GUI window. Manually stitching with ffmpeg is required. The command I'm
-using is:
-
-```sh
-# adjust framerate as needed
-ffmpeg -framerate 30 -i frame-%06d.png -c:v libx264 -crf 16 -preset veryslow -pix_fmt yuv444p ~/Movies/Lattice.mp4
-```
 
 [nannou-link]: https://github.com/nannou-org/nannou
 [p5-link]: https://github.com/Lokua/p5/tree/main

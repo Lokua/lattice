@@ -1,4 +1,3 @@
-use chrono::Local;
 use dirs;
 use nannou::prelude::*;
 use nannou_egui::{
@@ -7,7 +6,7 @@ use nannou_egui::{
     Egui,
 };
 
-use std::{cell::Cell, env, error::Error, fs};
+use std::{cell::Cell, env, error::Error, fs, sync::mpsc, thread};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -74,10 +73,14 @@ struct AppModel<S> {
     #[allow(dead_code)]
     gui_window_id: window::Id,
     egui: Egui,
+    session_id: String,
     alert_text: String,
     recording: bool,
     recording_dir: Option<PathBuf>,
     recorded_frames: Cell<u32>,
+    is_encoding: bool,
+    encoding_thread: Option<thread::JoinHandle<()>>,
+    encoding_progress_rx: Option<mpsc::Receiver<EncodingMessage>>,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
 }
@@ -127,14 +130,20 @@ fn model<S: SketchModel + 'static>(
         }
     }
 
+    let session_id = generate_session_id();
+    let recording_dir = frames_dir(&session_id, sketch_config.name);
     AppModel {
         main_window_id,
         gui_window_id,
         egui,
+        session_id,
         alert_text: "".into(),
         recording: false,
-        recording_dir: frames_dir(sketch_config.name),
+        recording_dir,
         recorded_frames: Cell::new(0),
+        is_encoding: false,
+        encoding_thread: None,
+        encoding_progress_rx: None,
         sketch_model,
         sketch_config,
     }
@@ -159,12 +168,16 @@ fn update<S: SketchModel>(
     update_gui(
         app,
         model.main_window_id,
+        &mut model.session_id,
         model.sketch_config,
         &mut model.sketch_model,
         &mut model.alert_text,
         &mut model.recording,
         &mut model.recording_dir,
         &model.recorded_frames,
+        &mut model.is_encoding,
+        &mut model.encoding_thread,
+        &mut model.encoding_progress_rx,
         &ctx,
     );
 }
@@ -172,12 +185,16 @@ fn update<S: SketchModel>(
 fn update_gui<S: SketchModel>(
     app: &App,
     main_window_id: window::Id,
+    session_id: &mut String,
     sketch_config: &SketchConfig,
     sketch_model: &mut S,
     alert_text: &mut String,
     recording: &mut bool,
     recording_dir: &mut Option<PathBuf>,
     recorded_frames: &Cell<u32>,
+    is_encoding: &mut bool,
+    encoding_thread: &mut Option<thread::JoinHandle<()>>,
+    encoding_progress_rx: &mut Option<mpsc::Receiver<EncodingMessage>>,
     ctx: &egui::Context,
 ) {
     let mut style = (*ctx.style()).clone();
@@ -215,9 +232,13 @@ fn update_gui<S: SketchModel>(
                 draw_record_button(
                     ui,
                     sketch_config,
+                    session_id,
                     recording,
                     recording_dir,
                     recorded_frames,
+                    is_encoding,
+                    encoding_thread,
+                    encoding_progress_rx,
                     alert_text,
                 );
             });
@@ -226,6 +247,46 @@ fn update_gui<S: SketchModel>(
             draw_sketch_controls(ui, sketch_model, sketch_config, alert_text);
             draw_alert_panel(ctx, alert_text);
         });
+
+    if let Some(rx) = encoding_progress_rx.take() {
+        while let Ok(message) = rx.try_recv() {
+            match message {
+                EncodingMessage::Progress(progress) => {
+                    let percentage = (progress * 100.0).round();
+                    debug!("rx progress: {}%", percentage);
+                    *alert_text =
+                        format!("Encoding progress: {}%", percentage).into();
+                }
+                EncodingMessage::Complete => {
+                    info!("Encoding complete");
+                    *is_encoding = false;
+                    *encoding_progress_rx = None;
+                    let output_path =
+                        video_output_path(session_id, sketch_config.name)
+                            .unwrap()
+                            .to_string_lossy()
+                            .into_owned();
+                    *alert_text = format!(
+                        "Encoding complete. Video path {}",
+                        output_path
+                    )
+                    .into();
+                    *session_id = generate_session_id();
+                    recorded_frames.set(0);
+                    if let Some(new_path) =
+                        frames_dir(session_id, sketch_config.name)
+                    {
+                        *recording_dir = Some(new_path);
+                    }
+                }
+                EncodingMessage::Error(error) => {
+                    error!("Received child process error: {}", error);
+                    *alert_text = format!("Received encoding error: {}", error);
+                }
+            }
+        }
+        *encoding_progress_rx = Some(rx);
+    }
 }
 
 fn view<S>(
@@ -259,6 +320,10 @@ fn view<S>(
 
 fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
+}
+
+fn generate_session_id() -> String {
+    uuid(5)
 }
 
 fn persist_controls(
@@ -303,18 +368,25 @@ fn controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
     })
 }
 
-fn frames_dir(sketch_name: &str) -> Option<PathBuf> {
-    let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+fn frames_dir(session_id: &str, sketch_name: &str) -> Option<PathBuf> {
     lattice_config_dir().map(|config_dir| {
         config_dir
             .join("Captures")
             .join(sketch_name)
-            .join(timestamp)
+            .join(session_id)
     })
 }
 
 fn lattice_config_dir() -> Option<PathBuf> {
     dirs::config_dir().map(|config_dir| config_dir.join("Lattice"))
+}
+
+fn video_output_path(session_id: &str, sketch_name: &str) -> Option<PathBuf> {
+    dirs::video_dir().map(|video_dir| {
+        video_dir
+            .join(format!("{}-{}", sketch_name, session_id))
+            .with_extension("mp4")
+    })
 }
 
 fn setup_monospaced_fonts(ctx: &egui::Context) {
@@ -401,39 +473,75 @@ fn draw_clear_cache_button(
 fn draw_record_button(
     ui: &mut egui::Ui,
     sketch_config: &SketchConfig,
+    session_id: &str,
     recording: &mut bool,
     recording_dir: &mut Option<PathBuf>,
     recorded_frames: &Cell<u32>,
+    is_encoding: &mut bool,
+    encoding_thread: &mut Option<thread::JoinHandle<()>>,
+    encoding_progress_rx: &mut Option<mpsc::Receiver<EncodingMessage>>,
     alert_text: &mut String,
 ) {
-    let is_recording = *recording;
-    let button_label = if is_recording { "STOP" } else { "Record" };
+    let button_label = if *recording {
+        "STOP"
+    } else if *is_encoding {
+        "Encoding"
+    } else {
+        "Record"
+    };
 
-    ui.add(egui::Button::new(button_label)).clicked().then(|| {
-        let current_recording_dir = recording_dir.clone();
-        if let Some(path) = current_recording_dir {
-            *recording = !is_recording;
-            info!("Recording: {}, path: {:?}", recording, path);
+    ui.add_enabled(!*is_encoding, egui::Button::new(button_label))
+        .clicked()
+        .then(|| {
+            let current_recording_dir = recording_dir.clone();
+            if let Some(path) = current_recording_dir {
+                *recording = !*recording;
+                info!("Recording: {}, path: {:?}", recording, path);
 
-            if *recording {
-                let message =
-                    format!("Recording. Frames will be written to {:?}", path);
-                *alert_text = message.into();
+                if *recording {
+                    let message = format!(
+                        "Recording. Frames will be written to {:?}",
+                        path
+                    );
+                    *alert_text = message.into();
+                } else {
+                    if !*is_encoding {
+                        *is_encoding = true;
+                        let (encoding_progress_tx, rx): (
+                            mpsc::Sender<EncodingMessage>,
+                            mpsc::Receiver<EncodingMessage>,
+                        ) = mpsc::channel();
+                        *encoding_progress_rx = Some(rx);
+                        let path_str = path.to_string_lossy().into_owned();
+                        let fps = sketch_config.fps;
+                        let output_path =
+                            video_output_path(session_id, sketch_config.name)
+                                .unwrap()
+                                .to_string_lossy()
+                                .into_owned();
+                        info!(
+                            "Preparing to encode. Output path: {}",
+                            output_path
+                        );
+                        let total_frames = recorded_frames.get().clone();
+                        debug!("Spawning encoding_thread");
+                        *encoding_thread = Some(thread::spawn(move || {
+                            if let Err(e) = frames_to_video(
+                                &path_str,
+                                fps,
+                                &output_path,
+                                total_frames,
+                                encoding_progress_tx,
+                            ) {
+                                error!("Error in frames_to_video: {:?}", e);
+                            }
+                        }));
+                    }
+                }
             } else {
-                recorded_frames.set(0);
-                let new_path = frames_dir(sketch_config.name).unwrap();
-                *recording_dir = Some(new_path);
-
-                let message = format!(
-                    "Recording stopped. Frames are available at {:?}",
-                    path
-                );
-                *alert_text = message.into();
+                error!("Unable to access recording path");
             }
-        } else {
-            error!("Unable to access recording path");
-        }
-    });
+        });
 }
 
 fn draw_sketch_controls<S: SketchModel>(
