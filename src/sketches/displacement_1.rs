@@ -16,8 +16,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Displacement v1",
     fps: 30.0,
     bpm: 134.0,
-    w: 700,
-    h: 700,
+    w: 500,
+    h: 500,
     gui_w: None,
     gui_h: None,
 };
