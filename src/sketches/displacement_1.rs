@@ -125,7 +125,7 @@ pub fn init_model() -> Model {
 
     let corner_radius_fn: AnimationFn<f32> =
         Some(Arc::new(|_displacer, ax, controls| {
-            ax.get_ping_pong_loop_progress(1.0)
+            ax.ping_pong_loop_progress(1.0)
                 * controls.get_float("corner_radius")
         }));
 
@@ -135,7 +135,7 @@ pub fn init_model() -> Model {
             Displacer::new(vec2(0.0, 0.0), 10.0, 50.0, None),
             None,
             Some(Arc::new(|_displacer, ax, controls| {
-                let value = ax.get_ping_pong_loop_progress(0.5);
+                let value = ax.ping_pong_loop_progress(0.5);
                 let radius = map_range(
                     value,
                     0.0,
@@ -151,13 +151,13 @@ pub fn init_model() -> Model {
             Displacer::new(vec2(200.0, 200.0), 150.0, 50.0, None),
             Some(Arc::new(|_displacer, ax, _controls| {
                 let movement_radius = 175.0;
-                let angle = ax.get_loop_progress(8.0) * PI * 2.0;
+                let angle = ax.loop_progress(8.0) * PI * 2.0;
                 let x = angle.cos() * movement_radius;
                 let y = angle.sin() * movement_radius;
                 vec2(x, y)
             })),
             Some(Arc::new(|_displacer, ax, controls| {
-                let progress = ax.get_ping_pong_loop_progress(1.5);
+                let progress = ax.ping_pong_loop_progress(1.5);
                 let radius = map_range(
                     progress,
                     0.0,

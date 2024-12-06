@@ -239,7 +239,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         let pattern = model.controls.get_string("pattern");
         let weave_frequency = if model.controls.get_bool("animate_frequency") {
             map_range(
-                model.animation.get_ping_pong_loop_progress(32.0),
+                model.animation.ping_pong_loop_progress(32.0),
                 0.0,
                 1.0,
                 0.01,
