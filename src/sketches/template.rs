@@ -93,8 +93,7 @@ pub fn init_model() -> Model {
                 ..Default::default()
             },
             radius_fn: Some(Box::new(|_object, ah, controls| {
-                ah.get_ping_pong_loop_progress(2.0)
-                    * controls.get_float("radius")
+                ah.ping_pong_loop_progress(2.0) * controls.get_float("radius")
             })),
             ..Default::default()
         },
@@ -105,8 +104,7 @@ pub fn init_model() -> Model {
                 color: CYAN.into_lin_srgb(),
             },
             radius_fn: Some(Box::new(|_object, ah, controls| {
-                ah.get_ping_pong_loop_progress(3.0)
-                    * controls.get_float("radius")
+                ah.ping_pong_loop_progress(3.0) * controls.get_float("radius")
             })),
             ..Default::default()
         },
@@ -122,7 +120,7 @@ pub fn init_model() -> Model {
                 ..Default::default()
             },
             position_fn: Some(Box::new(move |_object, ah, controls| {
-                let global_angle = ah.get_loop_progress(8.0) * (PI * 2.0);
+                let global_angle = ah.loop_progress(8.0) * (PI * 2.0);
                 let angle = i as f32 * angle_step + global_angle;
                 let movement_radius = controls.get_float("radius") * 2.0;
                 vec2(

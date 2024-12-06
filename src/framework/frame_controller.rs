@@ -7,23 +7,23 @@ use super::logging::*;
 
 pub struct FrameController {
     #[allow(dead_code)]
-    fps: f64,
+    fps: f32,
     frame_duration: Duration,
     /// Captured every update call regardless if the frame is skipped or rendered
     last_frame_time: Instant,
     last_render_time: Instant,
     accumulator: Duration,
-    frame_count: u64,
+    frame_count: u32,
     render_flag: bool,
     paused: bool,
 }
 
 impl FrameController {
-    pub fn new(fps: f64) -> Self {
+    pub fn new(fps: f32) -> Self {
         let now = Instant::now();
         Self {
             fps,
-            frame_duration: Duration::from_secs_f64(1.0 / fps),
+            frame_duration: Duration::from_secs_f32(1.0 / fps),
             last_frame_time: now,
             last_render_time: now,
             accumulator: Duration::ZERO,
@@ -67,7 +67,7 @@ impl FrameController {
         self.render_flag && !self.paused
     }
 
-    pub fn frame_count(&self) -> u64 {
+    pub fn frame_count(&self) -> u32 {
         self.frame_count
     }
 
@@ -75,7 +75,7 @@ impl FrameController {
         self.frame_count = 0;
     }
 
-    pub fn fps(&self) -> f64 {
+    pub fn fps(&self) -> f32 {
         self.fps
     }
 
@@ -91,9 +91,11 @@ impl FrameController {
 static CONTROLLER: Lazy<Mutex<Option<FrameController>>> =
     Lazy::new(|| Mutex::new(None));
 
-pub fn init_controller(fps: f64) {
+pub fn ensure_controller(fps: f32) {
     let mut controller = CONTROLLER.lock().unwrap();
-    *controller = Some(FrameController::new(fps));
+    if controller.is_none() {
+        *controller = Some(FrameController::new(fps));
+    }
 }
 
 pub fn wrapped_update<M, F>(
@@ -140,7 +142,7 @@ where
     should_render
 }
 
-pub fn frame_count() -> u64 {
+pub fn frame_count() -> u32 {
     let controller = CONTROLLER.lock().unwrap();
     controller.as_ref().map_or(0, |c| c.frame_count())
 }
@@ -152,9 +154,28 @@ pub fn reset_frame_count() {
     }
 }
 
-pub fn fps() -> f64 {
+pub fn set_frame_count(count: u32) {
+    let mut controller = CONTROLLER.lock().unwrap();
+    if let Some(controller) = controller.as_mut() {
+        controller.frame_count = count;
+    } else {
+        warn!("Cannot set frame_count: FrameController is not initialized.");
+    }
+}
+
+pub fn fps() -> f32 {
     let controller = CONTROLLER.lock().unwrap();
     controller.as_ref().map_or(0.0, |c| c.fps())
+}
+
+pub fn set_fps(fps: f32) {
+    let mut controller = CONTROLLER.lock().unwrap();
+    if let Some(controller) = controller.as_mut() {
+        controller.fps = fps;
+        controller.frame_duration = Duration::from_secs_f32(1.0 / fps);
+    } else {
+        warn!("Cannot set fps: FrameController is not initialized.");
+    }
 }
 
 pub fn is_paused() -> bool {

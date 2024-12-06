@@ -20,7 +20,7 @@ macro_rules! run_sketch {
             "Loading {}",
             sketches::$sketch_module::SKETCH_CONFIG.display_name
         );
-        frame_controller::init_controller(
+        frame_controller::ensure_controller(
             sketches::$sketch_module::SKETCH_CONFIG.fps,
         );
 

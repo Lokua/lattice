@@ -15,7 +15,7 @@ pub enum EncodingMessage {
 
 pub fn frames_to_video(
     frame_dir: &str,
-    fps: f64,
+    fps: f32,
     output_path: &str,
     total_frames: u32,
     progress_sender: mpsc::Sender<EncodingMessage>,
@@ -102,7 +102,7 @@ pub fn frames_to_video(
 
 pub fn frames_to_video_stub(
     frame_dir: &str,
-    fps: f64,
+    fps: f32,
     output_path: &str,
     total_frames: u32,
     progress_sender: mpsc::Sender<EncodingMessage>,
