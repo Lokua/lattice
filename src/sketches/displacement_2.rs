@@ -232,7 +232,15 @@ pub fn init_model() -> Model {
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     for config in &mut model.displacer_configs {
-        let displacer_radius = model.controls.get_float("displacer_radius");
+        // let displacer_radius = model.controls.get_float("displacer_radius");
+        let displacer_radius = model.animation.animate(
+            vec![
+                Keyframe::new(0.0001, 4.0),
+                Keyframe::new(0.0040, 4.0),
+                Keyframe::new(0.0001, 0.0),
+            ],
+            0.0,
+        );
         let displacer_strength = model.controls.get_float("displacer_strength");
         let weave_scale = model.controls.get_float("weave_scale");
         let weave_amplitude = model.controls.get_float("weave_amplitude");
