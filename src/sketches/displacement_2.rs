@@ -1,5 +1,6 @@
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -26,6 +27,9 @@ pub struct Model {
     cached_pattern: String,
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
     gradient: Gradient<LinSrgb>,
+
+    // Store computed ellipse data here: position, radius, and color.
+    ellipses: Vec<(Vec2, f32, LinSrgb)>,
 }
 
 impl SketchModel for Model {
@@ -58,7 +62,7 @@ impl Model {
 }
 
 type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R>>;
+    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
 
 struct DisplacerConfig {
     kind: &'static str,
@@ -258,6 +262,7 @@ pub fn init_model() -> Model {
             LIGHTCORAL.into_lin_srgb(),
             AZURE.into_lin_srgb(),
         ]),
+        ellipses: Vec::new(),
     }
 }
 
@@ -266,64 +271,41 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.update_trig_fns();
     }
 
-    for config in &mut model.displacer_configs {
-        let displacer_radius = model.controls.get_float("displacer_radius");
-        // let displacer_radius = model.animation.animate(
-        //     vec![
-        //         Keyframe::new(0.0001, 4.0),
-        //         Keyframe::new(0.0040, 4.0),
-        //         Keyframe::new(0.0001, 0.0),
-        //     ],
-        //     0.0,
-        // );
-        let displacer_strength = model.controls.get_float("displacer_strength");
-        let weave_scale = model.controls.get_float("weave_scale");
-        let weave_amplitude = model.controls.get_float("weave_amplitude");
-        let pattern = model.controls.get_string("pattern");
-        let weave_frequency = if model.controls.get_bool("animate_frequency") {
-            map_range(
-                model.animation.ping_pong_loop_progress(32.0),
-                0.0,
-                1.0,
-                0.01,
-                model.controls.get_float("weave_frequency"),
+    let displacer_radius = model.controls.get_float("displacer_radius");
+    let displacer_strength = model.controls.get_float("displacer_strength");
+    let weave_scale = model.controls.get_float("weave_scale");
+    let weave_amplitude = model.controls.get_float("weave_amplitude");
+    let pattern = model.controls.get_string("pattern");
+    let gradient_spread = model.controls.get_float("gradient_spread");
+    let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
+    let circle_radius_min = model.controls.get_float("circle_radius_min");
+    let circle_radius_max = model.controls.get_float("circle_radius_max");
+    let animation = &model.animation;
+    let controls = &model.controls;
+    let weave_frequency = get_weave_frequency(model);
+
+    let cached_trig_fns = model.cached_trig_fns.clone();
+    let distance_fn: CustomDistanceFn =
+        Some(Arc::new(move |grid_point, position| {
+            weave(
+                grid_point.x,
+                grid_point.y,
+                position.x,
+                position.y,
+                weave_frequency,
+                weave_scale,
+                weave_amplitude,
+                pattern.clone(),
+                cached_trig_fns,
             )
-        } else {
-            model.controls.get_float("weave_frequency")
-        };
+        }));
 
-        let cached_trig_fns = model.cached_trig_fns.clone();
-        let distance_fn: CustomDistanceFn =
-            Some(Arc::new(move |grid_point, position| {
-                weave(
-                    grid_point.x,
-                    grid_point.y,
-                    position.x,
-                    position.y,
-                    weave_frequency,
-                    weave_scale,
-                    weave_amplitude,
-                    pattern.clone(),
-                    cached_trig_fns,
-                )
-            }));
-
-        config.update(&model.animation, &model.controls);
-        config.displacer.set_custom_distance_fn(distance_fn);
+    for config in model.displacer_configs.iter_mut() {
+        config.update(animation, controls);
+        config.displacer.set_custom_distance_fn(distance_fn.clone());
         config.displacer.set_radius(displacer_radius);
         config.displacer.set_strength(displacer_strength);
     }
-}
-
-pub fn view(app: &App, model: &Model, frame: Frame) {
-    let draw = app.draw();
-    let gradient_spread = model.controls.get_float("gradient_spread");
-
-    frame.clear(BLACK);
-    draw.background().color(rgb(0.1, 0.1, 0.1));
-
-    let max_mag = model.displacer_configs.len() as f32
-        * model.controls.get_float("displacer_strength");
 
     let enabled_displacer_configs: Vec<&DisplacerConfig> = model
         .displacer_configs
@@ -331,60 +313,94 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .filter(|x| model.controls.get_bool(x.kind))
         .collect();
 
-    for point in &model.grid {
-        let mut total_displacement = vec2(0.0, 0.0);
-        let mut total_influence = 0.0;
-        let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
+    let max_mag = model.displacer_configs.len() as f32 * displacer_strength;
+    let gradient = &model.gradient;
 
-        let displacements: Vec<(Vec2, f32)> = enabled_displacer_configs
-            .iter()
-            .map(|config| {
-                let displacement = config.displacer.influence(*point);
-                let influence = displacement.length();
-                total_displacement += displacement;
-                total_influence += influence;
-                (displacement, influence)
-            })
-            .collect();
+    model.ellipses = model
+        .grid
+        .par_iter()
+        .map(|point| {
+            // TODO: preallocate total_displacement_buffer
+            let mut total_displacement = vec2(0.0, 0.0);
+            let mut total_influence = 0.0;
+            let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
 
-        for (index, config) in enabled_displacer_configs.iter().enumerate() {
-            let (_displacement, influence) = displacements[index];
-            let color_position = (influence / config.displacer.strength)
-                .powf(gradient_spread)
-                .clamp(0.0, 1.0);
-            let color = model.gradient.get(color_position);
-            let weight = influence / total_influence.max(1.0);
-            colors.push((color, weight));
-        }
+            let displacements: Vec<(Vec2, f32)> = enabled_displacer_configs
+                .iter()
+                .map(|config| {
+                    let displacement = config.displacer.influence(*point);
+                    let influence = displacement.length();
+                    total_displacement += displacement;
+                    total_influence += influence;
+                    (displacement, influence)
+                })
+                .collect();
 
-        let blended_color = colors
-            .iter()
-            .fold(model.gradient.get(0.0), |acc, (color, weight)| {
-                acc.mix(color, *weight)
-            });
+            for (index, config) in enabled_displacer_configs.iter().enumerate()
+            {
+                let (_displacement, influence) = displacements[index];
+                let color_position = (influence / config.displacer.strength)
+                    .powf(gradient_spread)
+                    .clamp(0.0, 1.0);
+                let color = gradient.get(color_position);
+                let weight = influence / total_influence.max(1.0);
+                colors.push((color, weight));
+            }
 
-        let magnitude = if model.controls.get_bool("clamp_circle_radii") {
-            total_displacement.length().clamp(0.0, max_mag)
-        } else {
-            total_displacement.length()
-        };
-        let radius = map_range(
-            magnitude,
-            0.0,
-            max_mag,
-            model.controls.get_float("circle_radius_min"),
-            model.controls.get_float("circle_radius_max"),
-        );
+            let blended_color = colors
+                .iter()
+                .fold(gradient.get(0.0), |acc, (color, weight)| {
+                    acc.mix(color, *weight)
+                });
 
+            let magnitude = if clamp_circle_radii {
+                total_displacement.length().clamp(0.0, max_mag)
+            } else {
+                total_displacement.length()
+            };
+            let radius = map_range(
+                magnitude,
+                0.0,
+                max_mag,
+                circle_radius_min,
+                circle_radius_max,
+            );
+
+            (*point + total_displacement, radius, blended_color)
+        })
+        .collect();
+}
+
+pub fn view(app: &App, model: &Model, frame: Frame) {
+    let draw = app.draw();
+
+    frame.clear(BLACK);
+    draw.background().color(rgb(0.1, 0.1, 0.1));
+
+    for (position, radius, color) in &model.ellipses {
         draw.ellipse()
             .no_fill()
-            .stroke(blended_color)
+            .stroke(*color)
             .stroke_weight(0.5)
-            .radius(radius)
-            .xy(*point + total_displacement);
+            .radius(*radius)
+            .xy(*position);
     }
 
     draw.to_frame(app, &frame).unwrap();
+}
+
+fn get_weave_frequency(model: &Model) -> f32 {
+    if model.controls.get_bool("animate_frequency") {
+        map_range(
+            model.animation.ping_pong_loop_progress(32.0),
+            0.0,
+            1.0,
+            0.01,
+            model.controls.get_float("weave_frequency"),
+        )
+    } else {
+        model.controls.get_float("weave_frequency")
+    }
 }
 
 pub fn weave(

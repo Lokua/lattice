@@ -54,14 +54,14 @@ impl FrameController {
 
         if self.render_flag {
             trace!(
-                "Rendering. Time since last render: {:?} (expected: {:?})",
+                "Rendering. Time since last render: {:.2?} (expected: {:.2?})",
                 now - self.last_render_time,
                 self.frame_duration
             );
             self.last_render_time = now;
         } else {
             trace!(
-                "Skipping render this frame. Time since last frame: {:?}",
+                "Skipping render this frame. Time since last frame: {:.2?}",
                 elapsed
             );
         }
