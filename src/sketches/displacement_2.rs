@@ -25,6 +25,7 @@ pub struct Model {
     controls: Controls,
     cached_pattern: String,
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
+    gradient: Gradient<LinSrgb>,
 }
 
 impl SketchModel for Model {
@@ -253,6 +254,10 @@ pub fn init_model() -> Model {
         controls,
         cached_pattern,
         cached_trig_fns: None,
+        gradient: Gradient::new(vec![
+            LIGHTCORAL.into_lin_srgb(),
+            AZURE.into_lin_srgb(),
+        ]),
     }
 }
 
@@ -312,11 +317,6 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
-
-    // TODO: opt move to model
-    let gradient =
-        Gradient::new(vec![LIGHTCORAL.into_lin_srgb(), AZURE.into_lin_srgb()]);
-
     let gradient_spread = model.controls.get_float("gradient_spread");
 
     frame.clear(BLACK);
@@ -352,14 +352,14 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             let color_position = (influence / config.displacer.strength)
                 .powf(gradient_spread)
                 .clamp(0.0, 1.0);
-            let color = gradient.get(color_position);
+            let color = model.gradient.get(color_position);
             let weight = influence / total_influence.max(1.0);
             colors.push((color, weight));
         }
 
         let blended_color = colors
             .iter()
-            .fold(gradient.get(0.0), |acc, (color, weight)| {
+            .fold(model.gradient.get(0.0), |acc, (color, weight)| {
                 acc.mix(color, *weight)
             });
 
