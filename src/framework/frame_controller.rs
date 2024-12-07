@@ -16,6 +16,8 @@ pub struct FrameController {
     frame_count: AtomicU32,
     render_flag: bool,
     paused: bool,
+    frame_intervals: Vec<Duration>,
+    max_intervals: usize,
 }
 
 impl FrameController {
@@ -30,6 +32,8 @@ impl FrameController {
             frame_count: AtomicU32::new(0),
             render_flag: false,
             paused: false,
+            frame_intervals: Vec::new(),
+            max_intervals: 90,
         }
     }
 
@@ -53,6 +57,11 @@ impl FrameController {
         }
 
         if self.render_flag {
+            let rener_interval = now - self.last_render_time;
+            self.frame_intervals.push(rener_interval);
+            if self.frame_intervals.len() > self.max_intervals {
+                self.frame_intervals.remove(0);
+            }
             trace!(
                 "Rendering. Time since last render: {:.2?} (expected: {:.2?})",
                 now - self.last_render_time,
@@ -89,6 +98,15 @@ impl FrameController {
 
     pub fn set_paused(&mut self, paused: bool) {
         self.paused = paused;
+    }
+
+    pub fn average_fps(&self) -> f32 {
+        if self.frame_intervals.is_empty() {
+            return 0.0;
+        }
+        let sum: Duration = self.frame_intervals.iter().copied().sum();
+        let avg = sum / self.frame_intervals.len() as u32;
+        1.0 / avg.as_secs_f32()
     }
 }
 
@@ -169,4 +187,8 @@ pub fn is_paused() -> bool {
 
 pub fn set_paused(paused: bool) {
     CONTROLLER.write().set_paused(paused);
+}
+
+pub fn average_fps() -> f32 {
+    CONTROLLER.read().average_fps()
 }
