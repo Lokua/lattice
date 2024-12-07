@@ -47,7 +47,7 @@ impl FrameController {
             self.render_flag = true;
         }
 
-        // Adjust for small drifts (if the drift is negligible, round up to the next frame)
+        // Adjust for small drifts (do we really need this?)
         if self.accumulator < Duration::from_millis(1) {
             self.accumulator = Duration::ZERO;
         }
