@@ -27,8 +27,6 @@ pub struct Model {
     cached_pattern: String,
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
     gradient: Gradient<LinSrgb>,
-
-    // Store computed ellipse data here: position, radius, and color.
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
 }
 
@@ -53,11 +51,25 @@ impl Model {
                 }
             }
         } else if pattern == "Comp1" {
-            None // Special case handled separately
+            None
         } else {
             error!("Invalid pattern: {}", pattern);
             None
         };
+    }
+    fn weave_frequency(&self) -> f32 {
+        let value = self.controls.get_float("weave_frequency");
+        if self.controls.get_bool("animate_frequency") {
+            map_range(
+                self.animation.ping_pong_loop_progress(32.0),
+                0.0,
+                1.0,
+                0.01,
+                value,
+            )
+        } else {
+            value
+        }
     }
 }
 
@@ -282,7 +294,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let circle_radius_max = model.controls.get_float("circle_radius_max");
     let animation = &model.animation;
     let controls = &model.controls;
-    let weave_frequency = get_weave_frequency(model);
+    let weave_frequency = model.weave_frequency();
 
     let cached_trig_fns = model.cached_trig_fns.clone();
     let distance_fn: CustomDistanceFn =
@@ -387,20 +399,6 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn get_weave_frequency(model: &Model) -> f32 {
-    if model.controls.get_bool("animate_frequency") {
-        map_range(
-            model.animation.ping_pong_loop_progress(32.0),
-            0.0,
-            1.0,
-            0.01,
-            model.controls.get_float("weave_frequency"),
-        )
-    } else {
-        model.controls.get_float("weave_frequency")
-    }
 }
 
 pub fn weave(
