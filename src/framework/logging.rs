@@ -1,15 +1,37 @@
 use env_logger::{Builder, Env};
 use log::LevelFilter;
-// use std::io::Write;
+use std::io::Write;
+use termcolor::{Color, ColorSpec, WriteColor};
 
 pub use log::{debug, error, info, trace, warn};
 
 pub fn init_logger() {
     Builder::from_env(Env::default().default_filter_or("lattice=info"))
         .filter_module("nannou", LevelFilter::Warn)
-        // .format(|buf, record| {
-        //     writeln!(buf, "[{}] {}", record.level(), record.args())
-        // })
+        .format(|_buf, record| {
+            let buffer_writer =
+                termcolor::BufferWriter::stdout(termcolor::ColorChoice::Auto);
+            let mut buffer = buffer_writer.buffer();
+            let mut spec = ColorSpec::new();
+
+            spec.set_fg(Some(match record.level() {
+                log::Level::Trace => Color::Cyan,
+                log::Level::Debug => Color::Blue,
+                log::Level::Info => Color::Green,
+                log::Level::Warn => Color::Yellow,
+                log::Level::Error => Color::Red,
+            }))
+            .set_bold(true);
+
+            buffer.set_color(&spec)?;
+            write!(buffer, "[{}]", record.level())?;
+
+            buffer.reset()?;
+            writeln!(buffer, " {}", record.args())?;
+
+            buffer_writer.print(&buffer)?;
+            Ok(())
+        })
         .init();
 }
 

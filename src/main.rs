@@ -5,7 +5,6 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
-
 use std::{cell::Cell, env, error::Error, fs, sync::mpsc, thread};
 use std::{path::PathBuf, str};
 
@@ -557,7 +556,7 @@ fn draw_sketch_controls<S: SketchModel>(
                 Ok(path_buf) => {
                     *alert_text =
                         format!("Controls persisted at {:?}", path_buf);
-                    debug!("Controls persisted at {:?}", path_buf);
+                    trace!("Controls persisted at {:?}", path_buf);
                 }
                 Err(e) => {
                     error!("Failed to persist controls: {}", e);
