@@ -240,6 +240,8 @@ fn update_gui<S: SketchModel>(
                     encoding_progress_rx,
                     alert_text,
                 );
+
+                draw_avg_fps(ui);
             });
 
             ui.separator();
@@ -580,4 +582,10 @@ fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
         .show(ctx, |ui| {
             ui.colored_label(Color32::from_gray(180), alert_text);
         });
+}
+
+fn draw_avg_fps(ui: &mut egui::Ui) {
+    let avg_fps = frame_controller::average_fps();
+    ui.label("FPS:");
+    ui.colored_label(Color32::from_rgb(0, 255, 0), format!("{:.1}", avg_fps));
 }

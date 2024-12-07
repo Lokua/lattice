@@ -30,12 +30,6 @@ pub struct Model {
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
 }
 
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
-}
-
 impl Model {
     fn update_trig_fns(&mut self) {
         let pattern = self.controls.get_string("pattern");
@@ -70,6 +64,12 @@ impl Model {
         } else {
             value
         }
+    }
+}
+
+impl SketchModel for Model {
+    fn controls(&mut self) -> Option<&mut Controls> {
+        Some(&mut self.controls)
     }
 }
 
@@ -274,7 +274,7 @@ pub fn init_model() -> Model {
             LIGHTCORAL.into_lin_srgb(),
             AZURE.into_lin_srgb(),
         ]),
-        ellipses: Vec::new(),
+        ellipses: Vec::with_capacity(GRID_SIZE),
     }
 }
 
@@ -332,38 +332,29 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         .grid
         .par_iter()
         .map(|point| {
-            // TODO: preallocate total_displacement_buffer
             let mut total_displacement = vec2(0.0, 0.0);
             let mut total_influence = 0.0;
-            let mut colors: Vec<(LinSrgb, f32)> = Vec::new();
 
-            let displacements: Vec<(Vec2, f32)> = enabled_displacer_configs
-                .iter()
-                .map(|config| {
-                    let displacement = config.displacer.influence(*point);
-                    let influence = displacement.length();
-                    total_displacement += displacement;
-                    total_influence += influence;
-                    (displacement, influence)
-                })
-                .collect();
+            for config in &enabled_displacer_configs {
+                let displacement = config.displacer.influence(*point);
+                let influence = displacement.length();
+                total_displacement += displacement;
+                total_influence += influence;
+            }
 
-            for (index, config) in enabled_displacer_configs.iter().enumerate()
-            {
-                let (_displacement, influence) = displacements[index];
+            let mut blended_color = gradient.get(0.0);
+            let inv_total = 1.0 / total_influence.max(1.0);
+
+            for config in &enabled_displacer_configs {
+                let displacement = config.displacer.influence(*point);
+                let influence = displacement.length();
                 let color_position = (influence / config.displacer.strength)
                     .powf(gradient_spread)
                     .clamp(0.0, 1.0);
                 let color = gradient.get(color_position);
-                let weight = influence / total_influence.max(1.0);
-                colors.push((color, weight));
+                let weight = influence * inv_total;
+                blended_color = blended_color.mix(&color, weight);
             }
-
-            let blended_color = colors
-                .iter()
-                .fold(gradient.get(0.0), |acc, (color, weight)| {
-                    acc.mix(color, *weight)
-                });
 
             let magnitude = if clamp_circle_radii {
                 total_displacement.length().clamp(0.0, max_mag)
