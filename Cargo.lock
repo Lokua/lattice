@@ -1144,6 +1144,7 @@ dependencies = [
  "nannou_egui",
  "once_cell",
  "parking_lot",
+ "rayon",
  "serde",
  "serde_json",
  "termcolor",

@@ -12,7 +12,8 @@ impl std::fmt::Debug for Displacer {
     }
 }
 
-pub type CustomDistanceFn = Option<Arc<dyn Fn(Vec2, Vec2) -> f32>>;
+pub type CustomDistanceFn =
+    Option<Arc<dyn Fn(Vec2, Vec2) -> f32 + Send + Sync>>;
 
 pub struct Displacer {
     pub position: Vec2,
