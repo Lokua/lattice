@@ -29,6 +29,7 @@ pub struct Model {
     audio: Arc<Mutex<AudioProcessor>>,
     radius1: f32,
     radius2: f32,
+    fft_radii: Vec<f32>,
 }
 
 impl SketchModel for Model {
@@ -57,19 +58,31 @@ pub fn init_model() -> Model {
         audio,
         radius1: 0.0,
         radius2: 0.0,
+        fft_radii: Vec::new(),
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let audio_processor = model.audio.lock().unwrap();
     let radius_max = model.controls.get_float("radius_max");
+
     model.radius1 =
-        map_range(audio_processor.peak(), 0.0, 1.0, 0.0, radius_max);
-    model.radius2 = map_range(audio_processor.rms(), 0.0, 1.0, 0.0, radius_max);
+        map_range(audio_processor.peak(), -1.0, 1.0, 0.0, radius_max);
+
+    model.radius2 =
+        map_range(audio_processor.rms(), -1.0, 1.0, 0.0, radius_max);
+
+    let bands = audio_processor.bands(3);
+    debug!("bands: {:?}", bands);
+    model.fft_radii = bands
+        .iter()
+        .map(|&x| map_range(x, 0.0, 1.0, 0.0, radius_max))
+        .collect();
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
+    let radius_max = model.controls.get_float("radius_max");
 
     frame.clear(BLACK);
     draw.background().color(rgb(0.2, 0.2, 0.2));
@@ -87,6 +100,20 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .stroke(LIGHTSALMON)
         .radius(model.radius2)
         .x_y(0.0, 0.0);
+
+    for radius in &model.fft_radii {
+        draw.ellipse()
+            .no_fill()
+            .stroke_weight(5.0)
+            .stroke(rgba(
+                1.0,
+                1.0,
+                1.0,
+                map_range(*radius, 0.0, radius_max, 0.0, 1.0),
+            ))
+            .radius(*radius)
+            .x_y(0.0, 0.0);
+    }
 
     draw.to_frame(app, &frame).unwrap();
 }
@@ -125,11 +152,8 @@ fn init_audio(
             move |source_data: &[f32], _| {
                 // Left = even, Right = odd
                 // `data.iter().skip(1).step_by(2)` for right
-                let data: Vec<f32> = source_data
-                    .iter()
-                    .step_by(2)
-                    .map(|&sample| (sample + 1.0) / 2.0)
-                    .collect();
+                let data: Vec<f32> =
+                    source_data.iter().step_by(2).cloned().collect();
                 let mut audio_processor = shared_audio.lock().unwrap();
                 audio_processor.add_samples(&data);
             },
