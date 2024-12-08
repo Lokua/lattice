@@ -172,7 +172,7 @@ pub fn init_audio(
     shared_audio: Arc<Mutex<AudioProcessor>>,
 ) -> Result<(), BuildStreamError> {
     let audio_host = cpal::default_host();
-    let devices: Vec<_> = audio_host.output_devices().unwrap().collect();
+    let devices: Vec<_> = audio_host.input_devices().unwrap().collect();
     let target_device_name = "BlackHole 2ch";
 
     let device = devices
@@ -186,7 +186,7 @@ pub fn init_audio(
             format!("No device named {} found", target_device_name).as_str(),
         );
 
-    let output_config = match device.default_output_config() {
+    let input_config = match device.default_input_config() {
         Ok(config) => {
             debug!("Default output stream config: {:?}", config);
             config
@@ -196,12 +196,12 @@ pub fn init_audio(
         }
     };
 
-    let stream = match output_config.sample_format() {
+    let stream = match input_config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(
-            &output_config.into(),
+            &input_config.into(),
             move |source_data: &[f32], _| {
-                // Left = even, Right = odd
-                // `data.iter().skip(1).step_by(2)` for right
+                // Left = even, Right = odd;
+                // Do `data.iter().skip(1).step_by(2)` for right
                 let data: Vec<f32> =
                     source_data.iter().step_by(2).cloned().collect();
                 let mut audio_processor = shared_audio.lock().unwrap();

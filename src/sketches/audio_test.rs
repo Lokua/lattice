@@ -85,7 +85,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     ]);
 
     let start_x = -w / 2.0;
-    let cell_pad = 20.0;
+    let cell_pad = 0.0;
     let cell_size = w / model.fft_bands.len() as f32;
     for (index, band) in model.fft_bands.iter().enumerate() {
         draw.rect()
