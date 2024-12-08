@@ -46,20 +46,31 @@ impl AudioProcessor {
     }
 
     /// Standard pre-emphasis filter: y[n] = x[n] - α * x[n-1]
+    /// 0.97 is common is it gives about +20dB emphasis starting around 1kHz
     pub fn apply_pre_emphasis(&self, coefficient: f32) -> Vec<f32> {
-        self.buffer
-            .iter()
-            .enumerate()
-            .skip(1)
-            .map(|(i, x)| x - coefficient * self.buffer[i - 1])
-            .collect()
+        let mut filtered = Vec::with_capacity(self.buffer.len());
+        filtered.push(self.buffer[0]);
+
+        for i in 1..self.buffer.len() {
+            filtered.push(self.buffer[i] - coefficient * self.buffer[i - 1]);
+        }
+
+        filtered
+    }
+
+    pub fn bands(&self, cutoffs: Vec<usize>) -> Vec<f32> {
+        self.bands_from_buffer(&self.buffer, cutoffs)
     }
 
     // TODO: call this bands_from_buffer, use that in bands so we
     // can compose with apply_pre_emphasis etc.
-    pub fn bands(&self, cutoffs: Vec<usize>) -> Vec<f32> {
+    pub fn bands_from_buffer(
+        &self,
+        buffer: &Vec<f32>,
+        cutoffs: Vec<usize>,
+    ) -> Vec<f32> {
         let mut complex_input: Vec<Complex<f32>> =
-            self.buffer.iter().map(|&x| Complex::new(x, 0.0)).collect();
+            buffer.iter().map(|&x| Complex::new(x, 0.0)).collect();
 
         self.fft.process(&mut complex_input);
 
@@ -110,6 +121,7 @@ impl AudioProcessor {
         bands
     }
 
+    // TODO: make variable bands
     pub fn bands_3_lin(&self) -> (f32, f32, f32) {
         let mut complex_input: Vec<Complex<f32>> =
             self.buffer.iter().map(|&x| Complex::new(x, 0.0)).collect();

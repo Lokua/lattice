@@ -42,8 +42,8 @@ pub fn init_model() -> Model {
     let controls = Controls::new(vec![Control::Slider {
         name: "pre_emphasis".to_string(),
         value: 1.0,
-        min: 0.001,
-        max: 0.0,
+        min: 0.0,
+        max: 1.0,
         step: 0.001,
     }]);
 
@@ -57,9 +57,15 @@ pub fn init_model() -> Model {
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let audio_processor = model.audio.lock().unwrap();
 
-    model.fft_bands =
-        audio_processor.bands(vec![30, 100, 200, 500, 1000, 4000, 10_000]);
-    debug!("bands: {:?}", model.fft_bands);
+    let emphasized = audio_processor
+        .apply_pre_emphasis(model.controls.get_float("pre_emphasis"));
+
+    model.fft_bands = audio_processor.bands_from_buffer(
+        &emphasized,
+        vec![30, 100, 200, 500, 1000, 4000, 10_000],
+    );
+
+    trace!("bands: {:?}", model.fft_bands);
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
@@ -79,6 +85,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     ]);
 
     let start_x = -w / 2.0;
+    let cell_pad = 20.0;
     let cell_size = w / model.fft_bands.len() as f32;
     for (index, band) in model.fft_bands.iter().enumerate() {
         draw.rect()
@@ -86,7 +93,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
                 start_x + index as f32 * cell_size + cell_size / 2.0,
                 -h / 2.0 + (band * h) / 2.0,
             )
-            .w_h(cell_size as f32, band * h)
+            .w_h(cell_size as f32 - cell_pad, band * h)
             .color(gradient.get(index as f32 / model.fft_bands.len() as f32));
     }
 
