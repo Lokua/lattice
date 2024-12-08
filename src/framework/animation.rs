@@ -5,6 +5,7 @@ pub struct Keyframe {
     pub duration: f32,
 }
 impl Keyframe {
+    pub const END: f32 = 0.0;
     pub fn new(value: f32, duration: f32) -> Self {
         Self { value, duration }
     }
