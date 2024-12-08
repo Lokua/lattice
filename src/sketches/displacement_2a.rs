@@ -15,7 +15,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(450),
+    gui_h: Some(500),
 };
 
 const GRID_SIZE: usize = 128;
@@ -141,6 +141,10 @@ pub fn init_model() -> Model {
         },
         Control::Checkbox {
             name: "animate_frequency".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_restraints".into(),
             value: false,
         },
         Control::Slider {
@@ -353,13 +357,14 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.update_trig_fns();
     }
 
+    let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
+    let quad_restraints = model.controls.get_bool("quad_restraints");
     let displacer_radius = model.controls.get_float("displacer_radius");
     let displacer_strength = model.controls.get_float("displacer_strength");
     let weave_scale = model.controls.get_float("weave_scale");
     let weave_amplitude = model.controls.get_float("weave_amplitude");
     let pattern = model.controls.get_string("pattern");
     let gradient_spread = model.controls.get_float("gradient_spread");
-    let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
     let circle_radius_min = model.controls.get_float("circle_radius_min");
     let circle_radius_max = model.controls.get_float("circle_radius_max");
     let animation = &model.animation;
@@ -406,6 +411,18 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             let mut total_influence = 0.0;
 
             for config in &enabled_displacer_configs {
+                if quad_restraints {
+                    let displacer_rect = Rect::from_xy_wh(
+                        config.displacer.position,
+                        vec2(
+                            SKETCH_CONFIG.w as f32 / 4.0,
+                            SKETCH_CONFIG.h as f32 / 4.0,
+                        ),
+                    );
+                    if rect_contains_point(&displacer_rect, point) {
+                        return (*point, circle_radius_min, gradient.get(0.0));
+                    }
+                }
                 let displacement = config.displacer.influence(*point);
                 let influence = displacement.length();
                 total_displacement += displacement;
@@ -523,4 +540,11 @@ fn generate_pattern_options() -> Vec<String> {
     options.extend(custom_algs);
 
     options
+}
+
+fn rect_contains_point(rect: &Rect, point: &Vec2) -> bool {
+    rect.left() <= point.x
+        && point.x <= rect.right()
+        && rect.bottom() <= point.y
+        && point.y <= rect.top()
 }
