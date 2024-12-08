@@ -4,7 +4,6 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::framework::prelude::Keyframe as KF;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -227,20 +226,7 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let x = ax.animate(
-                    vec![
-                        KF::new(w / 4.0, 2.0),
-                        KF::new(-w / 4.0, 2.0),
-                        KF::new(w / 4.0, KF::END),
-                    ],
-                    0.0,
-                );
-                let y = h / 4.0;
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
         DisplacerConfig::new(
@@ -251,21 +237,7 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let x = w / 4.0;
-                let yp = -h / 4.0;
-                let y = ax.animate(
-                    vec![
-                        KF::new(yp, 2.0),
-                        KF::new(-yp, 2.0),
-                        KF::new(yp, KF::END),
-                    ],
-                    0.0,
-                );
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
         DisplacerConfig::new(
