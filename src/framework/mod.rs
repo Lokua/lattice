@@ -1,4 +1,5 @@
 pub mod animation;
+pub mod audio;
 pub mod controls;
 pub mod displacer;
 pub mod distance;
