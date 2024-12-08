@@ -27,6 +27,7 @@ controls, and declarative frame-based animation.
   - Support keyframe expressions like `animate([0.0, 1.0, 0.0], 1.5)` to animate
     values over musical beats
 - [x] Automatic store/recall of GUI control/parameters
+- [x] Audio reactivity. Basic peak, rms, and FFT available to use in sketches
 
 ## Status
 
