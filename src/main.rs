@@ -59,6 +59,7 @@ fn main() {
     match sketch_name {
         "displacement_1" => run_sketch!(displacement_1),
         "displacement_2" => run_sketch!(displacement_2),
+        "displacement_2a" => run_sketch!(displacement_2a),
         "template" => run_sketch!(template),
         _ => {
             warn!("Sketch not found, running template");

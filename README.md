@@ -5,10 +5,10 @@ A hobbyist project exploring generative art while learning Rust and
 
 ## Overview
 
-This project aims to port my [p5 project][p5-link] to Rust for improved
-performance. It provides a framework around nannou that simplifies creating
-multiple sketches by handling common concerns like window creation and GUI
-controls.
+This project aims to port my [p5.js project][p5-link] to Rust for improved
+performance. It provides a personal framework around nannou that simplifies
+creating multiple sketches by handling common concerns like window creation, GUI
+controls, and declarative frame-based animation.
 
 ## Planned Features TODO
 
@@ -23,11 +23,9 @@ controls.
   - Declarative per-sketch control definitions
   - Framework-agnostic design (currently using egui but another impl could be
     swapped in without impacting sketches I think)
-- [ ] BPM/musical timing based keyframe animations 🚧
-  - Support expressions like `animate([0.0, 1.0, 0.0], 1.5)` to animate values
-    over musical beats
-  - Basic normalized and normalized ping-pong animations implemented
-  - More features in development
+- [x] BPM/musical timing based keyframe animations 🚧
+  - Support keyframe expressions like `animate([0.0, 1.0, 0.0], 1.5)` to animate
+    values over musical beats
 - [x] Automatic store/recall of GUI control/parameters
 
 ## Status

@@ -8,8 +8,8 @@ use crate::framework::prelude::Keyframe as KF;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "displacement_2",
-    display_name: "Displacement 2",
+    name: "displacement_2a",
+    display_name: "Displacement 2a",
     fps: 30.0,
     bpm: 134.0,
     w: 1000,
@@ -60,7 +60,16 @@ impl Model {
         let value = self.controls.get_float("weave_frequency");
         if self.controls.get_bool("animate_frequency") {
             map_range(
-                self.animation.ping_pong_loop_progress(32.0),
+                self.animation.animate(
+                    vec![
+                        KF::new(0.0, 24.0),
+                        KF::new(1.0, 8.0),
+                        KF::new(0.0, 8.0),
+                        KF::new(1.0, 8.0),
+                        KF::new(0.0, KF::END),
+                    ],
+                    0.0,
+                ),
                 0.0,
                 1.0,
                 0.01,
@@ -230,11 +239,12 @@ pub fn init_model() -> Model {
             Some(Arc::new(move |_displacer, ax, _controls| {
                 let w = SKETCH_CONFIG.w as f32;
                 let h = SKETCH_CONFIG.h as f32;
+                let xp = w / 4.0;
                 let x = ax.animate(
                     vec![
-                        KF::new(w / 4.0, 2.0),
-                        KF::new(-w / 4.0, 2.0),
-                        KF::new(w / 4.0, KF::END),
+                        KF::new(xp, 4.0),
+                        KF::new(-xp, 4.0),
+                        KF::new(xp, KF::END),
                     ],
                     0.0,
                 );
@@ -258,8 +268,8 @@ pub fn init_model() -> Model {
                 let yp = -h / 4.0;
                 let y = ax.animate(
                     vec![
-                        KF::new(yp, 2.0),
-                        KF::new(-yp, 2.0),
+                        KF::new(yp, 6.0),
+                        KF::new(-yp, 6.0),
                         KF::new(yp, KF::END),
                     ],
                     0.0,
@@ -276,7 +286,21 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            None,
+            Some(Arc::new(move |_displacer, ax, _controls| {
+                let w = SKETCH_CONFIG.w as f32;
+                let h = SKETCH_CONFIG.h as f32;
+                let xp = -w / 4.0;
+                let x = ax.animate(
+                    vec![
+                        KF::new(xp, 12.0),
+                        KF::new(-xp, 12.0),
+                        KF::new(xp, KF::END),
+                    ],
+                    0.0,
+                );
+                let y = -h / 4.0;
+                vec2(x, y)
+            })),
             None,
         ),
         DisplacerConfig::new(
@@ -287,12 +311,26 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            None,
+            Some(Arc::new(move |_displacer, ax, _controls| {
+                let w = SKETCH_CONFIG.w as f32;
+                let h = SKETCH_CONFIG.h as f32;
+                let x = -w / 4.0;
+                let yp = h / 4.0;
+                let y = ax.animate(
+                    vec![
+                        KF::new(yp, 16.0),
+                        KF::new(-yp, 16.0),
+                        KF::new(yp, KF::END),
+                    ],
+                    0.0,
+                );
+                vec2(x, y)
+            })),
             None,
         ),
     ];
 
-    let pad = 80.0;
+    let pad = w as f32 * (1.0 / 3.0);
     let cached_pattern = controls.get_string("pattern");
 
     Model {
