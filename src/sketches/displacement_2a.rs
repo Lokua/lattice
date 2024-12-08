@@ -253,6 +253,8 @@ pub fn init_model() -> Model {
         },
     ]);
 
+    const BEATS: f32 = 8.0;
+
     let displacer_configs = vec![
         DisplacerConfig::new(
             "center",
@@ -274,8 +276,8 @@ pub fn init_model() -> Model {
                 let xp = w / 4.0;
                 let x = ax.animate(
                     vec![
-                        KF::new(xp, 4.0),
-                        KF::new(-xp, 4.0),
+                        KF::new(xp, BEATS),
+                        KF::new(-xp, BEATS),
                         KF::new(xp, KF::END),
                     ],
                     0.0,
@@ -300,8 +302,8 @@ pub fn init_model() -> Model {
                 let yp = -h / 4.0;
                 let y = ax.animate(
                     vec![
-                        KF::new(yp, 6.0),
-                        KF::new(-yp, 6.0),
+                        KF::new(yp, BEATS),
+                        KF::new(-yp, BEATS),
                         KF::new(yp, KF::END),
                     ],
                     0.0,
@@ -324,8 +326,8 @@ pub fn init_model() -> Model {
                 let xp = -w / 4.0;
                 let x = ax.animate(
                     vec![
-                        KF::new(xp, 12.0),
-                        KF::new(-xp, 12.0),
+                        KF::new(xp, BEATS),
+                        KF::new(-xp, BEATS),
                         KF::new(xp, KF::END),
                     ],
                     0.0,
@@ -350,8 +352,8 @@ pub fn init_model() -> Model {
                 let yp = h / 4.0;
                 let y = ax.animate(
                     vec![
-                        KF::new(yp, 16.0),
-                        KF::new(-yp, 16.0),
+                        KF::new(yp, BEATS),
+                        KF::new(-yp, BEATS),
                         KF::new(yp, KF::END),
                     ],
                     0.0,
