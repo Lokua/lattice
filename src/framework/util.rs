@@ -4,6 +4,9 @@ use nannou::{
     rand::{thread_rng, Rng},
 };
 
+pub const PHI_F32: f32 = 1.618033988749894_f32;
+pub const PHI_F64: f64 = 1.618033988749894_f64;
+
 pub trait IntoLinSrgb {
     fn into_lin_srgb(self) -> LinSrgb;
 }
@@ -121,4 +124,11 @@ impl TrigonometricExt for f32 {
 
 pub fn lerp(start: f32, end: f32, t: f32) -> f32 {
     start + (end - start) * t
+}
+
+pub fn rect_contains_point(rect: &Rect, point: &Vec2) -> bool {
+    rect.left() <= point.x
+        && point.x <= rect.right()
+        && rect.bottom() <= point.y
+        && point.y <= rect.top()
 }

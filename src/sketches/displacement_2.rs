@@ -283,7 +283,9 @@ pub fn init_model() -> Model {
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    if model.cached_pattern != model.controls.get_string("pattern") {
+    if model.cached_trig_fns == None
+        || (model.cached_pattern != model.controls.get_string("pattern"))
+    {
         model.update_trig_fns();
     }
 

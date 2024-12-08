@@ -15,7 +15,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(500),
+    gui_h: Some(550),
 };
 
 const GRID_SIZE: usize = 128;
@@ -144,8 +144,36 @@ pub fn init_model() -> Model {
             value: false,
         },
         Control::Checkbox {
-            name: "quad_restraints".into(),
+            name: "quad_restraint".into(),
             value: false,
+        },
+        Control::Slider {
+            name: "qr_lerp".into(),
+            value: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.0001,
+        },
+        Control::Slider {
+            name: "qr_divisor".into(),
+            value: 2.0,
+            min: 0.5,
+            max: 16.0,
+            step: 0.125,
+        },
+        Control::Slider {
+            name: "qr_pos".into(),
+            value: 1.0,
+            min: 0.125,
+            max: 1.0,
+            step: 0.125,
+        },
+        Control::Slider {
+            name: "qr_size".into(),
+            value: 1.0,
+            min: 0.125,
+            max: 1.0,
+            step: 0.125,
         },
         Control::Slider {
             name: "gradient_spread".into(),
@@ -184,7 +212,7 @@ pub fn init_model() -> Model {
         },
         Control::Slider {
             name: "weave_frequency".into(),
-            value: 0.01,
+            value: 0.03,
             min: 0.01,
             max: 0.2,
             step: 0.001,
@@ -353,12 +381,18 @@ pub fn init_model() -> Model {
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    if model.cached_pattern != model.controls.get_string("pattern") {
+    if model.cached_trig_fns == None
+        || (model.cached_pattern != model.controls.get_string("pattern"))
+    {
         model.update_trig_fns();
     }
 
     let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
-    let quad_restraints = model.controls.get_bool("quad_restraints");
+    let quad_restraint = model.controls.get_bool("quad_restraint");
+    let qr_lerp = model.controls.get_float("qr_lerp");
+    let qr_divisor = model.controls.get_float("qr_divisor");
+    let qr_pos = model.controls.get_float("qr_pos");
+    let qr_size = model.controls.get_float("qr_size");
     let displacer_radius = model.controls.get_float("displacer_radius");
     let displacer_strength = model.controls.get_float("displacer_strength");
     let weave_scale = model.controls.get_float("weave_scale");
@@ -409,18 +443,19 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         .map(|point| {
             let mut total_displacement = vec2(0.0, 0.0);
             let mut total_influence = 0.0;
+            let mut quad_contains = false;
 
             for config in &enabled_displacer_configs {
-                if quad_restraints {
+                if quad_restraint {
                     let displacer_rect = Rect::from_xy_wh(
-                        config.displacer.position,
+                        config.displacer.position * qr_pos,
                         vec2(
                             SKETCH_CONFIG.w as f32 / 4.0,
                             SKETCH_CONFIG.h as f32 / 4.0,
-                        ),
+                        ) * qr_size,
                     );
                     if rect_contains_point(&displacer_rect, point) {
-                        return (*point, circle_radius_min, gradient.get(0.0));
+                        quad_contains = true;
                     }
                 }
                 let displacement = config.displacer.influence(*point);
@@ -456,7 +491,15 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 circle_radius_max,
             );
 
-            (*point + total_displacement, radius, blended_color)
+            if quad_restraint && quad_contains {
+                (
+                    *point + (total_displacement / qr_divisor),
+                    radius,
+                    gradient.get(0.0).mix(&blended_color, qr_lerp),
+                )
+            } else {
+                (*point + total_displacement, radius, blended_color)
+            }
         })
         .collect();
 }
@@ -540,11 +583,4 @@ fn generate_pattern_options() -> Vec<String> {
     options.extend(custom_algs);
 
     options
-}
-
-fn rect_contains_point(rect: &Rect, point: &Vec2) -> bool {
-    rect.left() <= point.x
-        && point.x <= rect.right()
-        && rect.bottom() <= point.y
-        && point.y <= rect.top()
 }

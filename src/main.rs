@@ -92,6 +92,7 @@ fn model<S: SketchModel + 'static>(
 ) -> AppModel<S> {
     let w = sketch_config.w as u32;
     let h = sketch_config.h as u32;
+    let mut sketch_model = init_sketch_model();
 
     let main_window_id = app
         .new_window()
@@ -100,12 +101,14 @@ fn model<S: SketchModel + 'static>(
         .build()
         .unwrap();
 
+    let (gui_w, gui_h) = calculate_gui_dimensions(sketch_model.controls());
+
     let gui_window_id = app
         .new_window()
         .title(format!("{} Controls", sketch_config.display_name))
         .size(
-            sketch_config.gui_w.unwrap_or(350),
-            sketch_config.gui_h.unwrap_or(350),
+            sketch_config.gui_w.unwrap_or(gui_w),
+            sketch_config.gui_h.unwrap_or(gui_h),
         )
         .view(view_gui::<S>)
         .raw_event(|_app, model: &mut AppModel<S>, event| {
@@ -118,8 +121,6 @@ fn model<S: SketchModel + 'static>(
     set_window_position(app, gui_window_id, sketch_config.w * 2, 0);
 
     let egui = Egui::from_window(&app.window(gui_window_id).unwrap());
-
-    let mut sketch_model = init_sketch_model();
 
     if let Some(values) = stored_controls(&sketch_config.name) {
         if let Some(controls) = sketch_model.controls() {
@@ -432,6 +433,29 @@ fn capture_frame(
     window.capture_frame(file_path.clone());
     info!("Image saved to {:?}", file_path);
     *alert_text = format!("Image saved to {:?}", file_path);
+}
+
+// I suck at math. Can't figure this out. EGUI controls don't seem to stack linearly.
+// The more controls, the more the empty space grows between the last control and alert panel.
+// Stick with per-sketch heights for now.
+fn calculate_gui_dimensions(controls: Option<&mut Controls>) -> (u32, u32) {
+    const HEADER_HEIGHT: u32 = 40;
+    const ALERT_HEIGHT: u32 = 40;
+    const CONTROL_HEIGHT: u32 = 26;
+    const THRESHOLD: u32 = 5;
+    const MIN_FINAL_GAP: u32 = 4;
+
+    let controls_height = controls.map_or(0, |controls| {
+        let count = controls.get_controls().len() as u32;
+        let reduced_height = (CONTROL_HEIGHT as f32 * 0.95) as u32;
+        let base = THRESHOLD * reduced_height;
+        let remaining = count - THRESHOLD;
+        base + (remaining * reduced_height)
+    });
+
+    let height = HEADER_HEIGHT + controls_height + MIN_FINAL_GAP + ALERT_HEIGHT;
+
+    (350, height)
 }
 
 fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {

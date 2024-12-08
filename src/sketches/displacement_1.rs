@@ -19,7 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 500,
     h: 500,
     gui_w: None,
-    gui_h: None,
+    gui_h: Some(220),
 };
 
 type AnimationFn<R> =
