@@ -1,10 +1,6 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use cpal::traits::DeviceTrait;
-use cpal::traits::HostTrait;
-use cpal::traits::*;
-use cpal::BuildStreamError;
 use nannou::color::named::*;
 use nannou::color::*;
 use nannou::prelude::*;
@@ -27,9 +23,7 @@ const SAMPLE_RATE: usize = 48_000;
 pub struct Model {
     controls: Controls,
     audio: Arc<Mutex<AudioProcessor>>,
-    radius1: f32,
-    radius2: f32,
-    fft_radii: Vec<f32>,
+    fft_bands: Vec<f32>,
 }
 
 impl SketchModel for Model {
@@ -46,126 +40,55 @@ pub fn init_model() -> Model {
     init_audio(audio.clone()).expect("Unable to init audio");
 
     let controls = Controls::new(vec![Control::Slider {
-        name: "radius_max".to_string(),
-        value: 333.0,
-        min: 10.0,
-        max: 500.0,
-        step: 1.0,
+        name: "pre_emphasis".to_string(),
+        value: 1.0,
+        min: 0.001,
+        max: 0.0,
+        step: 0.001,
     }]);
 
     Model {
         controls,
         audio,
-        radius1: 0.0,
-        radius2: 0.0,
-        fft_radii: Vec::new(),
+        fft_bands: Vec::new(),
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let audio_processor = model.audio.lock().unwrap();
-    let radius_max = model.controls.get_float("radius_max");
 
-    model.radius1 =
-        map_range(audio_processor.peak(), -1.0, 1.0, 0.0, radius_max);
-
-    model.radius2 =
-        map_range(audio_processor.rms(), -1.0, 1.0, 0.0, radius_max);
-
-    let bands = audio_processor.bands(3);
-    debug!("bands: {:?}", bands);
-    model.fft_radii = bands
-        .iter()
-        .map(|&x| map_range(x, 0.0, 1.0, 0.0, radius_max))
-        .collect();
+    model.fft_bands =
+        audio_processor.bands(vec![30, 100, 200, 500, 1000, 4000, 10_000]);
+    debug!("bands: {:?}", model.fft_bands);
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
+    let w = SKETCH_CONFIG.w as f32;
+    let h = SKETCH_CONFIG.h as f32;
     let draw = app.draw();
-    let radius_max = model.controls.get_float("radius_max");
 
     frame.clear(BLACK);
     draw.background().color(rgb(0.2, 0.2, 0.2));
 
-    draw.ellipse()
-        .no_fill()
-        .stroke(RED)
-        .stroke_weight(10.0)
-        .radius(model.radius1)
-        .x_y(0.0, 0.0);
+    let gradient: Gradient<LinSrgb> = Gradient::new(vec![
+        BLUE.into_lin_srgb(),
+        PURPLE.into_lin_srgb(),
+        RED.into_lin_srgb(),
+        GREEN.into_lin_srgb(),
+        YELLOW.into_lin_srgb(),
+    ]);
 
-    draw.ellipse()
-        .no_fill()
-        .stroke_weight(10.0)
-        .stroke(LIGHTSALMON)
-        .radius(model.radius2)
-        .x_y(0.0, 0.0);
-
-    for radius in &model.fft_radii {
-        draw.ellipse()
-            .no_fill()
-            .stroke_weight(5.0)
-            .stroke(rgba(
-                1.0,
-                1.0,
-                1.0,
-                map_range(*radius, 0.0, radius_max, 0.0, 1.0),
-            ))
-            .radius(*radius)
-            .x_y(0.0, 0.0);
+    let start_x = -w / 2.0;
+    let cell_size = w / model.fft_bands.len() as f32;
+    for (index, band) in model.fft_bands.iter().enumerate() {
+        draw.rect()
+            .x_y(
+                start_x + index as f32 * cell_size + cell_size / 2.0,
+                -h / 2.0 + (band * h) / 2.0,
+            )
+            .w_h(cell_size as f32, band * h)
+            .color(gradient.get(index as f32 / model.fft_bands.len() as f32));
     }
 
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn init_audio(
-    shared_audio: Arc<Mutex<AudioProcessor>>,
-) -> Result<(), BuildStreamError> {
-    let audio_host = cpal::default_host();
-    let devices: Vec<_> = audio_host.output_devices().unwrap().collect();
-    let target_device_name = "BlackHole 2ch";
-
-    let device = devices
-        .into_iter()
-        .find(|device| {
-            let name = device.name().unwrap();
-            debug!("Enumerating devices. Device name: {}", name);
-            device.name().unwrap() == target_device_name
-        })
-        .expect(
-            format!("No device named {} found", target_device_name).as_str(),
-        );
-
-    let output_config = match device.default_output_config() {
-        Ok(config) => {
-            debug!("Default output stream config: {:?}", config);
-            config
-        }
-        Err(err) => {
-            panic!("Failed to get default output config: {:?}", err);
-        }
-    };
-
-    let stream = match output_config.sample_format() {
-        cpal::SampleFormat::F32 => device.build_input_stream(
-            &output_config.into(),
-            move |source_data: &[f32], _| {
-                // Left = even, Right = odd
-                // `data.iter().skip(1).step_by(2)` for right
-                let data: Vec<f32> =
-                    source_data.iter().step_by(2).cloned().collect();
-                let mut audio_processor = shared_audio.lock().unwrap();
-                audio_processor.add_samples(&data);
-            },
-            move |err| error!("An error occured on steam: {}", err),
-            None,
-        )?,
-        sample_format => {
-            panic!("Unsupported sample format {}", sample_format);
-        }
-    };
-
-    let _ = stream.play();
-
-    Ok(())
 }
