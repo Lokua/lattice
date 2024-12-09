@@ -7,7 +7,7 @@ debug *ARGS:
 trace *ARGS:
   RUST_LOG=lattice=trace cargo run --release {{ARGS}}
 
-# Usage: just trace-module framework::frame_controller
+# Usage: just trace-module framework::frame_controller <sketch>
 trace-module MODULE *ARGS:
     RUST_LOG=lattice=info,lattice::{{MODULE}}=trace cargo run --release {{ARGS}}
 
