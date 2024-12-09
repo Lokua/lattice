@@ -121,12 +121,11 @@ pub fn init_model() -> Model {
     ]);
 
     let pad = 40.0;
-    let corner_strength = controls.get_float("corner_strength");
+    let corner_strength = controls.float("corner_strength");
 
     let corner_radius_fn: AnimationFn<f32> =
         Some(Arc::new(|_displacer, ax, controls| {
-            ax.ping_pong_loop_progress(1.0)
-                * controls.get_float("corner_radius")
+            ax.ping_pong_loop_progress(1.0) * controls.float("corner_radius")
         }));
 
     let displacer_configs = [
@@ -141,7 +140,7 @@ pub fn init_model() -> Model {
                     0.0,
                     1.0,
                     50.0,
-                    controls.get_float("max_radius"),
+                    controls.float("max_radius"),
                 );
                 radius
             })),
@@ -163,7 +162,7 @@ pub fn init_model() -> Model {
                     0.0,
                     1.0,
                     50.0,
-                    controls.get_float("max_radius"),
+                    controls.float("max_radius"),
                 );
                 radius
             })),
@@ -230,11 +229,11 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         config.update(&model.animation, &model.controls);
         match config.kind {
             "center" | "roaming" => {
-                let strength = model.controls.get_float("strength");
+                let strength = model.controls.float("strength");
                 config.displacer.set_strength(strength);
             }
             kind if kind.starts_with("corner") => {
-                let strength = model.controls.get_float("corner_strength");
+                let strength = model.controls.float("corner_strength");
                 config.displacer.set_strength(strength);
             }
             _ => (),
@@ -255,7 +254,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let gradient =
         Gradient::new(vec![BEIGE.into_lin_srgb(), PURPLE.into_lin_srgb()]);
 
-    let gradient_spread = model.controls.get_float("gradient_spread");
+    let gradient_spread = model.controls.float("gradient_spread");
 
     frame.clear(BLACK);
     draw.background().color(rgb(0.1, 0.1, 0.1));

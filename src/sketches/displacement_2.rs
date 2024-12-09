@@ -32,7 +32,7 @@ pub struct Model {
 
 impl Model {
     fn update_trig_fns(&mut self) {
-        let pattern = self.controls.get_string("pattern");
+        let pattern = self.controls.string("pattern");
         let lookup = trig_fn_lookup();
         let parts: Vec<&str> = pattern.split(',').collect();
 
@@ -56,8 +56,8 @@ impl Model {
         };
     }
     fn weave_frequency(&self) -> f32 {
-        let value = self.controls.get_float("weave_frequency");
-        if self.controls.get_bool("animate_frequency") {
+        let value = self.controls.float("weave_frequency");
+        if self.controls.bool("animate_frequency") {
             map_range(
                 self.animation.ping_pong_loop_progress(32.0),
                 0.0,
@@ -265,7 +265,7 @@ pub fn init_model() -> Model {
     ];
 
     let pad = 80.0;
-    let cached_pattern = controls.get_string("pattern");
+    let cached_pattern = controls.string("pattern");
 
     Model {
         grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2),
@@ -284,20 +284,20 @@ pub fn init_model() -> Model {
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     if model.cached_trig_fns == None
-        || (model.cached_pattern != model.controls.get_string("pattern"))
+        || (model.cached_pattern != model.controls.string("pattern"))
     {
         model.update_trig_fns();
     }
 
-    let displacer_radius = model.controls.get_float("displacer_radius");
-    let displacer_strength = model.controls.get_float("displacer_strength");
-    let weave_scale = model.controls.get_float("weave_scale");
-    let weave_amplitude = model.controls.get_float("weave_amplitude");
-    let pattern = model.controls.get_string("pattern");
-    let gradient_spread = model.controls.get_float("gradient_spread");
-    let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
-    let circle_radius_min = model.controls.get_float("circle_radius_min");
-    let circle_radius_max = model.controls.get_float("circle_radius_max");
+    let displacer_radius = model.controls.float("displacer_radius");
+    let displacer_strength = model.controls.float("displacer_strength");
+    let weave_scale = model.controls.float("weave_scale");
+    let weave_amplitude = model.controls.float("weave_amplitude");
+    let pattern = model.controls.string("pattern");
+    let gradient_spread = model.controls.float("gradient_spread");
+    let clamp_circle_radii = model.controls.bool("clamp_circle_radii");
+    let circle_radius_min = model.controls.float("circle_radius_min");
+    let circle_radius_max = model.controls.float("circle_radius_max");
     let animation = &model.animation;
     let controls = &model.controls;
     let weave_frequency = model.weave_frequency();
@@ -328,7 +328,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let enabled_displacer_configs: Vec<&DisplacerConfig> = model
         .displacer_configs
         .iter()
-        .filter(|x| model.controls.get_bool(x.kind))
+        .filter(|x| model.controls.bool(x.kind))
         .collect();
 
     let max_mag = model.displacer_configs.len() as f32 * displacer_strength;

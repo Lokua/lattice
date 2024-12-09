@@ -3,9 +3,8 @@ use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use crate::framework::prelude::Keyframe as KF;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -33,14 +32,13 @@ pub struct Model {
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
     gradient: Gradient<LinSrgb>,
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
-    audio: Arc<Mutex<AudioProcessor>>,
+    audio: Audio,
     fft_bands: Vec<f32>,
-    slew_state: SlewState,
 }
 
 impl Model {
     fn update_trig_fns(&mut self) {
-        let pattern = self.controls.get_string("pattern");
+        let pattern = self.controls.string("pattern");
         let lookup = trig_fn_lookup();
         let parts: Vec<&str> = pattern.split(',').collect();
 
@@ -64,8 +62,8 @@ impl Model {
         };
     }
     fn weave_frequency(&self) -> f32 {
-        let value = self.controls.get_float("weave_frequency");
-        if self.controls.get_bool("animate_frequency") {
+        let value = self.controls.float("weave_frequency");
+        if self.controls.bool("animate_frequency") {
             map_range(
                 self.animation.animate(
                     vec![
@@ -135,6 +133,7 @@ pub fn init_model() -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let audio = Audio::new(SAMPLE_RATE, SKETCH_CONFIG.fps);
 
     let controls = Controls::new(vec![
         Control::Slider {
@@ -438,19 +437,7 @@ pub fn init_model() -> Model {
     ];
 
     let pad = w as f32 * (1.0 / 3.0);
-    let cached_pattern = controls.get_string("pattern");
-
-    let audio = Arc::new(Mutex::new(AudioProcessor::new(
-        SAMPLE_RATE,
-        SKETCH_CONFIG.fps,
-    )));
-    init_audio(audio.clone()).expect("Unable to init audio");
-
-    let mut slew_state = SlewState::new(N_BANDS);
-    slew_state.config = SlewConfig {
-        rise_rate: controls.get_float("rise_rate"),
-        fall_rate: controls.get_float("fall_rate"),
-    };
+    let cached_pattern = controls.string("pattern");
 
     Model {
         grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2),
@@ -466,52 +453,43 @@ pub fn init_model() -> Model {
         ellipses: Vec::with_capacity(GRID_SIZE),
         audio,
         fft_bands: Vec::new(),
-        slew_state,
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     if model.cached_trig_fns == None
-        || (model.cached_pattern != model.controls.get_string("pattern"))
+        || (model.cached_pattern != model.controls.string("pattern"))
     {
         model.update_trig_fns();
     }
 
-    let audio_processor = model.audio.lock().unwrap();
-    let emphasized = audio_processor.apply_pre_emphasis(0.0);
-    let cutoffs = audio_processor.generate_cutoffs(N_BANDS + 1, 30.0, 10_000.0);
-    let bands = audio_processor.bands_from_buffer(&emphasized, &cutoffs);
-    model.slew_state.config.rise_rate = model.controls.get_float("rise_rate");
-    model.slew_state.config.fall_rate = model.controls.get_float("fall_rate");
-    model.fft_bands = audio_processor.follow_band_envelopes(
-        bands,
-        model.slew_state.config,
-        &model.slew_state.previous_values,
-    );
-    model.slew_state.update(model.fft_bands.clone());
-
-    trace!("bands: {:?}", model.fft_bands);
-    trace!("cutoffs: {:?}", cutoffs);
-
-    let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
-    let quad_restraint = model.controls.get_bool("quad_restraint");
-    let qr_uses_circle = model.controls.get_bool("qr_uses_circle");
-    let qr_lerp = model.controls.get_float("qr_lerp");
-    let qr_divisor = model.controls.get_float("qr_divisor");
-    let qr_pos = model.controls.get_float("qr_pos");
-    let qr_size = model.controls.get_float("qr_size");
-    let displacer_radius = model.controls.get_float("displacer_radius");
-    let displacer_strength = model.controls.get_float("displacer_strength");
-    let weave_scale = model.controls.get_float("weave_scale");
-    let weave_amplitude = model.controls.get_float("weave_amplitude");
-    let pattern = model.controls.get_string("pattern");
-    let gradient_spread = model.controls.get_float("gradient_spread");
-    let circle_radius_min = model.controls.get_float("circle_radius_min");
-    let circle_radius_max = model.controls.get_float("circle_radius_max");
+    let clamp_circle_radii = model.controls.bool("clamp_circle_radii");
+    let quad_restraint = model.controls.bool("quad_restraint");
+    let qr_uses_circle = model.controls.bool("qr_uses_circle");
+    let qr_lerp = model.controls.float("qr_lerp");
+    let qr_divisor = model.controls.float("qr_divisor");
+    let qr_pos = model.controls.float("qr_pos");
+    let qr_size = model.controls.float("qr_size");
+    let displacer_radius = model.controls.float("displacer_radius");
+    let displacer_strength = model.controls.float("displacer_strength");
+    let weave_scale = model.controls.float("weave_scale");
+    let weave_amplitude = model.controls.float("weave_amplitude");
+    let pattern = model.controls.string("pattern");
+    let gradient_spread = model.controls.float("gradient_spread");
+    let circle_radius_min = model.controls.float("circle_radius_min");
+    let circle_radius_max = model.controls.float("circle_radius_max");
     let animation = &model.animation;
     let controls = &model.controls;
     let weave_frequency = model.weave_frequency();
 
+    model.fft_bands = model.audio.bands(
+        N_BANDS,
+        30.0,
+        10_000.0,
+        0.0,
+        model.controls.float("rise_rate"),
+        model.controls.float("fall_rate"),
+    );
     let mid_band = model.fft_bands[5];
 
     let cached_trig_fns = model.cached_trig_fns.clone();
@@ -546,7 +524,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let enabled_displacer_configs: Vec<&DisplacerConfig> = model
         .displacer_configs
         .iter()
-        .filter(|x| model.controls.get_bool(x.kind))
+        .filter(|x| model.controls.bool(x.kind))
         .collect();
 
     let max_mag = model.displacer_configs.len() as f32 * displacer_strength;
