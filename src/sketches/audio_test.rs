@@ -10,7 +10,7 @@ use crate::framework::prelude::*;
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "audio_test",
     display_name: "Audio Test",
-    fps: 60.0,
+    fps: 30.0,
     bpm: 134.0,
     w: 700,
     h: 700,
@@ -19,7 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 };
 
 const SAMPLE_RATE: usize = 48_000;
-const N_BANDS: usize = 16;
+const N_BANDS: usize = 64;
 
 pub struct Model {
     controls: Controls,
@@ -44,21 +44,21 @@ pub fn init_model() -> Model {
     let controls = Controls::new(vec![
         Control::Slider {
             name: "pre_emphasis".to_string(),
-            value: 1.0,
-            min: 0.001,
+            value: 0.88,
+            min: 0.0,
             max: 1.0,
             step: 0.001,
         },
         Control::Slider {
             name: "rise_rate".to_string(),
-            value: 0.0,
+            value: 0.96,
             min: 0.001,
             max: 1.0,
             step: 0.001,
         },
         Control::Slider {
             name: "fall_rate".to_string(),
-            value: 0.0,
+            value: 0.9,
             min: 0.0,
             max: 1.0,
             step: 0.001,
