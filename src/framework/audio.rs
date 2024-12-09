@@ -219,7 +219,9 @@ impl AudioProcessor {
             .collect()
     }
 
-    /// Generates logarithmically spaced frequency cutoffs in Hz for the specified number of bands
+    /// Generates logarithmically spaced frequency cutoffs in Hz for the specified number of bands.
+    /// Lower bands have custom spacing to avoid multiple bands mapping to the same fft bin index which results
+    /// in empties. Works OK for <32 bands but starts to produce gaps at higher band counts.
     ///
     /// # Arguments
     /// * `num_bands` - Number of bands to generate (4, 8, 16, 32, 128, or 256)
@@ -271,6 +273,44 @@ impl AudioProcessor {
         // Ensure the last cutoff is exactly max_freq
         if let Some(last) = cutoffs.last_mut() {
             *last = max_freq;
+        }
+
+        cutoffs
+    }
+
+    /// Convert frequency in Hz to Mel scale
+    fn hz_to_mel(freq: f32) -> f32 {
+        2595.0 * (1.0 + freq / 700.0).log10()
+    }
+
+    /// Convert Mel scale back to frequency in Hz
+    fn mel_to_hz(mel: f32) -> f32 {
+        700.0 * (10.0f32.powf(mel / 2595.0) - 1.0)
+    }
+
+    pub fn generate_mel_cutoffs(
+        &self,
+        num_bands: usize,
+        min_freq: f32,
+        max_freq: f32,
+    ) -> Vec<f32> {
+        assert!(num_bands >= 2, "Number of bands must be at least 2");
+        assert!(min_freq < max_freq, "min_freq must be less than max_freq");
+
+        let mut cutoffs = Vec::with_capacity(num_bands + 1);
+
+        // Convert frequency range to Mel scale
+        let min_mel = Self::hz_to_mel(min_freq);
+        let max_mel = Self::hz_to_mel(max_freq);
+
+        // Create linearly spaced points in Mel scale
+        let mel_step = (max_mel - min_mel) / num_bands as f32;
+
+        // Convert back to Hz
+        for i in 0..=num_bands {
+            let mel = min_mel + mel_step * i as f32;
+            let hz = Self::mel_to_hz(mel);
+            cutoffs.push(hz);
         }
 
         cutoffs
