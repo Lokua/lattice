@@ -16,9 +16,10 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(600),
+    gui_h: Some(610),
 };
 
+const DEBUG_QUADS: bool = false;
 const GRID_SIZE: usize = 128;
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
@@ -298,15 +299,27 @@ pub fn init_model() -> Model {
                 let w = SKETCH_CONFIG.w as f32;
                 let h = SKETCH_CONFIG.h as f32;
                 let xp = w / 4.0;
+                let yp = h / 4.0;
                 let x = ax.animate(
                     vec![
-                        KF::new(xp, BEATS),
-                        KF::new(-xp, BEATS),
-                        KF::new(xp, KF::END),
+                        KF::new(xp, BEATS),   // Start at right
+                        KF::new(-xp, BEATS),  // Move to left
+                        KF::new(-xp, BEATS),  // Stay at left
+                        KF::new(xp, BEATS),   // Move to right
+                        KF::new(xp, KF::END), // Complete the cycle
                     ],
                     0.0,
                 );
-                let y = h / 4.0;
+                let y = ax.animate(
+                    vec![
+                        KF::new(yp, BEATS),   // Start at top
+                        KF::new(yp, BEATS),   // Stay at top
+                        KF::new(-yp, BEATS),  // Move to bottom
+                        KF::new(-yp, BEATS),  // Stay at bottom
+                        KF::new(yp, KF::END), // Move back to top
+                    ],
+                    0.0,
+                );
                 vec2(x, y)
             })),
             None,
@@ -322,13 +335,25 @@ pub fn init_model() -> Model {
             Some(Arc::new(move |_displacer, ax, _controls| {
                 let w = SKETCH_CONFIG.w as f32;
                 let h = SKETCH_CONFIG.h as f32;
-                let x = w / 4.0;
+                let xp = w / 4.0;
                 let yp = -h / 4.0;
+                let x = ax.animate(
+                    vec![
+                        KF::new(xp, BEATS),   // Start at right
+                        KF::new(xp, BEATS),   // Stay at right
+                        KF::new(-xp, BEATS),  // Move to left
+                        KF::new(-xp, BEATS),  // Stay at left
+                        KF::new(xp, KF::END), // Complete the cycle
+                    ],
+                    0.0,
+                );
                 let y = ax.animate(
                     vec![
-                        KF::new(yp, BEATS),
-                        KF::new(-yp, BEATS),
-                        KF::new(yp, KF::END),
+                        KF::new(yp, BEATS),   // Start at bottom
+                        KF::new(-yp, BEATS),  // Move to top
+                        KF::new(-yp, BEATS),  // Stay at top
+                        KF::new(yp, BEATS),   // Move at bottom
+                        KF::new(yp, KF::END), // Complete the cycle
                     ],
                     0.0,
                 );
@@ -348,15 +373,27 @@ pub fn init_model() -> Model {
                 let w = SKETCH_CONFIG.w as f32;
                 let h = SKETCH_CONFIG.h as f32;
                 let xp = -w / 4.0;
+                let yp = -h / 4.0;
                 let x = ax.animate(
                     vec![
-                        KF::new(xp, BEATS),
-                        KF::new(-xp, BEATS),
-                        KF::new(xp, KF::END),
+                        KF::new(xp, BEATS),   // Start at left
+                        KF::new(-xp, BEATS),  // Move to right
+                        KF::new(-xp, BEATS),  // Stay to right
+                        KF::new(xp, BEATS),   // Move to left
+                        KF::new(xp, KF::END), // Complete the cycle
                     ],
                     0.0,
                 );
-                let y = -h / 4.0;
+                let y = ax.animate(
+                    vec![
+                        KF::new(yp, BEATS),   // Start at bottom
+                        KF::new(yp, BEATS),   // Move to top
+                        KF::new(-yp, BEATS),  // Stay at top
+                        KF::new(-yp, BEATS),  // Move to bottom
+                        KF::new(yp, KF::END), // Complete the cycle
+                    ],
+                    0.0,
+                );
                 vec2(x, y)
             })),
             None,
@@ -372,13 +409,25 @@ pub fn init_model() -> Model {
             Some(Arc::new(move |_displacer, ax, _controls| {
                 let w = SKETCH_CONFIG.w as f32;
                 let h = SKETCH_CONFIG.h as f32;
-                let x = -w / 4.0;
+                let xp = -w / 4.0;
                 let yp = h / 4.0;
+                let x = ax.animate(
+                    vec![
+                        KF::new(xp, BEATS),   // Start at left
+                        KF::new(xp, BEATS),   // Stay at left
+                        KF::new(-xp, BEATS),  // Move to right
+                        KF::new(-xp, BEATS),  // Stay at right
+                        KF::new(xp, KF::END), // Complete the cycle
+                    ],
+                    0.0,
+                );
                 let y = ax.animate(
                     vec![
-                        KF::new(yp, BEATS),
-                        KF::new(-yp, BEATS),
-                        KF::new(yp, KF::END),
+                        KF::new(yp, BEATS),   // Start at top
+                        KF::new(-yp, BEATS),  // Move to bottom
+                        KF::new(-yp, BEATS),  // Stay at bottom
+                        KF::new(yp, BEATS),   // Move to top
+                        KF::new(yp, KF::END), // Complete the cycle
                     ],
                     0.0,
                 );
@@ -510,26 +559,28 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             let mut total_displacement = vec2(0.0, 0.0);
             let mut total_influence = 0.0;
             let mut quad_contains = false;
+            let mut current_qr_kind = "center";
 
             for config in &enabled_displacer_configs {
                 if quad_restraint {
                     let displacer_rect = Rect::from_xy_wh(
                         config.displacer.position * qr_pos,
                         vec2(
-                            SKETCH_CONFIG.w as f32 / 4.0,
-                            SKETCH_CONFIG.h as f32 / 4.0,
+                            SKETCH_CONFIG.w as f32 / 3.0,
+                            SKETCH_CONFIG.h as f32 / 3.0,
                         ) * qr_size,
-                    )
-                    .pad(-1.5);
+                    );
 
                     if qr_uses_circle {
                         let displacer_circle =
                             Ellipse::new(displacer_rect, 24.0);
                         if circle_contains_point(&displacer_circle, point) {
+                            current_qr_kind = config.kind;
                             quad_contains = true;
                         }
                     } else {
                         if rect_contains_point(&displacer_rect, point) {
+                            current_qr_kind = config.kind;
                             quad_contains = true;
                         }
                     }
@@ -568,6 +619,18 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             );
 
             if quad_restraint && quad_contains {
+                let color = if DEBUG_QUADS {
+                    match current_qr_kind {
+                        "quad_1" => RED,
+                        "quad_2" => GREEN,
+                        "quad_3" => BLUE,
+                        "quad_4" => YELLOW,
+                        _ => WHITE,
+                    }
+                    .into_lin_srgb()
+                } else {
+                    blended_color
+                };
                 (
                     *point
                         + (total_displacement
@@ -579,7 +642,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                                 0.0,
                             )),
                     radius,
-                    gradient.get(0.0).mix(&blended_color, qr_lerp),
+                    gradient.get(0.0).mix(&color, qr_lerp),
                 )
             } else {
                 (*point + total_displacement, radius, blended_color)
@@ -592,7 +655,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
     frame.clear(BLACK);
-    draw.background().color(rgb(0.1, 0.1, 0.1));
+    draw.background().color(rgba(0.1, 0.1, 0.1, 0.01));
 
     for (position, radius, color) in &model.ellipses {
         draw.ellipse()
