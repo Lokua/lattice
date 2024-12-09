@@ -4,8 +4,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "template",
-    display_name: "Template",
+    name: "untitled",
+    display_name: "Untitled",
     fps: 60.0,
     bpm: 134.0,
     w: 700,
@@ -32,7 +32,7 @@ pub fn init_model() -> Model {
 
     let controls = Controls::new(vec![Control::Slider {
         name: "radius".to_string(),
-        value: 100.0,
+        value: 150.0,
         min: 10.0,
         max: 500.0,
         step: 1.0,
@@ -81,6 +81,16 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .color(hsl(model.hue, 0.5, 0.5))
         .radius(model.radius)
         .x_y(0.0, 0.0);
+
+    draw.ellipse()
+        .color(hsl(model.hue, 0.5, 0.5))
+        .radius(model.radius)
+        .xy(window_rect.bottom_left());
+
+    draw.ellipse()
+        .color(hsl(1.0 - model.hue, 0.5, 0.5))
+        .radius(model.radius)
+        .xy(window_rect.pad(100.0).top_right());
 
     draw.to_frame(app, &frame).unwrap();
 }

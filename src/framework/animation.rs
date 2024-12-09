@@ -1,5 +1,6 @@
 use crate::framework::prelude::*;
 
+#[derive(Copy, Clone, Debug)]
 pub struct Keyframe {
     pub value: f32,
     pub duration: f32,
@@ -10,6 +11,8 @@ impl Keyframe {
         Self { value, duration }
     }
 }
+
+pub type KF = Keyframe;
 
 pub struct Animation {
     bpm: f32,

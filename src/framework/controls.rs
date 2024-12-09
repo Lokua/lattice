@@ -85,7 +85,7 @@ impl Controls {
         &self.values
     }
 
-    pub fn get_float(&self, name: &str) -> f32 {
+    pub fn float(&self, name: &str) -> f32 {
         self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::Float(v) => *v,
@@ -93,7 +93,7 @@ impl Controls {
         }
     }
 
-    pub fn get_bool(&self, name: &str) -> bool {
+    pub fn bool(&self, name: &str) -> bool {
         self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::Bool(v) => *v,
@@ -101,7 +101,7 @@ impl Controls {
         }
     }
 
-    pub fn get_string(&self, name: &str) -> String {
+    pub fn string(&self, name: &str) -> String {
         self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::String(v) => v.clone(),
@@ -133,7 +133,7 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
                 step,
                 ..
             } => {
-                let mut value = controls.get_float(&name);
+                let mut value = controls.float(&name);
                 if ui
                     .add(
                         egui::Slider::new(&mut value, min..=max)
@@ -147,7 +147,7 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
                 }
             }
             Control::Checkbox { name, .. } => {
-                let mut value = controls.get_bool(&name);
+                let mut value = controls.bool(&name);
                 if ui.checkbox(&mut value, &name).changed() {
                     controls.update_value(&name, ControlValue::Bool(value));
                     any_changed = true;
@@ -155,7 +155,7 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
             }
             Control::Button { name } => if ui.button(&name).clicked() {},
             Control::Select { name, options, .. } => {
-                let mut value = controls.get_string(&name);
+                let mut value = controls.string(&name);
                 egui::ComboBox::from_label(&name)
                     .selected_text(&value)
                     .show_ui(ui, |ui| {

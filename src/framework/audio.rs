@@ -6,6 +6,72 @@ use std::sync::{Arc, Mutex};
 
 use super::prelude::*;
 
+pub struct Audio {
+    audio_processor: Arc<Mutex<AudioProcessor>>,
+    slew_state: SlewState,
+    cutoffs: Vec<f32>,
+}
+
+impl Audio {
+    pub fn new(sample_rate: usize, frame_rate: f32) -> Self {
+        let audio_processor =
+            Arc::new(Mutex::new(AudioProcessor::new(sample_rate, frame_rate)));
+
+        init_audio(audio_processor.clone()).expect("Unable to init audio");
+
+        let slew_state = SlewState {
+            previous_values: vec![],
+            config: SlewConfig::default(),
+        };
+
+        Self {
+            audio_processor,
+            slew_state,
+            cutoffs: vec![],
+        }
+    }
+
+    pub fn bands(
+        &mut self,
+        n_bands: usize,
+        min_freq: f32,
+        max_freq: f32,
+        pre_emphasis: f32,
+        rise_rate: f32,
+        fall_rate: f32,
+    ) -> Vec<f32> {
+        let audio_processor = self.audio_processor.lock().unwrap();
+        let emphasized = audio_processor.apply_pre_emphasis(pre_emphasis);
+
+        if self.cutoffs.is_empty() {
+            self.cutoffs = audio_processor.generate_mel_cutoffs(
+                n_bands + 1,
+                min_freq,
+                max_freq,
+            )
+        }
+
+        let bands =
+            audio_processor.bands_from_buffer(&emphasized, &self.cutoffs);
+
+        self.slew_state.config.rise_rate = rise_rate;
+        self.slew_state.config.fall_rate = fall_rate;
+
+        if self.slew_state.previous_values.is_empty() {
+            self.slew_state.previous_values = vec![0.0; n_bands];
+        }
+
+        let smoothed = audio_processor.follow_band_envelopes(
+            bands,
+            self.slew_state.config,
+            &self.slew_state.previous_values,
+        );
+        self.slew_state.update(smoothed.clone());
+
+        smoothed
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct SlewConfig {
     pub rise_rate: f32,
@@ -18,6 +84,25 @@ impl Default for SlewConfig {
             rise_rate: 0.3,
             fall_rate: 0.1,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct SlewState {
+    pub config: SlewConfig,
+    pub previous_values: Vec<f32>,
+}
+
+impl SlewState {
+    pub fn new(num_bands: usize) -> Self {
+        Self {
+            config: SlewConfig::default(),
+            previous_values: vec![0.0; num_bands],
+        }
+    }
+
+    pub fn update(&mut self, new_values: Vec<f32>) {
+        self.previous_values = new_values;
     }
 }
 
@@ -226,7 +311,7 @@ impl AudioProcessor {
 
     /// Generates logarithmically spaced frequency cutoffs in Hz for the specified number of bands.
     /// Lower bands have custom spacing to avoid multiple bands mapping to the same fft bin index which results
-    /// in empties. Works OK for <32 bands but starts to produce gaps at higher band counts.
+    /// in empties. Works OK for <= 32 bands but starts to produce gaps at higher band counts.
     ///
     /// # Arguments
     /// * `num_bands` - Number of bands to generate (4, 8, 16, 32, 128, or 256)
@@ -319,25 +404,6 @@ impl AudioProcessor {
         }
 
         cutoffs
-    }
-}
-
-#[derive(Debug)]
-pub struct SlewState {
-    pub config: SlewConfig,
-    pub previous_values: Vec<f32>,
-}
-
-impl SlewState {
-    pub fn new(num_bands: usize) -> Self {
-        Self {
-            config: SlewConfig::default(),
-            previous_values: vec![0.0; num_bands],
-        }
-    }
-
-    pub fn update(&mut self, new_values: Vec<f32>) {
-        self.previous_values = new_values;
     }
 }
 
