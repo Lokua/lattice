@@ -6,6 +6,21 @@ use std::sync::{Arc, Mutex};
 
 use super::prelude::*;
 
+#[derive(Debug, Clone, Copy)]
+pub struct SlewConfig {
+    pub rise_rate: f32,
+    pub fall_rate: f32,
+}
+
+impl Default for SlewConfig {
+    fn default() -> Self {
+        Self {
+            rise_rate: 0.3,
+            fall_rate: 0.1,
+        }
+    }
+}
+
 pub struct AudioProcessor {
     sample_rate: usize,
     buffer: Vec<f32>,
@@ -58,7 +73,7 @@ impl AudioProcessor {
         filtered
     }
 
-    pub fn bands(&self, cutoffs: Vec<usize>) -> Vec<f32> {
+    pub fn bands(&self, cutoffs: &Vec<f32>) -> Vec<f32> {
         self.bands_from_buffer(&self.buffer, cutoffs)
     }
 
@@ -67,7 +82,7 @@ impl AudioProcessor {
     pub fn bands_from_buffer(
         &self,
         buffer: &Vec<f32>,
-        cutoffs: Vec<usize>,
+        cutoffs: &Vec<f32>,
     ) -> Vec<f32> {
         let mut complex_input: Vec<Complex<f32>> =
             buffer.iter().map(|&x| Complex::new(x, 0.0)).collect();
@@ -76,39 +91,35 @@ impl AudioProcessor {
 
         let freq_resolution = (self.sample_rate / complex_input.len()) as f32;
 
+        // Convert frequency cutoffs to bin indices, maintaining precision until indexing
         let stops: Vec<usize> = cutoffs
             .iter()
-            .map(|cutoff| (*cutoff as f32 / freq_resolution).round() as usize)
+            .map(|cutoff| (cutoff / freq_resolution).round() as usize)
             .collect();
+
+        trace!("freq_resolution: {}, stops {:?}", freq_resolution, stops);
 
         // Calculate magnitude and convert to dB for each bin
         let magnitudes: Vec<f32> = complex_input
             .iter()
             .map(|c| {
                 let magnitude = c.norm() / complex_input.len() as f32;
-                // Reduced noise floor to -80dB for better high frequency sensitivity
                 20.0 * (magnitude.max(1e-8)).log10()
             })
             .collect();
 
         let get_band_magnitude = |start: usize, end: usize| -> f32 {
-            // Ensure we don't go above Nyquist frequency
             let slice = &magnitudes[start..end.min(magnitudes.len())];
             if slice.is_empty() {
                 return -80.0;
             }
-            // Use peak detection instead of RMS
             *slice
                 .iter()
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap()
         };
 
-        // Normalize to 0-1 range, considering typical dB ranges
-        let normalize = |db: f32| {
-            // Map -80dB to 0.0 and -20dB to 1.0 (increased sensitivity)
-            ((db + 80.0) / 60.0).max(0.0).min(1.0)
-        };
+        let normalize = |db: f32| ((db + 80.0) / 60.0).max(0.0).min(1.0);
 
         let bands: Vec<f32> = stops
             .iter()
@@ -121,7 +132,7 @@ impl AudioProcessor {
         bands
     }
 
-    // TODO: make variable bands
+    // TODO: make this linear counterpart to bands_from_buffer: bands_from_buffer_lin
     pub fn bands_3_lin(&self) -> (f32, f32, f32) {
         let mut complex_input: Vec<Complex<f32>> =
             self.buffer.iter().map(|&x| Complex::new(x, 0.0)).collect();
@@ -166,6 +177,122 @@ impl AudioProcessor {
             normalize(high_band),
         )
     }
+
+    pub fn follow_envelope(
+        &self,
+        input: &[f32],
+        config: SlewConfig,
+        previous: f32,
+    ) -> Vec<f32> {
+        let mut envelope = Vec::with_capacity(input.len());
+        let mut current = previous;
+
+        for &sample in input {
+            let magnitude = sample.abs();
+
+            let coeff = if magnitude > current {
+                config.rise_rate
+            } else {
+                config.fall_rate
+            };
+
+            current = current + coeff * (magnitude - current);
+            envelope.push(current);
+        }
+
+        envelope
+    }
+
+    pub fn follow_band_envelopes(
+        &self,
+        bands: Vec<f32>,
+        config: SlewConfig,
+        previous_values: &[f32],
+    ) -> Vec<f32> {
+        bands
+            .iter()
+            .enumerate()
+            .map(|(i, &band)| {
+                let prev = previous_values.get(i).copied().unwrap_or(0.0);
+                self.follow_envelope(&[band], config, prev)[0]
+            })
+            .collect()
+    }
+
+    /// Generates logarithmically spaced frequency cutoffs in Hz for the specified number of bands
+    ///
+    /// # Arguments
+    /// * `num_bands` - Number of bands to generate (4, 8, 16, 32, 128, or 256)
+    /// * `min_freq` - Minimum frequency in Hz (typically 20-100 Hz)
+    /// * `max_freq` - Maximum frequency in Hz (typically 10000-20000 Hz)
+    ///
+    /// # Returns
+    /// Vector of frequency cutoffs in Hz as usize values
+    pub fn generate_cutoffs(
+        &self,
+        num_bands: usize,
+        min_freq: f32,
+        max_freq: f32,
+    ) -> Vec<f32> {
+        assert!(num_bands >= 2, "Number of bands must be at least 2");
+        assert!(min_freq < max_freq, "min_freq must be less than max_freq");
+
+        let mut cutoffs = Vec::with_capacity(num_bands + 1);
+        cutoffs.push(min_freq);
+
+        // Calculate our actual frequency resolution
+        let freq_resolution = self.sample_rate as f32 / self.buffer_size as f32;
+
+        // For the first few bands, ensure minimum width of 1.5 * freq_resolution
+        // This helps ensure each band maps to at least one unique FFT bin
+        let min_band_width = freq_resolution * 1.5;
+
+        // Handle first few bands with fixed minimum widths
+        let mut current_freq = min_freq;
+        let transition_freq = 300.0; // Frequency at which we switch to logarithmic spacing
+
+        while current_freq < transition_freq && cutoffs.len() < num_bands {
+            current_freq += min_band_width;
+            cutoffs.push(current_freq);
+        }
+
+        // If we still need more bands, continue with logarithmic spacing
+        if cutoffs.len() < num_bands + 1 {
+            let remaining_bands = num_bands + 1 - cutoffs.len();
+            let factor =
+                (max_freq / current_freq).powf(1.0 / remaining_bands as f32);
+
+            for _ in 0..remaining_bands {
+                current_freq *= factor;
+                cutoffs.push(current_freq);
+            }
+        }
+
+        // Ensure the last cutoff is exactly max_freq
+        if let Some(last) = cutoffs.last_mut() {
+            *last = max_freq;
+        }
+
+        cutoffs
+    }
+}
+
+pub struct SlewState {
+    pub config: SlewConfig,
+    pub previous_values: Vec<f32>,
+}
+
+impl SlewState {
+    pub fn new(num_bands: usize) -> Self {
+        Self {
+            config: SlewConfig::default(),
+            previous_values: vec![0.0; num_bands],
+        }
+    }
+
+    pub fn update(&mut self, new_values: Vec<f32>) {
+        self.previous_values = new_values;
+    }
 }
 
 pub fn init_audio(
@@ -173,14 +300,18 @@ pub fn init_audio(
 ) -> Result<(), BuildStreamError> {
     let audio_host = cpal::default_host();
     let devices: Vec<_> = audio_host.input_devices().unwrap().collect();
-    let target_device_name = "BlackHole 2ch";
+    let target_device_name = "Lattice Standalone";
 
     let device = devices
         .into_iter()
         .find(|device| {
             let name = device.name().unwrap();
             debug!("Enumerating devices. Device name: {}", name);
-            device.name().unwrap() == target_device_name
+            let found = device.name().unwrap() == target_device_name;
+            if found {
+                debug!("Success. Using: {}", target_device_name);
+            }
+            found
         })
         .expect(
             format!("No device named {} found", target_device_name).as_str(),
@@ -200,6 +331,13 @@ pub fn init_audio(
         cpal::SampleFormat::F32 => device.build_input_stream(
             &input_config.into(),
             move |source_data: &[f32], _| {
+                // There is no concept of "channels" for a device.
+                // All channel data is stored in a flat array:
+                //
+                //      let channel_1 = source_data.iter().step_by(16).cloned();
+                //      let channel_8 = source_data.iter().skip(7).step_by(16).cloned();
+                //      let channel_16 = source_data.iter().skip(15).step_by(16).cloned();
+                //
                 // Left = even, Right = odd;
                 // Do `data.iter().skip(1).step_by(2)` for right
                 let data: Vec<f32> =
