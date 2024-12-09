@@ -6,7 +6,6 @@ use nannou::{
 };
 
 pub const PHI_F32: f32 = 1.618033988749894_f32;
-pub const PHI_F64: f64 = 1.618033988749894_f64;
 
 pub trait IntoLinSrgb {
     fn into_lin_srgb(self) -> LinSrgb;
