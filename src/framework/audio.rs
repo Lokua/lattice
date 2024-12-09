@@ -196,7 +196,12 @@ impl AudioProcessor {
                 config.fall_rate
             };
 
-            current = current + coeff * (magnitude - current);
+            if coeff >= 1.0 {
+                current = magnitude
+            } else {
+                current = current + coeff * (magnitude - current);
+            }
+
             envelope.push(current);
         }
 
@@ -317,6 +322,7 @@ impl AudioProcessor {
     }
 }
 
+#[derive(Debug)]
 pub struct SlewState {
     pub config: SlewConfig,
     pub previous_values: Vec<f32>,

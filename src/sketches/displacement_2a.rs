@@ -1,8 +1,9 @@
+use geom::Ellipse;
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::framework::prelude::Keyframe as KF;
 use crate::framework::prelude::*;
@@ -15,10 +16,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(550),
+    gui_h: Some(600),
 };
 
 const GRID_SIZE: usize = 128;
+const SAMPLE_RATE: usize = 48_000;
+const N_BANDS: usize = 8;
 
 pub struct Model {
     grid: Vec<Vec2>,
@@ -29,6 +32,9 @@ pub struct Model {
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
     gradient: Gradient<LinSrgb>,
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
+    audio: Arc<Mutex<AudioProcessor>>,
+    fft_bands: Vec<f32>,
+    slew_state: SlewState,
 }
 
 impl Model {
@@ -130,6 +136,20 @@ pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![
+        Control::Slider {
+            name: "rise_rate".to_string(),
+            value: 0.96,
+            min: 0.001,
+            max: 1.0,
+            step: 0.001,
+        },
+        Control::Slider {
+            name: "fall_rate".to_string(),
+            value: 0.9,
+            min: 0.0,
+            max: 1.0,
+            step: 0.001,
+        },
         Control::Select {
             name: "pattern".into(),
             value: "cos,sin".into(),
@@ -145,6 +165,10 @@ pub fn init_model() -> Model {
         },
         Control::Checkbox {
             name: "quad_restraint".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "qr_uses_circle".into(),
             value: false,
         },
         Control::Slider {
@@ -174,6 +198,26 @@ pub fn init_model() -> Model {
             min: 0.125,
             max: 1.0,
             step: 0.125,
+        },
+        Control::Checkbox {
+            name: "center".into(),
+            value: true,
+        },
+        Control::Checkbox {
+            name: "quad_1".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_2".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_3".into(),
+            value: false,
+        },
+        Control::Checkbox {
+            name: "quad_4".into(),
+            value: false,
         },
         Control::Slider {
             name: "gradient_spread".into(),
@@ -230,26 +274,6 @@ pub fn init_model() -> Model {
             min: 0.0001,
             max: 0.01,
             step: 0.0001,
-        },
-        Control::Checkbox {
-            name: "center".into(),
-            value: true,
-        },
-        Control::Checkbox {
-            name: "quad_1".into(),
-            value: false,
-        },
-        Control::Checkbox {
-            name: "quad_2".into(),
-            value: false,
-        },
-        Control::Checkbox {
-            name: "quad_3".into(),
-            value: false,
-        },
-        Control::Checkbox {
-            name: "quad_4".into(),
-            value: false,
         },
     ]);
 
@@ -367,6 +391,18 @@ pub fn init_model() -> Model {
     let pad = w as f32 * (1.0 / 3.0);
     let cached_pattern = controls.get_string("pattern");
 
+    let audio = Arc::new(Mutex::new(AudioProcessor::new(
+        SAMPLE_RATE,
+        SKETCH_CONFIG.fps,
+    )));
+    init_audio(audio.clone()).expect("Unable to init audio");
+
+    let mut slew_state = SlewState::new(N_BANDS);
+    slew_state.config = SlewConfig {
+        rise_rate: controls.get_float("rise_rate"),
+        fall_rate: controls.get_float("fall_rate"),
+    };
+
     Model {
         grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2),
         displacer_configs,
@@ -375,10 +411,13 @@ pub fn init_model() -> Model {
         cached_pattern,
         cached_trig_fns: None,
         gradient: Gradient::new(vec![
-            LIGHTCORAL.into_lin_srgb(),
+            LIGHTGREEN.into_lin_srgb(),
             AZURE.into_lin_srgb(),
         ]),
         ellipses: Vec::with_capacity(GRID_SIZE),
+        audio,
+        fft_bands: Vec::new(),
+        slew_state,
     }
 }
 
@@ -389,8 +428,25 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.update_trig_fns();
     }
 
+    let audio_processor = model.audio.lock().unwrap();
+    let emphasized = audio_processor.apply_pre_emphasis(0.0);
+    let cutoffs = audio_processor.generate_cutoffs(N_BANDS + 1, 30.0, 10_000.0);
+    let bands = audio_processor.bands_from_buffer(&emphasized, &cutoffs);
+    model.slew_state.config.rise_rate = model.controls.get_float("rise_rate");
+    model.slew_state.config.fall_rate = model.controls.get_float("fall_rate");
+    model.fft_bands = audio_processor.follow_band_envelopes(
+        bands,
+        model.slew_state.config,
+        &model.slew_state.previous_values,
+    );
+    model.slew_state.update(model.fft_bands.clone());
+
+    trace!("bands: {:?}", model.fft_bands);
+    trace!("cutoffs: {:?}", cutoffs);
+
     let clamp_circle_radii = model.controls.get_bool("clamp_circle_radii");
     let quad_restraint = model.controls.get_bool("quad_restraint");
+    let qr_uses_circle = model.controls.get_bool("qr_uses_circle");
     let qr_lerp = model.controls.get_float("qr_lerp");
     let qr_divisor = model.controls.get_float("qr_divisor");
     let qr_pos = model.controls.get_float("qr_pos");
@@ -407,6 +463,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let controls = &model.controls;
     let weave_frequency = model.weave_frequency();
 
+    let mid_band = model.fft_bands[5];
+
     let cached_trig_fns = model.cached_trig_fns.clone();
     let distance_fn: CustomDistanceFn =
         Some(Arc::new(move |grid_point, position| {
@@ -415,7 +473,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 grid_point.y,
                 position.x,
                 position.y,
-                weave_frequency,
+                map_range(mid_band, 0.0, 1.0, 0.01, weave_frequency),
                 weave_scale,
                 weave_amplitude,
                 pattern.clone(),
@@ -427,7 +485,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         config.update(animation, controls);
         config.displacer.set_custom_distance_fn(distance_fn.clone());
         config.displacer.set_radius(displacer_radius);
-        config.displacer.set_strength(displacer_strength);
+        config.displacer.set_strength(map_range(
+            model.fft_bands[0],
+            0.0,
+            1.0,
+            0.5,
+            displacer_strength,
+        ));
     }
 
     let enabled_displacer_configs: Vec<&DisplacerConfig> = model
@@ -455,9 +519,19 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                             SKETCH_CONFIG.w as f32 / 4.0,
                             SKETCH_CONFIG.h as f32 / 4.0,
                         ) * qr_size,
-                    );
-                    if rect_contains_point(&displacer_rect, point) {
-                        quad_contains = true;
+                    )
+                    .pad(-1.5);
+
+                    if qr_uses_circle {
+                        let displacer_circle =
+                            Ellipse::new(displacer_rect, 24.0);
+                        if circle_contains_point(&displacer_circle, point) {
+                            quad_contains = true;
+                        }
+                    } else {
+                        if rect_contains_point(&displacer_rect, point) {
+                            quad_contains = true;
+                        }
                     }
                 }
                 let displacement = config.displacer.influence(*point);
@@ -495,7 +569,15 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
             if quad_restraint && quad_contains {
                 (
-                    *point + (total_displacement / qr_divisor),
+                    *point
+                        + (total_displacement
+                            / map_range(
+                                model.fft_bands[4],
+                                0.0,
+                                1.0,
+                                qr_divisor,
+                                0.0,
+                            )),
                     radius,
                     gradient.get(0.0).mix(&blended_color, qr_lerp),
                 )

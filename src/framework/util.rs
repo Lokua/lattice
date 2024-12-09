@@ -1,3 +1,4 @@
+use geom::Ellipse;
 use nannou::color::{LinSrgb, Srgb};
 use nannou::{
     prelude::*,
@@ -131,4 +132,14 @@ pub fn rect_contains_point(rect: &Rect, point: &Vec2) -> bool {
         && point.x <= rect.right()
         && rect.bottom() <= point.y
         && point.y <= rect.top()
+}
+
+pub fn circle_contains_point(circle: &Ellipse, point: &Vec2) -> bool {
+    let rect = circle.rect;
+    let center = rect.xy();
+    let radius = rect.w() / 2.0;
+
+    let dx = point.x - center.x;
+    let dy = point.y - center.y;
+    dx * dx + dy * dy <= radius * radius
 }

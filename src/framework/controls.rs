@@ -86,6 +86,7 @@ impl Controls {
     }
 
     pub fn get_float(&self, name: &str) -> f32 {
+        self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::Float(v) => *v,
             _ => panic!("Control '{}' exists but is not a float", name),
@@ -93,6 +94,7 @@ impl Controls {
     }
 
     pub fn get_bool(&self, name: &str) -> bool {
+        self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::Bool(v) => *v,
             _ => panic!("Control '{}' exists but is not a bool", name),
@@ -100,9 +102,16 @@ impl Controls {
     }
 
     pub fn get_string(&self, name: &str) -> String {
+        self.check_contains_key(name);
         match self.values.get(name).unwrap() {
             ControlValue::String(v) => v.clone(),
             _ => panic!("Control '{}' exists but is not a string", name),
+        }
+    }
+
+    fn check_contains_key(&self, key: &str) {
+        if !self.values.contains_key(key) {
+            panic!("Control {} does not exist", key);
         }
     }
 

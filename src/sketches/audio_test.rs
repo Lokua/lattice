@@ -19,13 +19,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 };
 
 const SAMPLE_RATE: usize = 48_000;
-const N_BANDS: usize = 64;
+const N_BANDS: usize = 8;
 
 pub struct Model {
     controls: Controls,
     audio: Arc<Mutex<AudioProcessor>>,
     fft_bands: Vec<f32>,
-    envelope_state: SlewState,
+    slew_state: SlewState,
 }
 
 impl SketchModel for Model {
@@ -42,6 +42,11 @@ pub fn init_model() -> Model {
     init_audio(audio.clone()).expect("Unable to init audio");
 
     let controls = Controls::new(vec![
+        Control::Select {
+            name: "mode".to_string(),
+            value: "log(ish)".to_string(),
+            options: vec!["log(ish)".to_string(), "mel".to_string()],
+        },
         Control::Slider {
             name: "pre_emphasis".to_string(),
             value: 0.88,
@@ -65,8 +70,8 @@ pub fn init_model() -> Model {
         },
     ]);
 
-    let mut envelope_state = SlewState::new(N_BANDS);
-    envelope_state.config = SlewConfig {
+    let mut slew_state = SlewState::new(N_BANDS);
+    slew_state.config = SlewConfig {
         rise_rate: controls.get_float("rise_rate"),
         fall_rate: controls.get_float("fall_rate"),
     };
@@ -75,7 +80,7 @@ pub fn init_model() -> Model {
         controls,
         audio,
         fft_bands: Vec::new(),
-        envelope_state: SlewState::new(N_BANDS),
+        slew_state,
     }
 }
 
@@ -85,22 +90,25 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let emphasized = audio_processor
         .apply_pre_emphasis(model.controls.get_float("pre_emphasis"));
 
-    let cutoffs = audio_processor.generate_cutoffs(N_BANDS + 1, 30.0, 10_000.0);
+    let cutoffs = if model.controls.get_string("mode") == "log(ish)" {
+        audio_processor.generate_cutoffs(N_BANDS + 1, 30.0, 10_000.0)
+    } else {
+        audio_processor.generate_mel_cutoffs(N_BANDS + 1, 30.0, 10_000.0)
+    };
     let bands = audio_processor.bands_from_buffer(&emphasized, &cutoffs);
 
-    model.envelope_state.config.rise_rate =
-        model.controls.get_float("rise_rate");
-    model.envelope_state.config.fall_rate =
-        model.controls.get_float("fall_rate");
+    model.slew_state.config.rise_rate = model.controls.get_float("rise_rate");
+    model.slew_state.config.fall_rate = model.controls.get_float("fall_rate");
 
     model.fft_bands = audio_processor.follow_band_envelopes(
         bands,
-        model.envelope_state.config,
-        &model.envelope_state.previous_values,
+        model.slew_state.config,
+        &model.slew_state.previous_values,
     );
 
-    model.envelope_state.update(model.fft_bands.clone());
+    model.slew_state.update(model.fft_bands.clone());
 
+    trace!("model.slew_state: {:?}", model.slew_state);
     trace!("bands: {:?}", model.fft_bands);
     trace!("cutoffs: {:?}", cutoffs);
 }
