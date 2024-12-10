@@ -8,8 +8,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Untitled",
     fps: 60.0,
     bpm: 134.0,
-    w: 700,
-    h: 700,
+    w: 300,
+    h: 300,
     gui_w: None,
     gui_h: Some(150),
 };
@@ -28,9 +28,6 @@ impl SketchModel for Model {
 }
 
 pub fn init_model() -> Model {
-    on_message(|message| debug!("message {:?}", message))
-        .expect("Unable to connect to input port");
-
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![Control::Slider {
@@ -82,7 +79,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
 
     draw.ellipse()
         .color(hsl(model.hue, 0.5, 0.5))
-        .radius(model.radius)
+        .radius(model.radius / 4.0)
         .x_y(0.0, 0.0);
 
     draw.ellipse()
