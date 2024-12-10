@@ -9,4 +9,3 @@ pub mod midi;
 pub mod prelude;
 pub mod sketch;
 pub mod util;
-pub mod video_export;

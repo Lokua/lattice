@@ -1,4 +1,3 @@
-use dirs;
 use nannou::prelude::*;
 use nannou_egui::{
     self,
@@ -9,7 +8,7 @@ use std::{env, error::Error, fs, sync::Once};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
-use runtime::recording::RecordingState;
+use runtime::prelude::*;
 
 pub mod framework;
 pub mod runtime;
@@ -161,7 +160,7 @@ fn update<S: SketchModel>(
     );
 
     INIT_MIDI_HANDLER.call_once(|| {
-        on_message(move |message| {
+        on_message(|message| {
             if message[0] == 250 {
                 info!("Received MIDI Start message. Resetting frame count.");
                 frame_controller::reset_frame_count();
@@ -172,7 +171,6 @@ fn update<S: SketchModel>(
 
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
-
     update_gui(
         app,
         model.main_window_id,
@@ -183,6 +181,14 @@ fn update<S: SketchModel>(
         &mut model.recording_state,
         &ctx,
     );
+
+    if model.recording_state.active {
+        model.recording_state.on_encoding_message(
+            &mut model.session_id,
+            model.sketch_config,
+            &mut model.alert_text,
+        );
+    }
 }
 
 fn update_gui<S: SketchModel>(
@@ -242,46 +248,6 @@ fn update_gui<S: SketchModel>(
             draw_sketch_controls(ui, sketch_model, sketch_config, alert_text);
             draw_alert_panel(ctx, alert_text);
         });
-
-    if let Some(rx) = recording_state.encoding_progress_rx.take() {
-        while let Ok(message) = rx.try_recv() {
-            match message {
-                EncodingMessage::Progress(progress) => {
-                    let percentage = (progress * 100.0).round();
-                    debug!("rx progress: {}%", percentage);
-                    *alert_text =
-                        format!("Encoding progress: {}%", percentage).into();
-                }
-                EncodingMessage::Complete => {
-                    info!("Encoding complete");
-                    recording_state.is_encoding = false;
-                    recording_state.encoding_progress_rx = None;
-                    let output_path =
-                        video_output_path(session_id, sketch_config.name)
-                            .unwrap()
-                            .to_string_lossy()
-                            .into_owned();
-                    *alert_text = format!(
-                        "Encoding complete. Video path {}",
-                        output_path
-                    )
-                    .into();
-                    *session_id = generate_session_id();
-                    recording_state.recorded_frames.set(0);
-                    if let Some(new_path) =
-                        frames_dir(session_id, sketch_config.name)
-                    {
-                        recording_state.recording_dir = Some(new_path);
-                    }
-                }
-                EncodingMessage::Error(error) => {
-                    error!("Received child process error: {}", error);
-                    *alert_text = format!("Received encoding error: {}", error);
-                }
-            }
-        }
-        recording_state.encoding_progress_rx = Some(rx);
-    }
 }
 
 fn view<S>(
@@ -318,10 +284,6 @@ fn view<S>(
 
 fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
-}
-
-fn generate_session_id() -> String {
-    uuid(5)
 }
 
 fn persist_controls(
@@ -363,27 +325,6 @@ fn controls_storage_path(sketch_name: &str) -> Option<PathBuf> {
         config_dir
             .join("Controls")
             .join(format!("{}_controls.json", sketch_name))
-    })
-}
-
-fn frames_dir(session_id: &str, sketch_name: &str) -> Option<PathBuf> {
-    lattice_config_dir().map(|config_dir| {
-        config_dir
-            .join("Captures")
-            .join(sketch_name)
-            .join(session_id)
-    })
-}
-
-fn lattice_config_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|config_dir| config_dir.join("Lattice"))
-}
-
-fn video_output_path(session_id: &str, sketch_name: &str) -> Option<PathBuf> {
-    dirs::video_dir().map(|video_dir| {
-        video_dir
-            .join(format!("{}-{}", sketch_name, session_id))
-            .with_extension("mp4")
     })
 }
 
