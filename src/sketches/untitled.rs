@@ -80,7 +80,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.rect()
         .x_y(0.0, 0.0)
         .w_h(window_rect.w(), window_rect.h())
-        .hsla(0.0, 0.0, 0.02, 0.3);
+        .hsla(0.0, 0.0, 0.00, 0.3);
 
     let center = Vec2::new(0.0, 0.0);
     let zone = DropZone::new(center);
@@ -88,13 +88,9 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let inner_radius = rect.len();
     let outer_radius = rect.pad(-10.0).len();
 
-    for i in 0..count as i32 {
+    for _i in 0..count as i32 {
         draw.ellipse()
-            .color(hsl(
-                model.hue,
-                0.62,
-                map_range(i as f32, 0.0, count, 1.0, 0.0),
-            ))
+            .color(hsl(model.hue, 0.62, 0.62))
             .xy(zone.point_within_circular_zone(
                 inner_radius - 20.0,
                 outer_radius - 20.0,
@@ -126,16 +122,19 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     ];
 
     for (zone_instance, method, offs) in configs {
-        for i in 0..count as i32 {
+        for _i in 0..count as i32 {
             let mut zoned = method(zone_instance, inner_radius, outer_radius);
             zoned.x = random_range(zoned.x, zoned.x + offs.x + 0.001);
             zoned.y = random_range(zoned.y, zoned.y + offs.y + 0.001);
+            let normalized_distance = map_range(
+                zoned.length(),
+                inner_radius,
+                outer_radius + offs.length(),
+                1.0,
+                0.0,
+            );
             draw.ellipse()
-                .color(hsl(
-                    1.0 - model.hue,
-                    0.62,
-                    map_range(i as f32, 0.0, count, 1.0, 0.0),
-                ))
+                .color(hsl(1.0 - model.hue, 0.62, normalized_distance))
                 .xy(zoned)
                 .radius(point_size);
         }
