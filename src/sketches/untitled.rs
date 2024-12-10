@@ -28,6 +28,9 @@ impl SketchModel for Model {
 }
 
 pub fn init_model() -> Model {
+    on_message(|message| debug!("message {:?}", message))
+        .expect("Unable to connect to input port");
+
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![Control::Slider {
@@ -75,7 +78,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.rect()
         .x_y(0.0, 0.0)
         .w_h(window_rect.w(), window_rect.h())
-        .hsla(0.0, 0.0, 0.02, 0.1);
+        .hsla(0.0, 0.0, 0.02, 0.3);
 
     draw.ellipse()
         .color(hsl(model.hue, 0.5, 0.5))
@@ -83,14 +86,14 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .x_y(0.0, 0.0);
 
     draw.ellipse()
-        .color(hsl(model.hue, 0.5, 0.5))
-        .radius(model.radius)
-        .xy(window_rect.bottom_left());
+        .color(hsl(model.hue / 3.0, 0.5, 0.5))
+        .radius(model.radius / 2.0)
+        .xy(window_rect.pad(100.0).bottom_left() * 0.5);
 
     draw.ellipse()
-        .color(hsl(1.0 - model.hue, 0.5, 0.5))
-        .radius(model.radius)
-        .xy(window_rect.pad(100.0).top_right());
+        .color(hsl(((model.hue * 2.0) / 3.0) % 1.0, 0.5, 0.5))
+        .radius(model.radius / 2.0)
+        .xy(window_rect.pad(100.0).top_right() * 0.5);
 
     draw.to_frame(app, &frame).unwrap();
 }
