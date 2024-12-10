@@ -5,19 +5,14 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
-use std::{
-    cell::Cell,
-    env,
-    error::Error,
-    fs,
-    sync::{mpsc, Once},
-    thread,
-};
+use std::{env, error::Error, fs, sync::Once};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
+use runtime::recording::RecordingState;
 
 pub mod framework;
+pub mod runtime;
 mod sketches;
 
 macro_rules! run_sketch {
@@ -84,12 +79,7 @@ struct AppModel<S> {
     egui: Egui,
     session_id: String,
     alert_text: String,
-    recording: bool,
-    recording_dir: Option<PathBuf>,
-    recorded_frames: Cell<u32>,
-    is_encoding: bool,
-    encoding_thread: Option<thread::JoinHandle<()>>,
-    encoding_progress_rx: Option<mpsc::Receiver<EncodingMessage>>,
+    recording_state: RecordingState,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
 }
@@ -142,18 +132,14 @@ fn model<S: SketchModel + 'static>(
 
     let session_id = generate_session_id();
     let recording_dir = frames_dir(&session_id, sketch_config.name);
+
     AppModel {
         main_window_id,
         gui_window_id,
         egui,
         session_id,
         alert_text: "".into(),
-        recording: false,
-        recording_dir,
-        recorded_frames: Cell::new(0),
-        is_encoding: false,
-        encoding_thread: None,
-        encoding_progress_rx: None,
+        recording_state: RecordingState::new(recording_dir.clone()),
         sketch_model,
         sketch_config,
     }
@@ -194,12 +180,7 @@ fn update<S: SketchModel>(
         model.sketch_config,
         &mut model.sketch_model,
         &mut model.alert_text,
-        &mut model.recording,
-        &mut model.recording_dir,
-        &model.recorded_frames,
-        &mut model.is_encoding,
-        &mut model.encoding_thread,
-        &mut model.encoding_progress_rx,
+        &mut model.recording_state,
         &ctx,
     );
 }
@@ -211,12 +192,7 @@ fn update_gui<S: SketchModel>(
     sketch_config: &SketchConfig,
     sketch_model: &mut S,
     alert_text: &mut String,
-    recording: &mut bool,
-    recording_dir: &mut Option<PathBuf>,
-    recorded_frames: &Cell<u32>,
-    is_encoding: &mut bool,
-    encoding_thread: &mut Option<thread::JoinHandle<()>>,
-    encoding_progress_rx: &mut Option<mpsc::Receiver<EncodingMessage>>,
+    recording_state: &mut RecordingState,
     ctx: &egui::Context,
 ) {
     let mut style = (*ctx.style()).clone();
@@ -255,12 +231,7 @@ fn update_gui<S: SketchModel>(
                     ui,
                     sketch_config,
                     session_id,
-                    recording,
-                    recording_dir,
-                    recorded_frames,
-                    is_encoding,
-                    encoding_thread,
-                    encoding_progress_rx,
+                    recording_state,
                     alert_text,
                 );
 
@@ -272,7 +243,7 @@ fn update_gui<S: SketchModel>(
             draw_alert_panel(ctx, alert_text);
         });
 
-    if let Some(rx) = encoding_progress_rx.take() {
+    if let Some(rx) = recording_state.encoding_progress_rx.take() {
         while let Ok(message) = rx.try_recv() {
             match message {
                 EncodingMessage::Progress(progress) => {
@@ -283,8 +254,8 @@ fn update_gui<S: SketchModel>(
                 }
                 EncodingMessage::Complete => {
                     info!("Encoding complete");
-                    *is_encoding = false;
-                    *encoding_progress_rx = None;
+                    recording_state.is_encoding = false;
+                    recording_state.encoding_progress_rx = None;
                     let output_path =
                         video_output_path(session_id, sketch_config.name)
                             .unwrap()
@@ -296,11 +267,11 @@ fn update_gui<S: SketchModel>(
                     )
                     .into();
                     *session_id = generate_session_id();
-                    recorded_frames.set(0);
+                    recording_state.recorded_frames.set(0);
                     if let Some(new_path) =
                         frames_dir(session_id, sketch_config.name)
                     {
-                        *recording_dir = Some(new_path);
+                        recording_state.recording_dir = Some(new_path);
                     }
                 }
                 EncodingMessage::Error(error) => {
@@ -309,7 +280,7 @@ fn update_gui<S: SketchModel>(
                 }
             }
         }
-        *encoding_progress_rx = Some(rx);
+        recording_state.encoding_progress_rx = Some(rx);
     }
 }
 
@@ -326,10 +297,10 @@ fn view<S>(
         sketch_view_fn,
     );
 
-    if did_render && model.recording {
-        let frame_count = model.recorded_frames.get();
+    if did_render && model.recording_state.active {
+        let frame_count = model.recording_state.recorded_frames.get();
         match app.window(model.main_window_id) {
-            Some(window) => match &model.recording_dir {
+            Some(window) => match &model.recording_state.recording_dir {
                 Some(path) => {
                     let filename = format!("frame-{:06}.png", frame_count);
                     window.capture_frame(path.join(filename));
@@ -338,7 +309,10 @@ fn view<S>(
             },
             None => panic!("Unable to attain app.window handle"),
         }
-        model.recorded_frames.set(model.recorded_frames.get() + 1);
+        model
+            .recording_state
+            .recorded_frames
+            .set(model.recording_state.recorded_frames.get() + 1);
     }
 }
 
@@ -521,74 +495,32 @@ fn draw_record_button(
     ui: &mut egui::Ui,
     sketch_config: &SketchConfig,
     session_id: &str,
-    recording: &mut bool,
-    recording_dir: &mut Option<PathBuf>,
-    recorded_frames: &Cell<u32>,
-    is_encoding: &mut bool,
-    encoding_thread: &mut Option<thread::JoinHandle<()>>,
-    encoding_progress_rx: &mut Option<mpsc::Receiver<EncodingMessage>>,
+    recording_state: &mut RecordingState,
     alert_text: &mut String,
 ) {
-    let button_label = if *recording {
+    let button_label = if recording_state.active {
         "STOP"
-    } else if *is_encoding {
+    } else if recording_state.is_encoding {
         "Encoding"
     } else {
         "Record"
     };
 
-    ui.add_enabled(!*is_encoding, egui::Button::new(button_label))
-        .clicked()
-        .then(|| {
-            let current_recording_dir = recording_dir.clone();
-            if let Some(path) = current_recording_dir {
-                *recording = !*recording;
-                info!("Recording: {}, path: {:?}", recording, path);
-
-                if *recording {
-                    let message = format!(
-                        "Recording. Frames will be written to {:?}",
-                        path
-                    );
-                    *alert_text = message.into();
-                } else {
-                    if !*is_encoding {
-                        *is_encoding = true;
-                        let (encoding_progress_tx, rx): (
-                            mpsc::Sender<EncodingMessage>,
-                            mpsc::Receiver<EncodingMessage>,
-                        ) = mpsc::channel();
-                        *encoding_progress_rx = Some(rx);
-                        let path_str = path.to_string_lossy().into_owned();
-                        let fps = sketch_config.fps;
-                        let output_path =
-                            video_output_path(session_id, sketch_config.name)
-                                .unwrap()
-                                .to_string_lossy()
-                                .into_owned();
-                        info!(
-                            "Preparing to encode. Output path: {}",
-                            output_path
-                        );
-                        let total_frames = recorded_frames.get().clone();
-                        debug!("Spawning encoding_thread");
-                        *encoding_thread = Some(thread::spawn(move || {
-                            if let Err(e) = frames_to_video(
-                                &path_str,
-                                fps,
-                                &output_path,
-                                total_frames,
-                                encoding_progress_tx,
-                            ) {
-                                error!("Error in frames_to_video: {:?}", e);
-                            }
-                        }));
-                    }
-                }
-            } else {
-                error!("Unable to access recording path");
-            }
-        });
+    ui.add_enabled(
+        !recording_state.is_encoding,
+        egui::Button::new(button_label),
+    )
+    .clicked()
+    .then(|| {
+        if let Err(e) = recording_state.toggle_recording(
+            sketch_config,
+            session_id,
+            alert_text,
+        ) {
+            error!("Recording error: {}", e);
+            *alert_text = format!("Recording error: {}", e);
+        }
+    });
 }
 
 fn draw_sketch_controls<S: SketchModel>(
