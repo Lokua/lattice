@@ -4,7 +4,16 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
-use std::{env, error::Error, fs, sync::Once};
+use std::{
+    cell::RefCell,
+    env,
+    error::Error,
+    fs,
+    sync::{
+        mpsc::{self, Receiver},
+        Once,
+    },
+};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -145,6 +154,14 @@ fn model<S: SketchModel + 'static>(
 }
 
 static INIT_MIDI_HANDLER: Once = Once::new();
+enum MidiInstruction {
+    Start,
+    Stop,
+}
+
+thread_local! {
+    static MIDI_MESSAGE_RX: RefCell<Option<Receiver<MidiInstruction>>> = RefCell::new(None);
+}
 
 fn update<S: SketchModel>(
     app: &App,
@@ -160,14 +177,43 @@ fn update<S: SketchModel>(
     );
 
     INIT_MIDI_HANDLER.call_once(|| {
-        on_message(|message| {
+        let (tx, rx) = mpsc::channel();
+        MIDI_MESSAGE_RX.with(|cell| {
+            *cell.borrow_mut() = Some(rx);
+        });
+        on_message(move |message| {
             if message[0] == 250 {
-                info!("Received MIDI Start message. Resetting frame count.");
-                frame_controller::reset_frame_count();
+                tx.send(MidiInstruction::Start)
+                    .expect("Unabled to send Start instruction");
+            } else if message[0] == 252 {
+                tx.send(MidiInstruction::Stop)
+                    .expect("Unabled to send Stop instruction");
             }
         })
         .expect("Failed to initialize MIDI handler");
     });
+
+    MIDI_MESSAGE_RX.with(|cell| {
+        if let Some(rx) = cell.borrow_mut().as_ref() {
+            if let Ok(instruction) = rx.try_recv() {
+                handle_midi_instruction(
+                    &mut model.recording_state,
+                    model.sketch_config,
+                    &model.session_id,
+                    &mut model.alert_text,
+                    instruction,
+                );
+            }
+        }
+    });
+
+    if model.recording_state.is_encoding {
+        model.recording_state.on_encoding_message(
+            &mut model.session_id,
+            model.sketch_config,
+            &mut model.alert_text,
+        );
+    }
 
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
@@ -181,14 +227,6 @@ fn update<S: SketchModel>(
         &mut model.recording_state,
         &ctx,
     );
-
-    if model.recording_state.active {
-        model.recording_state.on_encoding_message(
-            &mut model.session_id,
-            model.sketch_config,
-            &mut model.alert_text,
-        );
-    }
 }
 
 fn update_gui<S: SketchModel>(
@@ -233,6 +271,7 @@ fn update_gui<S: SketchModel>(
                 draw_pause_button(ui, alert_text);
                 draw_reset_button(ui, alert_text);
                 draw_clear_cache_button(ui, sketch_config.name, alert_text);
+                draw_queue_record_button(ui, recording_state, alert_text);
                 draw_record_button(
                     ui,
                     sketch_config,
@@ -263,7 +302,7 @@ fn view<S>(
         sketch_view_fn,
     );
 
-    if did_render && model.recording_state.active {
+    if did_render && model.recording_state.is_recording {
         let frame_count = model.recording_state.recorded_frames.get();
         match app.window(model.main_window_id) {
             Some(window) => match &model.recording_state.recording_dir {
@@ -284,6 +323,33 @@ fn view<S>(
 
 fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
+}
+
+fn handle_midi_instruction(
+    recording_state: &mut RecordingState,
+    sketch_config: &SketchConfig,
+    session_id: &str,
+    alert_text: &mut String,
+    instruction: MidiInstruction,
+) {
+    match instruction {
+        MidiInstruction::Start => {
+            info!("Received MIDI Start message. Resetting frame count.");
+            frame_controller::reset_frame_count();
+            if recording_state.is_queued {
+                recording_state
+                    .start_recording(alert_text)
+                    .expect("Unable to start frame recording.");
+            }
+        }
+        MidiInstruction::Stop => {
+            if recording_state.is_recording && !recording_state.is_encoding {
+                recording_state
+                    .stop_recording(sketch_config, session_id)
+                    .expect("Error attempting to stop recording");
+            }
+        }
+    }
 }
 
 fn persist_controls(
@@ -391,7 +457,7 @@ fn calculate_gui_dimensions(controls: Option<&mut Controls>) -> (u32, u32) {
 
     let height = HEADER_HEIGHT + controls_height + MIN_FINAL_GAP + ALERT_HEIGHT;
 
-    (350, height)
+    (410, height)
 }
 
 fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {
@@ -432,6 +498,34 @@ fn draw_clear_cache_button(
     });
 }
 
+fn draw_queue_record_button(
+    ui: &mut egui::Ui,
+    recording_state: &mut RecordingState,
+    alert_text: &mut String,
+) {
+    let button_label = if recording_state.is_queued {
+        "QUEUED"
+    } else {
+        "Q Rec."
+    };
+
+    ui.add_enabled(
+        !recording_state.is_recording && !recording_state.is_encoding,
+        egui::Button::new(button_label),
+    )
+    .clicked()
+    .then(|| {
+        if recording_state.is_queued {
+            recording_state.is_queued = false;
+            *alert_text = "".into();
+        } else {
+            recording_state.is_queued = true;
+            *alert_text =
+                "Recording queued. Awaiting MIDI Start message.".into();
+        }
+    });
+}
+
 fn draw_record_button(
     ui: &mut egui::Ui,
     sketch_config: &SketchConfig,
@@ -439,7 +533,7 @@ fn draw_record_button(
     recording_state: &mut RecordingState,
     alert_text: &mut String,
 ) {
-    let button_label = if recording_state.active {
+    let button_label = if recording_state.is_recording {
         "STOP"
     } else if recording_state.is_encoding {
         "Encoding"

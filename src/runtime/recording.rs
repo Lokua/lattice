@@ -14,8 +14,9 @@ use crate::framework::prelude::*;
 
 #[derive(Default)]
 pub struct RecordingState {
-    pub active: bool,
+    pub is_recording: bool,
     pub is_encoding: bool,
+    pub is_queued: bool,
     pub recorded_frames: Cell<u32>,
     pub recording_dir: Option<PathBuf>,
     pub encoding_thread: Option<thread::JoinHandle<()>>,
@@ -36,7 +37,7 @@ impl RecordingState {
         alert_text: &mut String,
     ) -> Result<(), Box<dyn Error>> {
         if let Some(path) = &self.recording_dir {
-            self.active = true;
+            self.is_recording = true;
             let message =
                 format!("Recording. Frames will be written to {:?}", path);
             *alert_text = message;
@@ -53,7 +54,8 @@ impl RecordingState {
         session_id: &str,
     ) -> Result<(), Box<dyn Error>> {
         if !self.is_encoding {
-            self.active = false;
+            self.is_recording = false;
+            self.is_queued = false;
             self.is_encoding = true;
 
             let (encoding_progress_tx, rx) = mpsc::channel();
@@ -101,7 +103,7 @@ impl RecordingState {
         session_id: &str,
         alert_text: &mut String,
     ) -> Result<(), Box<dyn Error>> {
-        if self.active {
+        if self.is_recording {
             self.stop_recording(sketch_config, session_id)
         } else {
             self.start_recording(alert_text)
