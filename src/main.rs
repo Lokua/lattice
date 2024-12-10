@@ -243,7 +243,7 @@ fn update_gui<S: SketchModel>(
     style.visuals.button_frame = true;
     style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
     style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
-    style.spacing.slider_width = 160.0;
+    style.spacing.slider_width = 200.0;
     ctx.set_style(style);
     setup_monospaced_fonts(ctx);
 

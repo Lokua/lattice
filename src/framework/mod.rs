@@ -3,6 +3,7 @@ pub mod audio;
 pub mod controls;
 pub mod displacer;
 pub mod distance;
+pub mod drop_zone;
 pub mod frame_controller;
 pub mod logging;
 pub mod midi;
