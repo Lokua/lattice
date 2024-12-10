@@ -5,7 +5,14 @@ use nannou_egui::{
     egui::{self, Color32, FontDefinitions, FontFamily},
     Egui,
 };
-use std::{cell::Cell, env, error::Error, fs, sync::mpsc, thread};
+use std::{
+    cell::Cell,
+    env,
+    error::Error,
+    fs,
+    sync::{mpsc, Once},
+    thread,
+};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -152,6 +159,8 @@ fn model<S: SketchModel + 'static>(
     }
 }
 
+static INIT_MIDI_HANDLER: Once = Once::new();
+
 fn update<S: SketchModel>(
     app: &App,
     model: &mut AppModel<S>,
@@ -164,6 +173,16 @@ fn update<S: SketchModel>(
         update,
         sketch_update_fn,
     );
+
+    INIT_MIDI_HANDLER.call_once(|| {
+        on_message(move |message| {
+            if message[0] == 250 {
+                info!("Received MIDI Start message. Resetting frame count.");
+                frame_controller::reset_frame_count();
+            }
+        })
+        .expect("Failed to initialize MIDI handler");
+    });
 
     model.egui.set_elapsed_time(update.since_start);
     let ctx = model.egui.begin_frame();
