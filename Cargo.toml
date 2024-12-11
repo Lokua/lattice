@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Lokua <dev@lokua.net>"]
 edition = "2021"
 
+[workspace]
+members = [
+    "scripts/image-markdown"
+]
+
 [dependencies]
 chrono = "0.4.38"
 cpal = "0.15.3"
@@ -22,4 +27,3 @@ serde = "1.0.215"
 serde_json = "1.0.133"
 serial_test = "3.2.0"
 termcolor = "1.4.1"
-
