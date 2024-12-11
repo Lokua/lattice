@@ -16,3 +16,6 @@ test *ARGS:
 
 test-1-thread *ARGS:
   RUST_LOG=lattice=trace cargo test -- --test-threads=1 {{ARGS}}
+
+generate-markdown-index:
+  cargo run -p image-markdown --release

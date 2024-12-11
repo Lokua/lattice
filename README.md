@@ -1,7 +1,8 @@
 # lattice
 
 A hobbyist project exploring generative art while learning Rust and
-[nannou][nannou-link].
+[nannou][nannou-link]. You can see examples here on github by looking at the
+auto generated [markdown index](index.md).
 
 ## Overview
 
