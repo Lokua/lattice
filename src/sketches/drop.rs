@@ -10,7 +10,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(250),
+    gui_h: Some(400),
 };
 
 const MAX_DROPS: usize = 2500;
@@ -29,28 +29,108 @@ impl SketchModel for Model {
     }
 }
 
-type DropFn = fn(Vec2, &mut Vec<(Drop, Hsl)>, usize);
+type DropFn = fn(&Dropper, Vec2, &mut Vec<(Drop, Hsl)>, usize, Hsl);
+type ColorFn = fn(&Controls) -> Hsl;
 
 struct Dropper {
+    kind: String,
     trigger: Trigger,
     zone: DropZone,
     drop_fn: DropFn,
+    min_radius: f32,
+    max_radius: f32,
+    color_fn: ColorFn,
 }
 
 impl Dropper {
-    pub fn new(trigger: Trigger, zone: DropZone, drop_fn: DropFn) -> Self {
+    pub fn new(
+        kind: String,
+        trigger: Trigger,
+        zone: DropZone,
+        drop_fn: DropFn,
+        min_radius: f32,
+        max_radius: f32,
+        color_fn: ColorFn,
+    ) -> Self {
         Self {
+            kind,
             trigger,
             zone,
             drop_fn,
+            min_radius,
+            max_radius,
+            color_fn,
         }
     }
 }
 
 pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
-
-    let controls = Controls::new(vec![]);
+    let controls = Controls::new(vec![
+        Control::Slider {
+            name: "center_min_radius".to_string(),
+            value: 2.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "center_max_radius".to_string(),
+            value: 20.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "trbl_min_radius".to_string(),
+            value: 2.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "trbl_max_radius".to_string(),
+            value: 20.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "corner_min_radius".to_string(),
+            value: 2.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "corner_max_radius".to_string(),
+            value: 20.0,
+            min: 1.0,
+            max: 50.0,
+            step: 1.0,
+        },
+        Control::Slider {
+            name: "center_bw_ratio".to_string(),
+            value: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.001,
+        },
+        Control::Slider {
+            name: "trbl_bw_ratio".to_string(),
+            value: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.001,
+        },
+        Control::Slider {
+            name: "corner_bw_ratio".to_string(),
+            value: 0.5,
+            min: 0.0,
+            max: 1.0,
+            step: 0.001,
+        },
+    ]);
 
     let rect: Rect<f32> = Rect::from_x_y_w_h(
         0.0,
@@ -59,58 +139,94 @@ pub fn init_model() -> Model {
         SKETCH_CONFIG.h as f32 / 4.0,
     );
 
-    let duration = 0.5;
+    let duration = 1.0;
     let delay = duration / 9.0;
 
     let droppers = vec![
         Dropper::new(
+            "center".to_string(),
             animation.create_trigger(duration, 0.0),
             DropZone::new(vec2(0.0, 0.0)),
             drop_it,
+            controls.float("center_min_radius"),
+            controls.float("center_max_radius"),
+            center_color,
         ),
         // Top
         Dropper::new(
+            "trbl".to_string(),
             animation.create_trigger(duration, delay),
             DropZone::new(vec2(0.0, rect.top())),
             drop_it,
+            controls.float("trbl_min_radius"),
+            controls.float("trbl_max_radius"),
+            trbl_color,
         ),
         Dropper::new(
+            "corner".to_string(),
             animation.create_trigger(duration, delay * 2.0),
             DropZone::new(rect.top_right()),
             drop_it,
+            controls.float("corner_min_radius"),
+            controls.float("corner_max_radius"),
+            corner_color,
         ),
         // Right
         Dropper::new(
+            "trbl".to_string(),
             animation.create_trigger(duration, delay * 3.0),
             DropZone::new(vec2(rect.top(), 0.0)),
             drop_it,
+            controls.float("trbl_min_radius"),
+            controls.float("trbl_max_radius"),
+            trbl_color,
         ),
         Dropper::new(
+            "corner".to_string(),
             animation.create_trigger(duration, delay * 4.0),
             DropZone::new(rect.bottom_right()),
             drop_it,
+            controls.float("corner_min_radius"),
+            controls.float("corner_max_radius"),
+            corner_color,
         ),
         // Bottom
         Dropper::new(
+            "trbl".to_string(),
             animation.create_trigger(duration, delay * 5.0),
             DropZone::new(vec2(0.0, rect.bottom())),
             drop_it,
+            controls.float("trbl_min_radius"),
+            controls.float("trbl_max_radius"),
+            trbl_color,
         ),
         Dropper::new(
+            "corner".to_string(),
             animation.create_trigger(duration, delay * 6.0),
             DropZone::new(rect.bottom_left()),
             drop_it,
+            controls.float("corner_min_radius"),
+            controls.float("corner_max_radius"),
+            corner_color,
         ),
         // Left
         Dropper::new(
+            "trbl".to_string(),
             animation.create_trigger(duration, delay * 7.0),
             DropZone::new(vec2(rect.bottom(), 0.0)),
             drop_it,
+            controls.float("trbl_min_radius"),
+            controls.float("trbl_max_radius"),
+            trbl_color,
         ),
         Dropper::new(
+            "corner".to_string(),
             animation.create_trigger(duration, delay * 8.0),
             DropZone::new(rect.top_left()),
             drop_it,
+            controls.float("corner_min_radius"),
+            controls.float("corner_max_radius"),
+            corner_color,
         ),
     ];
 
@@ -125,20 +241,97 @@ pub fn init_model() -> Model {
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let offset = model.animation.animate(
-        vec![KF::new(1.0, 4.0), KF::new(2.0, 4.0), KF::new(3.0, 4.0)],
+        vec![KF::new(1.0, 2.0), KF::new(2.0, 2.0), KF::new(3.0, 2.0)],
         0.0,
     );
+
     model.droppers.iter_mut().for_each(|dropper| {
         if model.animation.should_trigger(&mut dropper.trigger) {
+            match dropper.kind.as_str() {
+                "trbl" => {
+                    dropper.min_radius =
+                        model.controls.float("trbl_min_radius");
+                    dropper.max_radius =
+                        model.controls.float("trbl_max_radius");
+                }
+                "corner" => {
+                    dropper.min_radius =
+                        model.controls.float("corner_min_radius");
+                    dropper.max_radius =
+                        model.controls.float("corner_max_radius");
+                }
+                _ => {}
+            }
+
             for _ in 0..3 {
                 (dropper.drop_fn)(
+                    dropper,
                     dropper.zone.center * offset,
                     &mut model.drops,
                     model.max_drops,
+                    (dropper.color_fn)(&model.controls),
                 );
             }
         }
     });
+}
+
+fn drop_it(
+    dropper: &Dropper,
+    point: Vec2,
+    drops: &mut Vec<(Drop, Hsl)>,
+    max_drops: usize,
+    color: Hsl,
+) {
+    let point = nearby_point(point, 50.0);
+    let drop = Drop::new(
+        point,
+        random_range(dropper.min_radius, dropper.max_radius),
+        64,
+    );
+
+    for (other, _color) in drops.iter_mut() {
+        drop.marble(other);
+    }
+
+    drops.push((drop, color));
+
+    while drops.len() > max_drops {
+        drops.remove(0);
+    }
+}
+
+fn center_color(controls: &Controls) -> Hsl {
+    if random_f32() > controls.float("center_bw_ratio") {
+        hsl(0.0, 0.0, 0.0)
+    } else {
+        hsl(0.0, 0.0, 1.0)
+    }
+}
+
+fn trbl_color(controls: &Controls) -> Hsl {
+    if random_f32() > controls.float("trbl_bw_ratio") {
+        hsl(0.0, 0.0, 0.0)
+    } else {
+        hsl(0.0, 0.0, 1.0)
+    }
+}
+
+fn corner_color(controls: &Controls) -> Hsl {
+    if random_f32() > controls.float("corner_bw_ratio") {
+        hsl(0.0, 0.0, 0.0)
+    } else {
+        hsl(0.0, 0.0, 1.0)
+    }
+}
+
+fn nearby_point(base_point: Vec2, radius: f32) -> Vec2 {
+    let angle = random_range(0.0, TWO_PI);
+    let distance = random_range(0.0, radius);
+    Vec2::new(
+        base_point.x + distance * angle.cos(),
+        base_point.y + distance * angle.sin(),
+    )
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
@@ -158,26 +351,4 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn drop_it(point: Vec2, drops: &mut Vec<(Drop, Hsl)>, max_drops: usize) {
-    let point = nearby_point(point, 50.0);
-    let drop = Drop::new(point, random_range(2.0, 20.0), 64);
-    for (other, _color) in drops.iter_mut() {
-        drop.marble(other);
-    }
-    let lightness = if random_f32() < 0.5 { 0.0 } else { 1.0 };
-    drops.push((drop, hsl(0.0, 0.0, lightness)));
-    while drops.len() > max_drops {
-        drops.remove(0);
-    }
-}
-
-fn nearby_point(base_point: Vec2, radius: f32) -> Vec2 {
-    let angle = random_range(0.0, TWO_PI);
-    let distance = random_range(0.0, radius);
-    return Vec2::new(
-        base_point.x + distance * angle.cos(),
-        base_point.y + distance * angle.sin(),
-    );
 }
