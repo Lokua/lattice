@@ -14,9 +14,16 @@ impl Keyframe {
 
 pub type KF = Keyframe;
 
+pub struct Trigger {
+    every: f32,
+    delay: f32,
+    last_trigger_count: f32,
+}
+
 pub struct Animation {
     bpm: f32,
 }
+
 impl Animation {
     pub fn new(bpm: f32) -> Self {
         Self { bpm }
@@ -39,6 +46,11 @@ impl Animation {
         let seconds_per_beat = 60.0 / self.bpm;
         let total_seconds = beats * seconds_per_beat;
         total_seconds * self.fps()
+    }
+
+    /// Returns total beats elapsed since start
+    pub fn get_total_beats_elapsed(&self) -> f32 {
+        self.current_frame() / self.beats_to_frames(1.0)
     }
 
     pub fn loop_progress(&self, duration: f32) -> f32 {
@@ -128,21 +140,45 @@ impl Animation {
 
         value
     }
+
+    pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
+        if delay >= every {
+            panic!("Delay must be less than interval length");
+        }
+
+        Trigger {
+            every,
+            delay,
+            last_trigger_count: -1.0,
+        }
+    }
+
+    pub fn should_trigger(&self, config: &mut Trigger) -> bool {
+        let total_beats_elapsed = self.get_total_beats_elapsed();
+        let current_interval = (total_beats_elapsed / config.every).floor();
+        let position_in_interval = total_beats_elapsed % config.every;
+
+        let should_trigger = current_interval != config.last_trigger_count
+            && position_in_interval >= config.delay;
+
+        if should_trigger {
+            config.last_trigger_count = current_interval;
+        }
+
+        should_trigger
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::sync::Once;
 
     // this way each 1/16 = 1 frame, 4 frames per beat,
     // less likely to deal with precision issues.
     const FPS: f32 = 24.0;
     const BPM: f32 = 360.0;
-
-    // uncomment to ensure animate works the same with different rates
-    // const FRAME_RATE: f32 = 60.0;
-    // const BPM: f32 = 120.0;
 
     static INIT: Once = Once::new();
 
@@ -159,6 +195,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_animate_returns_initial_value() {
         init(0);
         let a = create_instance();
@@ -170,6 +207,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_animate_returns_halfway_point() {
         init(2);
         let a = create_instance();
@@ -181,6 +219,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_animate_consistently_returns_correct_value() {
         init(0);
         let a = create_instance();
@@ -199,5 +238,68 @@ mod tests {
             );
             assert_eq!(result, 0.5, "returns the last keyframe value");
         }
+    }
+
+    #[test]
+    #[serial]
+    fn test_trigger_on_beat() {
+        init(0);
+        let animation = Animation::new(BPM);
+        let mut trigger = animation.create_trigger(1.0, 0.0); // Trigger every beat with no delay
+
+        // At frame 0 (start of first beat)
+        assert!(
+            animation.should_trigger(&mut trigger),
+            "should trigger at start"
+        );
+
+        // At frame 1 (still in first beat)
+        init(1);
+        assert!(
+            !animation.should_trigger(&mut trigger),
+            "should not trigger mid-beat"
+        );
+
+        // At frame 4 (start of second beat)
+        init(4);
+        assert!(
+            animation.should_trigger(&mut trigger),
+            "should trigger at next beat"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_trigger_with_delay() {
+        init(0);
+        let animation = Animation::new(BPM);
+        let mut trigger = animation.create_trigger(2.0, 0.5); // Trigger every 2 beats with 0.5 beat delay
+
+        // At frame 0 (start)
+        assert!(
+            !animation.should_trigger(&mut trigger),
+            "should not trigger at start due to delay"
+        );
+
+        // At frame 2 (0.5 beats in - delay point)
+        init(2);
+        assert!(
+            animation.should_trigger(&mut trigger),
+            "should trigger at delay point"
+        );
+
+        // At frame 4 (1.0 beats in)
+        init(4);
+        assert!(
+            !animation.should_trigger(&mut trigger),
+            "should not trigger before next interval"
+        );
+
+        // At frame 10 (2.5 beats in - next trigger point after delay)
+        init(10);
+        assert!(
+            animation.should_trigger(&mut trigger),
+            "should trigger at next interval after delay"
+        );
     }
 }
