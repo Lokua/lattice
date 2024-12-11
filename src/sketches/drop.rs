@@ -260,6 +260,12 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     dropper.max_radius =
                         model.controls.float("corner_max_radius");
                 }
+                "center" => {
+                    dropper.min_radius =
+                        model.controls.float("center_min_radius");
+                    dropper.max_radius =
+                        model.controls.float("center_max_radius");
+                }
                 _ => {}
             }
 
@@ -323,15 +329,6 @@ fn corner_color(controls: &Controls) -> Hsl {
     } else {
         hsl(0.0, 0.0, 1.0)
     }
-}
-
-fn nearby_point(base_point: Vec2, radius: f32) -> Vec2 {
-    let angle = random_range(0.0, TWO_PI);
-    let distance = random_range(0.0, radius);
-    Vec2::new(
-        base_point.x + distance * angle.cos(),
-        base_point.y + distance * angle.sin(),
-    )
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
