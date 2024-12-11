@@ -1,4 +1,6 @@
 use nannou::color::*;
+use nannou::noise::NoiseFn;
+use nannou::noise::Perlin;
 use nannou::prelude::*;
 
 use crate::framework::prelude::*;
@@ -17,6 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 pub struct Model {
     animation: Animation,
     controls: Controls,
+    perlin: Perlin,
     radius: f32,
     hue: f32,
 }
@@ -57,6 +60,7 @@ pub fn init_model() -> Model {
     Model {
         animation,
         controls,
+        perlin: Perlin::new(),
         radius: 100.0,
         hue: 0.0,
     }
@@ -124,8 +128,25 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     for (zone_instance, method, offs) in configs {
         for _i in 0..count as i32 {
             let mut zoned = method(zone_instance, inner_radius, outer_radius);
-            zoned.x = random_range(zoned.x, zoned.x + offs.x + 0.001);
-            zoned.y = random_range(zoned.y, zoned.y + offs.y + 0.001);
+            let t = app.time * 0.0001;
+
+            let noise_x = model.perlin.get([
+                (zoned.x + offs.x * 0.001) as f64,
+                (zoned.y + offs.y * 0.001) as f64,
+                t as f64,
+            ]) as f32
+                * 10.0;
+
+            let noise_y = model.perlin.get([
+                (zoned.y + offs.y * 0.001) as f64,
+                (zoned.x + offs.x * 0.001) as f64,
+                t as f64 + 0.2,
+            ]) as f32
+                * 10.0;
+
+            zoned.x = random_range(zoned.x, zoned.x + offs.x + 0.001) + noise_x;
+            zoned.y = random_range(zoned.y, zoned.y + offs.y + 0.001) + noise_y;
+
             let normalized_distance = map_range(
                 zoned.length(),
                 inner_radius,
