@@ -1,8 +1,14 @@
 # lattice
 
 A hobbyist project exploring generative art while learning Rust and
-[nannou][nannou-link]. You can see examples here on github by looking at the
-auto generated [markdown index](index.md).
+[nannou][nannou-link].
+
+Stuff like this:
+
+<img src="images/1000x/displacement_2-tm8s9.png" alt="displacement_2-tm8s9" width="400">
+
+You can see more here on github by looking at the auto generated
+[markdown index](index.md).
 
 ## Overview
 
