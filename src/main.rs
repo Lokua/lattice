@@ -72,6 +72,7 @@ fn main() {
         "displacement_2" => run_sketch!(displacement_2),
         "displacement_2a" => run_sketch!(displacement_2a),
         "drop" => run_sketch!(drop),
+        "drop_walk" => run_sketch!(drop_walk),
         "template" => run_sketch!(template),
         "untitled" => run_sketch!(untitled),
         _ => {

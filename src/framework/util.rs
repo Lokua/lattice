@@ -143,3 +143,21 @@ pub fn circle_contains_point(circle: &Ellipse, point: &Vec2) -> bool {
     let dy = point.y - center.y;
     dx * dx + dy * dy <= radius * radius
 }
+
+pub fn nearby_point(base_point: Vec2, radius: f32) -> Vec2 {
+    let angle = random_range(0.0, TWO_PI);
+    let distance = random_range(0.0, radius);
+    Vec2::new(
+        base_point.x + distance * angle.cos(),
+        base_point.y + distance * angle.sin(),
+    )
+}
+
+pub fn safe_range(min: f32, max: f32) -> (f32, f32) {
+    let a = if max < min { max } else { min };
+    let mut b = if min > max { min } else { max };
+    if a == b {
+        b += 0.0001;
+    }
+    (a, b)
+}
