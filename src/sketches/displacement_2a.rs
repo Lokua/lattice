@@ -15,14 +15,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(680),
+    gui_h: Some(700),
 };
 
 const DEBUG_QUADS: bool = false;
 const GRID_SIZE: usize = 128;
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
-const N_DISPLACERS: usize = 5;
 
 pub struct Model {
     grid: Vec<Vec2>,
@@ -55,11 +54,8 @@ impl Model {
                     None
                 }
             }
-        } else if pattern == "Comp1" {
-            self.cached_pattern = pattern;
-            None
         } else {
-            error!("Invalid pattern: {}", pattern);
+            self.cached_pattern = pattern;
             None
         };
     }
@@ -605,7 +601,23 @@ pub fn weave(
     let y = grid_y * frequency;
 
     let position_pattern = match pattern.as_str() {
-        "Comp1" => (x.sin() * y.cos()) + (x - y).tanh() * (x + y).tan(),
+        "Custo" => (x.sin() * y.cos()) + (x - y).tanh() * (x + y).tan(),
+        "Sprial" => {
+            (x * y).sin() * (x - y).cos() + ((x * x + y * y).sqrt()).tanh()
+        }
+        "Ripple" => (x * x + y * y).sin() * (x - y).cos() + (x * y).tanh(),
+        "VortxFld" => {
+            let radius = (x * x + y * y).sqrt();
+            let angle = x.atan2(y);
+            (angle * radius.sin()).cos() * radius.sin() + (x * y).cos()
+        }
+        "VortxFld2" => {
+            let radius = (x * x + y * y).sqrt();
+            let angle = (-x).atan2(-y);
+            (angle * radius.sin()).cos() * radius.sin() + (x * y).cos()
+        }
+        "FracRipl" => (x * x - y * y).sin() + (2.0 * x * y).cos(),
+        "Quantum" => x.sin() * y.cos() * (y.sin() * x.cos()).tanh(),
         _ => match trig_fns {
             Some((f_a, f_b)) => f_a(x) + f_b(y),
             None => 0.0,
@@ -614,10 +626,36 @@ pub fn weave(
 
     let distance =
         ((center_x - grid_x).powi(2) + (center_y - grid_y).powi(2)).sqrt();
-
     let distance_pattern = (distance * distance_scale).sin();
 
     position_pattern * distance_pattern * amplitude
+}
+
+fn generate_pattern_options() -> Vec<String> {
+    let functions = vec![
+        "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
+        "coth",
+    ];
+
+    let options: Vec<String> = functions
+        .iter()
+        .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
+        .collect();
+
+    // Start with custom patterns
+    let mut all_patterns = vec![
+        "Custo".into(),
+        "Sprial".into(),
+        "Ripple".into(),
+        "VortxFld".into(),
+        "VortxFld2".into(),
+        "FracRipl".into(),
+        "Quantum".into(),
+    ];
+
+    // Extend with the function combinations
+    all_patterns.extend(options);
+    all_patterns
 }
 
 fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
@@ -633,24 +671,6 @@ fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
     map.insert("csch", f32::csch as fn(f32) -> f32);
     map.insert("coth", f32::coth as fn(f32) -> f32);
     map
-}
-
-fn generate_pattern_options() -> Vec<String> {
-    let functions = vec![
-        "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
-        "coth",
-    ];
-
-    let mut options: Vec<String> = functions
-        .iter()
-        .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
-        .collect();
-
-    let custom_algs = vec!["Comp1".into()];
-
-    options.extend(custom_algs);
-
-    options
 }
 
 fn animation_fns(position_animations_kind: &str) -> Vec<AnimationFn<Vec2>> {
@@ -786,4 +806,56 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             vec2(x, y)
         })),
     ]
+}
+
+fn _split_into_nonet(
+    ellipses: &[(Vec2, f32, LinSrgb)],
+) -> Vec<Vec<(Vec2, f32, LinSrgb)>> {
+    let (min_x, max_x, min_y, max_y) = ellipses.iter().fold(
+        (f32::MAX, f32::MIN, f32::MAX, f32::MIN),
+        |(min_x, max_x, min_y, max_y), (pos, _, _)| {
+            (
+                min_x.min(pos.x),
+                max_x.max(pos.x),
+                min_y.min(pos.y),
+                max_y.max(pos.y),
+            )
+        },
+    );
+
+    let width = max_x - min_x;
+    let height = max_y - min_y;
+    let section_width = width / 3.0;
+    let section_height = height / 3.0;
+    let mut sections = vec![Vec::new(); 9];
+
+    // For each point
+    for point in ellipses.iter() {
+        let (pos, radius, color) = point;
+        let col = ((pos.x - min_x) / section_width).floor() as usize;
+        let row = ((pos.y - min_y) / section_height).floor() as usize;
+        let section = row * 3 + col;
+
+        if section < 9 {
+            if DEBUG_QUADS {
+                let debug_color = match section {
+                    0 => RED.into_lin_srgb(),
+                    1 => GREEN.into_lin_srgb(),
+                    2 => BLUE.into_lin_srgb(),
+                    3 => YELLOW.into_lin_srgb(),
+                    4 => PURPLE.into_lin_srgb(),
+                    5 => CYAN.into_lin_srgb(),
+                    6 => ORANGE.into_lin_srgb(),
+                    7 => PINK.into_lin_srgb(),
+                    _ => WHITE.into_lin_srgb(),
+                };
+
+                sections[section].push((*pos, *radius, debug_color));
+            } else {
+                sections[section].push((*pos, *radius, *color));
+            }
+        }
+    }
+
+    sections
 }
