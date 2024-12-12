@@ -22,6 +22,7 @@ const DEBUG_QUADS: bool = false;
 const GRID_SIZE: usize = 128;
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
+const N_DISPLACERS: usize = 5;
 
 pub struct Model {
     grid: Vec<Vec2>,
@@ -34,6 +35,7 @@ pub struct Model {
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
     audio: Audio,
     fft_bands: Vec<f32>,
+    last_position_animation: String,
 }
 
 impl Model {
@@ -208,6 +210,11 @@ pub fn init_model() -> Model {
             max: 1.0,
             step: 0.125,
         },
+        Control::Select {
+            name: "position_animation".into(),
+            value: "Counter Clockwise".into(),
+            options: vec!["None".into(), "Counter Clockwise".into()],
+        },
         Control::Checkbox {
             name: "center".into(),
             value: true,
@@ -286,9 +293,7 @@ pub fn init_model() -> Model {
         },
     ]);
 
-    const BEATS: f32 = 8.0;
-
-    let displacer_configs = vec![
+    let mut displacer_configs = vec![
         DisplacerConfig::new(
             "center",
             Displacer::new(vec2(0.0, 0.0), 20.0, 10.0, None),
@@ -303,33 +308,7 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let xp = w / 4.0;
-                let yp = h / 4.0;
-                let x = ax.animate(
-                    vec![
-                        KF::new(xp, BEATS),   // Start at right
-                        KF::new(-xp, BEATS),  // Move to left
-                        KF::new(-xp, BEATS),  // Stay at left
-                        KF::new(xp, BEATS),   // Move to right
-                        KF::new(xp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                let y = ax.animate(
-                    vec![
-                        KF::new(yp, BEATS),   // Start at top
-                        KF::new(yp, BEATS),   // Stay at top
-                        KF::new(-yp, BEATS),  // Move to bottom
-                        KF::new(-yp, BEATS),  // Stay at bottom
-                        KF::new(yp, KF::END), // Move back to top
-                    ],
-                    0.0,
-                );
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
         DisplacerConfig::new(
@@ -340,33 +319,7 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let xp = w / 4.0;
-                let yp = -h / 4.0;
-                let x = ax.animate(
-                    vec![
-                        KF::new(xp, BEATS),   // Start at right
-                        KF::new(xp, BEATS),   // Stay at right
-                        KF::new(-xp, BEATS),  // Move to left
-                        KF::new(-xp, BEATS),  // Stay at left
-                        KF::new(xp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                let y = ax.animate(
-                    vec![
-                        KF::new(yp, BEATS),   // Start at bottom
-                        KF::new(-yp, BEATS),  // Move to top
-                        KF::new(-yp, BEATS),  // Stay at top
-                        KF::new(yp, BEATS),   // Move at bottom
-                        KF::new(yp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
         DisplacerConfig::new(
@@ -377,33 +330,7 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let xp = -w / 4.0;
-                let yp = -h / 4.0;
-                let x = ax.animate(
-                    vec![
-                        KF::new(xp, BEATS),   // Start at left
-                        KF::new(-xp, BEATS),  // Move to right
-                        KF::new(-xp, BEATS),  // Stay to right
-                        KF::new(xp, BEATS),   // Move to left
-                        KF::new(xp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                let y = ax.animate(
-                    vec![
-                        KF::new(yp, BEATS),   // Start at bottom
-                        KF::new(yp, BEATS),   // Move to top
-                        KF::new(-yp, BEATS),  // Stay at top
-                        KF::new(-yp, BEATS),  // Move to bottom
-                        KF::new(yp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
         DisplacerConfig::new(
@@ -414,36 +341,17 @@ pub fn init_model() -> Model {
                 10.0,
                 None,
             ),
-            Some(Arc::new(move |_displacer, ax, _controls| {
-                let w = SKETCH_CONFIG.w as f32;
-                let h = SKETCH_CONFIG.h as f32;
-                let xp = -w / 4.0;
-                let yp = h / 4.0;
-                let x = ax.animate(
-                    vec![
-                        KF::new(xp, BEATS),   // Start at left
-                        KF::new(xp, BEATS),   // Stay at left
-                        KF::new(-xp, BEATS),  // Move to right
-                        KF::new(-xp, BEATS),  // Stay at right
-                        KF::new(xp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                let y = ax.animate(
-                    vec![
-                        KF::new(yp, BEATS),   // Start at top
-                        KF::new(-yp, BEATS),  // Move to bottom
-                        KF::new(-yp, BEATS),  // Stay at bottom
-                        KF::new(yp, BEATS),   // Move to top
-                        KF::new(yp, KF::END), // Complete the cycle
-                    ],
-                    0.0,
-                );
-                vec2(x, y)
-            })),
+            None,
             None,
         ),
     ];
+
+    let last_position_animation = controls.string("position_animation");
+    let position_animations = animation_fns(&last_position_animation);
+    for i in 0..displacer_configs.len() {
+        displacer_configs[i].position_animation =
+            position_animations[i].clone();
+    }
 
     let pad = w as f32 * (1.0 / 3.0);
     let cached_pattern = controls.string("pattern");
@@ -463,6 +371,7 @@ pub fn init_model() -> Model {
         ellipses: Vec::with_capacity(GRID_SIZE),
         audio,
         fft_bands: Vec::new(),
+        last_position_animation,
     }
 }
 
@@ -471,6 +380,19 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         || (model.cached_pattern != model.controls.string("pattern"))
     {
         model.update_trig_fns();
+    }
+
+    if model.last_position_animation
+        != model.controls.string("position_animation")
+    {
+        debug!("position animation changed");
+        model.last_position_animation =
+            model.controls.string("position_animation");
+        let position_animations = animation_fns(&model.last_position_animation);
+        for i in 0..model.displacer_configs.len() {
+            model.displacer_configs[i].position_animation =
+                position_animations[i].clone();
+        }
     }
 
     let audio_enabled = model.controls.bool("audio_enabled");
@@ -729,4 +651,139 @@ fn generate_pattern_options() -> Vec<String> {
     options.extend(custom_algs);
 
     options
+}
+
+fn animation_fns(position_animations_kind: &str) -> Vec<AnimationFn<Vec2>> {
+    match position_animations_kind {
+        "Counter Clockwise" => animations_counter_clockwise(),
+        _ => animations_none(),
+    }
+}
+
+fn animations_none() -> Vec<AnimationFn<Vec2>> {
+    let w = SKETCH_CONFIG.w as f32;
+    let h = SKETCH_CONFIG.h as f32;
+
+    vec![
+        None,
+        Some(Arc::new(move |_, _, _| vec2(w / 4.0, h / 4.0))),
+        Some(Arc::new(move |_, _, _| vec2(w / 4.0, -h / 4.0))),
+        Some(Arc::new(move |_, _, _| vec2(-w / 4.0, -h / 4.0))),
+        Some(Arc::new(move |_, _, _| vec2(-w / 4.0, h / 4.0))),
+    ]
+}
+
+fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
+    const BEATS: f32 = 8.0;
+    vec![
+        None,
+        Some(Arc::new(move |_displacer, ax, _controls| {
+            let w = SKETCH_CONFIG.w as f32;
+            let h = SKETCH_CONFIG.h as f32;
+            let xp = w / 4.0;
+            let yp = h / 4.0;
+            let x = ax.animate(
+                vec![
+                    KF::new(xp, BEATS),   // Start at right
+                    KF::new(-xp, BEATS),  // Move to left
+                    KF::new(-xp, BEATS),  // Stay at left
+                    KF::new(xp, BEATS),   // Move to right
+                    KF::new(xp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            let y = ax.animate(
+                vec![
+                    KF::new(yp, BEATS),   // Start at top
+                    KF::new(yp, BEATS),   // Stay at top
+                    KF::new(-yp, BEATS),  // Move to bottom
+                    KF::new(-yp, BEATS),  // Stay at bottom
+                    KF::new(yp, KF::END), // Move back to top
+                ],
+                0.0,
+            );
+            vec2(x, y)
+        })),
+        Some(Arc::new(move |_displacer, ax, _controls| {
+            let w = SKETCH_CONFIG.w as f32;
+            let h = SKETCH_CONFIG.h as f32;
+            let xp = w / 4.0;
+            let yp = -h / 4.0;
+            let x = ax.animate(
+                vec![
+                    KF::new(xp, BEATS),   // Start at right
+                    KF::new(xp, BEATS),   // Stay at right
+                    KF::new(-xp, BEATS),  // Move to left
+                    KF::new(-xp, BEATS),  // Stay at left
+                    KF::new(xp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            let y = ax.animate(
+                vec![
+                    KF::new(yp, BEATS),   // Start at bottom
+                    KF::new(-yp, BEATS),  // Move to top
+                    KF::new(-yp, BEATS),  // Stay at top
+                    KF::new(yp, BEATS),   // Move at bottom
+                    KF::new(yp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            vec2(x, y)
+        })),
+        Some(Arc::new(move |_displacer, ax, _controls| {
+            let w = SKETCH_CONFIG.w as f32;
+            let h = SKETCH_CONFIG.h as f32;
+            let xp = -w / 4.0;
+            let yp = -h / 4.0;
+            let x = ax.animate(
+                vec![
+                    KF::new(xp, BEATS),   // Start at left
+                    KF::new(-xp, BEATS),  // Move to right
+                    KF::new(-xp, BEATS),  // Stay to right
+                    KF::new(xp, BEATS),   // Move to left
+                    KF::new(xp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            let y = ax.animate(
+                vec![
+                    KF::new(yp, BEATS),   // Start at bottom
+                    KF::new(yp, BEATS),   // Move to top
+                    KF::new(-yp, BEATS),  // Stay at top
+                    KF::new(-yp, BEATS),  // Move to bottom
+                    KF::new(yp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            vec2(x, y)
+        })),
+        Some(Arc::new(move |_displacer, ax, _controls| {
+            let w = SKETCH_CONFIG.w as f32;
+            let h = SKETCH_CONFIG.h as f32;
+            let xp = -w / 4.0;
+            let yp = h / 4.0;
+            let x = ax.animate(
+                vec![
+                    KF::new(xp, BEATS),   // Start at left
+                    KF::new(xp, BEATS),   // Stay at left
+                    KF::new(-xp, BEATS),  // Move to right
+                    KF::new(-xp, BEATS),  // Stay at right
+                    KF::new(xp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            let y = ax.animate(
+                vec![
+                    KF::new(yp, BEATS),   // Start at top
+                    KF::new(-yp, BEATS),  // Move to bottom
+                    KF::new(-yp, BEATS),  // Stay at bottom
+                    KF::new(yp, BEATS),   // Move to top
+                    KF::new(yp, KF::END), // Complete the cycle
+                ],
+                0.0,
+            );
+            vec2(x, y)
+        })),
+    ]
 }
