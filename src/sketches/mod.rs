@@ -4,5 +4,6 @@ pub mod displacement_2;
 pub mod displacement_2a;
 pub mod drop;
 pub mod drop_walk;
+pub mod midi_test;
 pub mod template;
 pub mod untitled;

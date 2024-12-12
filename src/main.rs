@@ -73,6 +73,7 @@ fn main() {
         "displacement_2a" => run_sketch!(displacement_2a),
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
+        "midi_test" => run_sketch!(midi_test),
         "template" => run_sketch!(template),
         "untitled" => run_sketch!(untitled),
         _ => {
