@@ -238,6 +238,13 @@ pub fn init_model() -> Model {
             value: false,
         },
         Control::Slider {
+            name: "gradient_spread".into(),
+            value: 0.99,
+            min: 0.0,
+            max: 1.0,
+            step: 0.0001,
+        },
+        Control::Slider {
             name: "circle_radius_min".into(),
             value: 1.0,
             min: 0.1,
@@ -398,6 +405,7 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
     let qr_divisor = model.controls.float("qr_divisor");
     let qr_pos = model.controls.float("qr_pos");
     let qr_size = model.controls.float("qr_size");
+    let gradient_spread = model.controls.float("gradient_spread");
     let displacer_radius = model.controls.float("displacer_radius");
     let displacer_strength = model.controls.float("displacer_strength");
     let weave_scale = model.controls.float("weave_scale");
@@ -497,8 +505,9 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
             for config in &enabled_displacer_configs {
                 let displacement = config.displacer.influence(*point);
                 let influence = displacement.length();
-                let color_position =
-                    (influence / config.displacer.strength).clamp(0.0, 1.0);
+                let color_position = (influence / config.displacer.strength)
+                    .powf(gradient_spread)
+                    .clamp(0.0, 1.0);
                 let color = gradient.get(color_position);
                 let weight = influence * inv_total;
                 blended_color = blended_color.mix(&color, weight);
