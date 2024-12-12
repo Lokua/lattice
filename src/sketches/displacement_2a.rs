@@ -174,10 +174,6 @@ pub fn init_model() -> Model {
             name: "quad_restraint".into(),
             value: false,
         },
-        Control::Checkbox {
-            name: "qr_uses_circle".into(),
-            value: false,
-        },
         Control::Slider {
             name: "qr_lerp".into(),
             value: 0.5,
@@ -211,6 +207,16 @@ pub fn init_model() -> Model {
             value: "Counter Clockwise".into(),
             options: vec!["None".into(), "Counter Clockwise".into()],
         },
+        Control::Select {
+            name: "qr_shape".into(),
+            value: "Rectangle".into(),
+            options: vec![
+                "Rectangle".into(),
+                "Circle".into(),
+                "Ripple".into(),
+                "Spiral".into(),
+            ],
+        },
         Control::Checkbox {
             name: "center".into(),
             value: true,
@@ -230,13 +236,6 @@ pub fn init_model() -> Model {
         Control::Checkbox {
             name: "quad_4".into(),
             value: false,
-        },
-        Control::Slider {
-            name: "gradient_spread".into(),
-            value: 0.99,
-            min: 0.0,
-            max: 1.0,
-            step: 0.0001,
         },
         Control::Slider {
             name: "circle_radius_min".into(),
@@ -371,7 +370,7 @@ pub fn init_model() -> Model {
     }
 }
 
-pub fn update(_app: &App, model: &mut Model, _update: Update) {
+pub fn update(app: &App, model: &mut Model, _update: Update) {
     if model.cached_trig_fns == None
         || (model.cached_pattern != model.controls.string("pattern"))
     {
@@ -394,7 +393,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let audio_enabled = model.controls.bool("audio_enabled");
     let clamp_circle_radii = model.controls.bool("clamp_circle_radii");
     let quad_restraint = model.controls.bool("quad_restraint");
-    let qr_uses_circle = model.controls.bool("qr_uses_circle");
+    let qr_shape = model.controls.string("qr_shape");
     let qr_lerp = model.controls.float("qr_lerp");
     let qr_divisor = model.controls.float("qr_divisor");
     let qr_pos = model.controls.float("qr_pos");
@@ -404,7 +403,6 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let weave_scale = model.controls.float("weave_scale");
     let weave_amplitude = model.controls.float("weave_amplitude");
     let pattern = model.controls.string("pattern");
-    let gradient_spread = model.controls.float("gradient_spread");
     let circle_radius_min = model.controls.float("circle_radius_min");
     let circle_radius_max = model.controls.float("circle_radius_max");
     let animation = &model.animation;
@@ -461,6 +459,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
     let max_mag = model.displacer_configs.len() as f32 * displacer_strength;
     let gradient = &model.gradient;
+    let time = app.time;
 
     model.ellipses = model
         .grid
@@ -473,26 +472,17 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
             for config in &enabled_displacer_configs {
                 if quad_restraint {
-                    let displacer_rect = Rect::from_xy_wh(
+                    if QuadShape::from_str(&qr_shape).contains_point(
                         config.displacer.position * qr_pos,
                         vec2(
                             SKETCH_CONFIG.w as f32 / 3.0,
                             SKETCH_CONFIG.h as f32 / 3.0,
                         ) * qr_size,
-                    );
-
-                    if qr_uses_circle {
-                        let displacer_circle =
-                            Ellipse::new(displacer_rect, 24.0);
-                        if circle_contains_point(&displacer_circle, point) {
-                            current_qr_kind = config.kind;
-                            quad_contains = true;
-                        }
-                    } else {
-                        if rect_contains_point(&displacer_rect, point) {
-                            current_qr_kind = config.kind;
-                            quad_contains = true;
-                        }
+                        *point,
+                        time,
+                    ) {
+                        current_qr_kind = config.kind;
+                        quad_contains = true;
                     }
                 }
                 let displacement = config.displacer.influence(*point);
@@ -507,9 +497,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             for config in &enabled_displacer_configs {
                 let displacement = config.displacer.influence(*point);
                 let influence = displacement.length();
-                let color_position = (influence / config.displacer.strength)
-                    .powf(gradient_spread)
-                    .clamp(0.0, 1.0);
+                let color_position =
+                    (influence / config.displacer.strength).clamp(0.0, 1.0);
                 let color = gradient.get(color_position);
                 let weight = influence * inv_total;
                 blended_color = blended_color.mix(&color, weight);
@@ -858,4 +847,58 @@ fn _split_into_nonet(
     }
 
     sections
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum QuadShape {
+    Rectangle,
+    Circle,
+    Ripple,
+    Spiral,
+}
+
+impl QuadShape {
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "Rectangle" => QuadShape::Rectangle,
+            "Circle" => QuadShape::Circle,
+            "Ripple" => QuadShape::Ripple,
+            "Spiral" => QuadShape::Spiral,
+            _ => QuadShape::Rectangle,
+        }
+    }
+
+    pub fn contains_point(
+        &self,
+        center: Vec2,
+        size: Vec2,
+        point: Vec2,
+        time: f32,
+    ) -> bool {
+        match self {
+            QuadShape::Rectangle => {
+                let rect = Rect::from_xy_wh(center, size);
+                rect_contains_point(&rect, &point)
+            }
+            QuadShape::Circle => {
+                let rect = Rect::from_xy_wh(center, size);
+                circle_contains_point(&Ellipse::new(rect, 24.0), &point)
+            }
+            QuadShape::Ripple => {
+                let dx = (point.x - center.x) / size.x;
+                let dy = (point.y - center.y) / size.y;
+                let distance = (dx * dx + dy * dy).sqrt();
+                let wave = (distance * 10.0 + time).sin() * 0.2;
+                distance < 1.0 + wave
+            }
+            QuadShape::Spiral => {
+                let dx = (point.x - center.x) / size.x;
+                let dy = (point.y - center.y) / size.y;
+                let distance = (dx * dx + dy * dy).sqrt();
+                let angle = dy.atan2(dx);
+                let spiral = (angle * 3.0 + time + distance * 4.0).sin() * 0.2;
+                distance < 1.0 + spiral
+            }
+        }
+    }
 }
