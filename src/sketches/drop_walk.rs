@@ -10,7 +10,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(400),
+    gui_h: Some(250),
 };
 
 const MAX_DROPS: usize = 5000;
@@ -137,21 +137,14 @@ pub fn init_model() -> Model {
             step: 1.0,
         },
         Control::Slider {
-            name: "center_min_radius".to_string(),
-            value: 2.0,
-            min: 1.0,
-            max: 50.0,
-            step: 1.0,
-        },
-        Control::Slider {
-            name: "center_max_radius".to_string(),
+            name: "drop_max_radius".to_string(),
             value: 20.0,
             min: 1.0,
             max: 50.0,
             step: 1.0,
         },
         Control::Slider {
-            name: "center_bw_ratio".to_string(),
+            name: "color_ratio".to_string(),
             value: 0.5,
             min: 0.0,
             max: 1.0,
@@ -159,19 +152,14 @@ pub fn init_model() -> Model {
         },
     ]);
 
-    let (min, max) = safe_range(
-        controls.float("center_min_radius"),
-        controls.float("center_max_radius"),
-    );
-
     let droppers = vec![
         Dropper::new(
             "center".to_string(),
             animation.create_trigger(0.25, 0.0),
             drop_it,
-            min,
-            max,
-            center_color,
+            1.0,
+            controls.float("drop_max_radius"),
+            color_1,
             Walker {
                 w: SKETCH_CONFIG.w as f32,
                 h: SKETCH_CONFIG.h as f32,
@@ -184,9 +172,24 @@ pub fn init_model() -> Model {
             "center".to_string(),
             animation.create_trigger(0.25, 0.0),
             drop_it,
-            min,
-            max,
+            1.0,
+            controls.float("drop_max_radius"),
             color_2,
+            Walker {
+                w: SKETCH_CONFIG.w as f32,
+                h: SKETCH_CONFIG.h as f32,
+                x: 0.0,
+                y: 0.0,
+                step_size: controls.float("step_size"),
+            },
+        ),
+        Dropper::new(
+            "center".to_string(),
+            animation.create_trigger(0.25, 0.0),
+            drop_it,
+            1.0,
+            controls.float("drop_max_radius"),
+            color_3,
             Walker {
                 w: SKETCH_CONFIG.w as f32,
                 h: SKETCH_CONFIG.h as f32,
@@ -214,12 +217,9 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
             match dropper.kind.as_str() {
                 "center" => {
-                    let (min, max) = safe_range(
-                        model.controls.float("center_min_radius"),
-                        model.controls.float("center_max_radius"),
-                    );
-                    dropper.min_radius = min;
-                    dropper.max_radius = max;
+                    dropper.min_radius = 0.1;
+                    dropper.max_radius =
+                        model.controls.float("drop_max_radius");
                 }
                 _ => {}
             }
@@ -253,12 +253,13 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .color(*color)
             .points(drop.vertices().iter().cloned());
     }
+
     if model.controls.bool("debug_walker") {
         for dropper in &model.droppers {
             draw.ellipse()
                 .color(BLACK)
                 .xy(dropper.walker.to_vec2())
-                .radius(6.0);
+                .radius(10.0);
         }
     }
 
@@ -291,17 +292,25 @@ fn drop_it(
     }
 }
 
-fn center_color(controls: &Controls) -> Hsl {
-    if random_f32() > controls.float("center_bw_ratio") {
-        hsl(random_range(0.4, 0.5), 1.0, 0.5)
+fn color_1(controls: &Controls) -> Hsl {
+    if random_f32() > controls.float("color_ratio") {
+        hsl(random_range(0.38, 0.47), 1.0, 0.5)
     } else {
         hsl(0.0, 0.0, 1.0)
     }
 }
 
 fn color_2(controls: &Controls) -> Hsl {
-    if random_f32() > controls.float("center_bw_ratio") {
-        hsl(random_range(0.9, 1.0), 1.0, 0.5)
+    if random_f32() > controls.float("color_ratio") {
+        hsl(random_range(0.8, 0.95), 1.0, 0.5)
+    } else {
+        hsl(0.0, 0.0, 1.0)
+    }
+}
+
+fn color_3(controls: &Controls) -> Hsl {
+    if random_f32() > controls.float("color_ratio") {
+        hsl(random_range(0.6, 0.65), 1.0, 0.5)
     } else {
         hsl(0.0, 0.0, 1.0)
     }

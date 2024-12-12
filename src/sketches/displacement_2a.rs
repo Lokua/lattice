@@ -15,7 +15,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(610),
+    gui_h: Some(680),
 };
 
 const DEBUG_QUADS: bool = false;
@@ -67,10 +67,8 @@ impl Model {
             map_range(
                 self.animation.animate(
                     vec![
-                        KF::new(0.0, 24.0),
-                        KF::new(1.0, 8.0),
-                        KF::new(0.0, 8.0),
-                        KF::new(1.0, 8.0),
+                        KF::new(0.0, 16.0),
+                        KF::new(1.0, 16.0),
                         KF::new(0.0, KF::END),
                     ],
                     0.0,
@@ -136,8 +134,12 @@ pub fn init_model() -> Model {
     let audio = Audio::new(SAMPLE_RATE, SKETCH_CONFIG.fps);
 
     let controls = Controls::new(vec![
+        Control::Checkbox {
+            name: "audio_enabled".into(),
+            value: false,
+        },
         Control::Slider {
-            name: "rise_rate".to_string(),
+            name: "rise_rate".into(),
             value: 0.96,
             min: 0.001,
             max: 1.0,
@@ -154,6 +156,13 @@ pub fn init_model() -> Model {
             name: "pattern".into(),
             value: "cos,sin".into(),
             options: generate_pattern_options(),
+        },
+        Control::Slider {
+            name: "scale".into(),
+            value: 1.0,
+            min: 0.1,
+            max: 4.0,
+            step: 0.1,
         },
         Control::Checkbox {
             name: "clamp_circle_radii".into(),
@@ -447,7 +456,8 @@ pub fn init_model() -> Model {
         cached_pattern,
         cached_trig_fns: None,
         gradient: Gradient::new(vec![
-            LIGHTGREEN.into_lin_srgb(),
+            // LIGHTGREEN.into_lin_srgb(),
+            LIGHTCORAL.into_lin_srgb(),
             AZURE.into_lin_srgb(),
         ]),
         ellipses: Vec::with_capacity(GRID_SIZE),
@@ -463,6 +473,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.update_trig_fns();
     }
 
+    let audio_enabled = model.controls.bool("audio_enabled");
     let clamp_circle_radii = model.controls.bool("clamp_circle_radii");
     let quad_restraint = model.controls.bool("quad_restraint");
     let qr_uses_circle = model.controls.bool("qr_uses_circle");
@@ -490,9 +501,10 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.controls.float("rise_rate"),
         model.controls.float("fall_rate"),
     );
-    let mid_band = model.fft_bands[5];
 
     let cached_trig_fns = model.cached_trig_fns.clone();
+
+    let band_for_freq = model.fft_bands[0];
     let distance_fn: CustomDistanceFn =
         Some(Arc::new(move |grid_point, position| {
             weave(
@@ -500,7 +512,11 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 grid_point.y,
                 position.x,
                 position.y,
-                map_range(mid_band, 0.0, 1.0, 0.01, weave_frequency),
+                if audio_enabled {
+                    map_range(band_for_freq, 0.0, 1.0, weave_frequency, 0.01)
+                } else {
+                    weave_frequency
+                },
                 weave_scale,
                 weave_amplitude,
                 pattern.clone(),
@@ -512,13 +528,11 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         config.update(animation, controls);
         config.displacer.set_custom_distance_fn(distance_fn.clone());
         config.displacer.set_radius(displacer_radius);
-        config.displacer.set_strength(map_range(
-            model.fft_bands[0],
-            0.0,
-            1.0,
-            0.5,
-            displacer_strength,
-        ));
+        config.displacer.set_strength(if audio_enabled {
+            map_range(model.fft_bands[7], 0.0, 1.0, 0.5, displacer_strength)
+        } else {
+            displacer_strength
+        });
     }
 
     let enabled_displacer_configs: Vec<&DisplacerConfig> = model
@@ -609,16 +623,20 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 } else {
                     blended_color
                 };
+                let displaced_point = if audio_enabled {
+                    let bass_to_qr_divisor = map_range(
+                        model.fft_bands[5],
+                        0.0,
+                        1.0,
+                        qr_divisor,
+                        0.0,
+                    );
+                    *point + (total_displacement / bass_to_qr_divisor)
+                } else {
+                    *point + (total_displacement / qr_divisor)
+                };
                 (
-                    *point
-                        + (total_displacement
-                            / map_range(
-                                model.fft_bands[4],
-                                0.0,
-                                1.0,
-                                qr_divisor,
-                                0.0,
-                            )),
+                    displaced_point,
                     radius,
                     gradient.get(0.0).mix(&color, qr_lerp),
                 )
@@ -635,8 +653,11 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     frame.clear(BLACK);
     draw.background().color(rgba(0.1, 0.1, 0.1, 0.01));
 
+    let scaled_draw = draw.scale(model.controls.float("scale"));
+
     for (position, radius, color) in &model.ellipses {
-        draw.ellipse()
+        scaled_draw
+            .ellipse()
             .no_fill()
             .stroke(*color)
             .stroke_weight(0.5)
