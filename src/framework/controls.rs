@@ -58,6 +58,13 @@ impl Control {
         }
     }
 
+    pub fn checkbox(name: &str, value: bool) -> Control {
+        Control::Checkbox {
+            name: name.to_string(),
+            value,
+        }
+    }
+
     pub fn slider(
         name: &str,
         value: f32,
