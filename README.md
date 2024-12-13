@@ -5,7 +5,7 @@ A hobbyist project exploring generative art while learning Rust and
 
 Stuff like this:
 
-<img src="images/1000x/displacement_2-tm8s9.png" alt="displacement_2-tm8s9" width="400">
+<img src="images/displacement_2-tm8s9.png" alt="displacement_2-tm8s9" width="400">
 
 You can see more here on github by looking at the auto generated
 [markdown index](index.md).
@@ -17,14 +17,14 @@ performance. It provides a personal framework around nannou that simplifies
 creating multiple sketches by handling common concerns like window creation, GUI
 controls, and declarative frame-based animation.
 
-## Planned Features TODO
+## Features / TODO
 
 - [x] Export frame captures and generate MP4 videos for any sketch
-- [ ] MIDI synchronization options:
-  - [x] Restart frame counter when receiving MIDI start signal
-  - [x] Queue frame/video recording when receiving MIDI start signal
+- [x] MIDI synchronization options:
+  - Restart frame counter when receiving MIDI start signal
+  - Queue frame/video recording to start when receiving MIDI Start message
   - Send start signal to DAW when starting sketch
-- [ ] Receive MIDI enable parameter automation via automation lanes (MIDI CC)
+- [x] Receive MIDI enable parameter automation via automation lanes (MIDI CC)
 - [x] Common controls system:
   - Shared controls available to all sketches
   - Declarative per-sketch control definitions
@@ -35,6 +35,7 @@ controls, and declarative frame-based animation.
     values over musical beats
 - [x] Automatic store/recall of GUI control/parameters
 - [x] Audio reactivity. Basic peak, rms, and FFT available to use in sketches
+      through a dead simple API
 
 ## Status
 
@@ -43,7 +44,8 @@ with more functionality planned.
 
 ## Requirements
 
-This project requires or optionally needs:
+This project has been developed on MacOS, though I'm sure most of it would work
+on other platforms. This project requires or optionally needs:
 
 - Rust
 - Git LFS for screenshot storage (perhaps this is optional? I'm not too familiar
@@ -70,9 +72,41 @@ This project requires or optionally needs:
    `just start <name>` where `name` is what you put in your file's
    `SKETCH_CONFIG.name` field.
 
+### Other Notes (mostly for myself so I don't forget)
+
+Lattice is hardcoded to accept MIDI on a virtual MIDI device that must be named
+`IAC Driver Lattice In`.
+
+#### MIDI Loopback
+
+To control synth parameters in Ableton and Lattice parameters simultaneously,
+you need to enable MIDI loopback by sending MIDI to `Lattice In` and also route
+`Lattice In` back in to Live to control parameters. Here's the routing:
+
+![Live MIDI Preferences](assets/live-midi-prefs.png)
+
+To use Ableton automation lanes to control Lattice params, follow these steps:
+
+1. Create a MIDI track and clip and add CC automation to it.
+2. In the tracks **MIDI To** router, select `IAC Driver Lattice In` and `Ch. 1`
+
+Those steps are all you need to send MIDI to Lattice to control parameters. As
+for controlling a live parameter with that same CC, follow these steps:
+
+1. Play your clip containing the CC data
+2. Stop the transport (this is important!)
+3. Enter MIDI Mapping mode.
+4. Locate the parameter to you want to map and select it (make sure it's the
+   last thing you've clicked)
+5. Press the Space bar to start the transport. This should do it!
+
+See the [midi_test.rs sketch][midi-sketch-link] for an example of how to map a
+control to something.
+
 [nannou-link]: https://github.com/nannou-org/nannou
 [p5-link]: https://github.com/Lokua/p5/tree/main
 [just-link]: https://github.com/casey/just
 [template-link]: src/sketches/template.rs
+[midi-sketch-link]: src/sketches/midi_test.rs
 [module-link]: src/sketches/mod.res
 [main-link]: src/main.rs

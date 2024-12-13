@@ -1,4 +1,3 @@
-use nannou::color::*;
 use nannou::prelude::*;
 
 use crate::framework::prelude::*;
@@ -15,57 +14,25 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 };
 
 pub struct Model {
-    animation: Animation,
-    controls: Controls,
-    radius: f32,
     midi: MidiControls,
 }
 
 impl SketchModel for Model {
     fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
+        None
     }
 }
 
 pub fn init_model() -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
-
-    let controls = Controls::new(vec![Control::Slider {
-        name: "radius".to_string(),
-        value: 100.0,
-        min: 10.0,
-        max: 500.0,
-        step: 1.0,
-    }]);
-
     let midi = MidiControlBuilder::new()
-        .control("saturation", (0, 1), 0.5)
+        .control("a", (0, 1), 0.5)
+        .control("b", (0, 2), 0.5)
         .build();
 
-    let radius = controls.float("radius");
-
-    Model {
-        animation,
-        controls,
-        radius,
-        midi,
-    }
+    Model { midi }
 }
 
-pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    let radius_max = model.controls.float("radius");
-
-    model.radius = model.animation.animate(
-        vec![
-            KF::new(20.0, 2.0),
-            KF::new(radius_max, 1.0),
-            KF::new(radius_max / 2.0, 0.5),
-            KF::new(radius_max, 0.5),
-            KF::new(20.0, KF::END),
-        ],
-        0.0,
-    );
-}
+pub fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let window_rect = app
@@ -80,9 +47,20 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .w_h(window_rect.w(), window_rect.h())
         .hsla(0.0, 0.0, 0.02, 0.1);
 
+    let b = model.midi.get("b");
     draw.ellipse()
-        .color(hsl(0.5, model.midi.get("saturation"), 0.5))
-        .radius(model.radius)
+        .no_fill()
+        .stroke(hsl(map_range(b, 0.0, 1.0, 0.7, 1.0), 0.5, 1.0 - (b * 0.5)))
+        .stroke_weight(5.0)
+        .radius(map_range(sigmoid(b, 12.0), 0.0, 1.0, 1.0, 400.0))
+        .x_y(0.0, 0.0);
+
+    let a = model.midi.get("a");
+    draw.ellipse()
+        .no_fill()
+        .stroke(hsl(0.5, 0.3, a * 0.5))
+        .stroke_weight(10.0)
+        .radius(map_range(sigmoid(a, 12.0), 0.0, 1.0, 1.0, 200.0))
         .x_y(0.0, 0.0);
 
     draw.to_frame(app, &frame).unwrap();
