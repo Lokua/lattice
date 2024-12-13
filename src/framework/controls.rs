@@ -57,6 +57,21 @@ impl Control {
             }
         }
     }
+
+    pub fn slider(
+        name: &str,
+        value: f32,
+        range: (f32, f32),
+        step: f32,
+    ) -> Control {
+        Control::Slider {
+            name: name.to_string(),
+            value,
+            min: range.0,
+            max: range.1,
+            step,
+        }
+    }
 }
 
 pub type ControlValues = HashMap<String, ControlValue>;

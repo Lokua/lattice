@@ -7,3 +7,6 @@ pub mod drop_walk;
 pub mod midi_test;
 pub mod template;
 pub mod untitled;
+
+pub mod studies;
+pub use self::studies::perlin_loop;

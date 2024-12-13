@@ -74,6 +74,7 @@ fn main() {
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
         "midi_test" => run_sketch!(midi_test),
+        "perlin_loop" => run_sketch!(perlin_loop),
         "template" => run_sketch!(template),
         "untitled" => run_sketch!(untitled),
         _ => {
