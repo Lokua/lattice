@@ -45,12 +45,64 @@ pub fn init_model() -> Model {
             0.1,
             (0.0, 0.5),
             0.01,
-            disabled_unless_modes(&[]),
+            disabled_unless_modes(string_vec![
+                "multi_lerp",
+                "per_line",
+                "harmonic_cascade",
+                "quantum_ripples",
+            ]),
         ),
-        Control::slider("x_phase_shift", 0.1, (0.0, 1.0), 0.01),
-        Control::slider("x_harmonic_ratio", 2.0, (1.0, 4.0), 0.1),
-        Control::slider("x_distance_scaling", 0.05, (0.0, 0.2), 0.01),
-        Control::slider("x_complexity", 1.0, (0.1, 3.0), 0.1),
+        Control::slider_x(
+            "x_phase_shift",
+            0.1,
+            (0.0, 1.0),
+            0.01,
+            disabled_unless_modes(string_vec![
+                "multi_lerp",
+                "wave_interference",
+                "fractal_waves",
+                "moire",
+                "standing_waves",
+            ]),
+        ),
+        Control::slider_x(
+            "x_harmonic_ratio",
+            2.0,
+            (1.0, 4.0),
+            0.1,
+            disabled_unless_modes(string_vec![
+                "multi_lerp",
+                "line_phase",
+                "wave_interference",
+                "harmonic_cascade",
+                "fractal_waves",
+                "moire",
+                "standing_waves",
+                "quantum_ripples",
+            ]),
+        ),
+        Control::slider_x(
+            "x_distance_scaling",
+            0.05,
+            (0.0, 0.2),
+            0.01,
+            disabled_unless_modes(string_vec!["multi_lerp", "ripples"]),
+        ),
+        Control::slider_x(
+            "x_complexity",
+            1.0,
+            (0.1, 3.0),
+            0.1,
+            disabled_unless_modes(string_vec![
+                "multi_lerp",
+                "spiral",
+                "wave_interference",
+                "fractal_waves",
+                "moire",
+                "standing_waves",
+                "quantum_ripples",
+            ]),
+        ),
     ]);
 
     let lines = Vec::with_capacity(controls.float("n_lines") as usize);
@@ -146,17 +198,8 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-pub fn disabled_unless_modes(
-    modes: &[&str],
-) -> impl Fn(&ControlValues) -> bool {
-    let modes: Vec<String> = modes.iter().map(|s| s.to_string()).collect();
-    move |controls| {
-        if let Some(ControlValue::String(mode)) = controls.get("mode") {
-            !modes.contains(mode)
-        } else {
-            true // Disable if mode control doesn't exist or isn't a string
-        }
-    }
+pub fn disabled_unless_modes(modes: Vec<String>) -> impl Fn(&Controls) -> bool {
+    move |controls| !modes.contains(&controls.string("mode"))
 }
 
 type XModFn = fn(f32, f32, f32, f32, f32, f32, &XModParams) -> f32;
