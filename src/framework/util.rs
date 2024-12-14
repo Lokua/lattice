@@ -161,3 +161,17 @@ pub fn safe_range(min: f32, max: f32) -> (f32, f32) {
     }
     (a, b)
 }
+
+pub fn multi_lerp(values: &[f32], t: f32) -> f32 {
+    let num_segments = values.len() - 1;
+    let scaled_t = t * num_segments as f32;
+    let index = scaled_t.floor() as usize;
+    let segment_t = scaled_t - index as f32;
+
+    // Handle edge case where t = 1.0
+    if index >= num_segments {
+        return values[num_segments];
+    }
+
+    lerp(values[index], values[index + 1], segment_t)
+}

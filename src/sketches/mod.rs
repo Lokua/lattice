@@ -10,3 +10,4 @@ pub use self::studies::audio_test;
 pub use self::studies::midi_test;
 pub use self::studies::noise;
 pub use self::studies::perlin_loop;
+pub use self::studies::vertical;
