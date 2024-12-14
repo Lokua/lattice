@@ -5,14 +5,20 @@ pub struct Keyframe {
     pub value: f32,
     pub duration: f32,
 }
+
+pub type KF = Keyframe;
+
 impl Keyframe {
     pub const END: f32 = 0.0;
+
     pub fn new(value: f32, duration: f32) -> Self {
         Self { value, duration }
     }
 }
 
-pub type KF = Keyframe;
+pub fn kf(value: f32, duration: f32) -> KF {
+    KF::new(value, duration)
+}
 
 pub struct Trigger {
     every: f32,
