@@ -89,6 +89,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "max_radius".to_string(),
@@ -96,6 +97,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 500.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "strength".to_string(),
@@ -103,6 +105,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 500.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "corner_radius".to_string(),
@@ -110,6 +113,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 100.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "corner_strength".to_string(),
@@ -117,6 +121,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 100.0,
             step: 1.0,
+            disabled: None,
         },
     ]);
 

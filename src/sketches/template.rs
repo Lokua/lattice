@@ -36,6 +36,7 @@ pub fn init_model() -> Model {
         min: 10.0,
         max: 500.0,
         step: 1.0,
+        disabled: None,
     }]);
 
     let radius = controls.float("radius");

@@ -121,6 +121,7 @@ pub fn init_model() -> Model {
         Control::Checkbox {
             name: "debug_walker".to_string(),
             value: false,
+            disabled: None,
         },
         Control::Slider {
             name: "step_size".to_string(),
@@ -128,6 +129,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 200.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "splatter_radius".to_string(),
@@ -135,6 +137,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "drop_max_radius".to_string(),
@@ -142,6 +145,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "color_ratio".to_string(),
@@ -149,6 +153,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
     ]);
 

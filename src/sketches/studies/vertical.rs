@@ -40,7 +40,13 @@ pub fn init_model() -> Model {
         Control::slider("amplitude", 20.0, (0.0, 300.0), 1.0),
         Control::slider("frequency", 0.1, (0.0, 0.1), 0.00001),
         Control::slider("weight", 1.0, (0.1, 4.0), 0.1),
-        Control::slider("x_line_scaling", 0.1, (0.0, 0.5), 0.01),
+        Control::slider_x(
+            "x_line_scaling",
+            0.1,
+            (0.0, 0.5),
+            0.01,
+            disabled_unless_modes(&[]),
+        ),
         Control::slider("x_phase_shift", 0.1, (0.0, 1.0), 0.01),
         Control::slider("x_harmonic_ratio", 2.0, (1.0, 4.0), 0.1),
         Control::slider("x_distance_scaling", 0.05, (0.0, 0.2), 0.01),
@@ -138,6 +144,19 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     draw.to_frame(app, &frame).unwrap();
+}
+
+pub fn disabled_unless_modes(
+    modes: &[&str],
+) -> impl Fn(&ControlValues) -> bool {
+    let modes: Vec<String> = modes.iter().map(|s| s.to_string()).collect();
+    move |controls| {
+        if let Some(ControlValue::String(mode)) = controls.get("mode") {
+            !modes.contains(mode)
+        } else {
+            true // Disable if mode control doesn't exist or isn't a string
+        }
+    }
 }
 
 type XModFn = fn(f32, f32, f32, f32, f32, f32, &XModParams) -> f32;

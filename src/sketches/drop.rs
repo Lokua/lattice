@@ -73,6 +73,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "center_max_radius".to_string(),
@@ -80,6 +81,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "trbl_min_radius".to_string(),
@@ -87,6 +89,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "trbl_max_radius".to_string(),
@@ -94,6 +97,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "corner_min_radius".to_string(),
@@ -101,6 +105,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "corner_max_radius".to_string(),
@@ -108,6 +113,7 @@ pub fn init_model() -> Model {
             min: 1.0,
             max: 50.0,
             step: 1.0,
+            disabled: None,
         },
         Control::Slider {
             name: "center_bw_ratio".to_string(),
@@ -115,6 +121,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "trbl_bw_ratio".to_string(),
@@ -122,6 +129,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "corner_bw_ratio".to_string(),
@@ -129,6 +137,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
     ]);
 

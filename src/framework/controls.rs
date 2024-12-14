@@ -1,6 +1,7 @@
 use nannou_egui::egui;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 /// Any sketch using controls needs to implement this trait for the Model
 pub trait HasControls {
@@ -14,7 +15,7 @@ pub enum ControlValue {
     String(String),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub enum Control {
     Slider {
         name: String,
@@ -22,19 +23,114 @@ pub enum Control {
         min: f32,
         max: f32,
         step: f32,
+        #[serde(skip)]
+        disabled: Option<Box<dyn Fn(&ControlValues) -> bool>>,
     },
     Button {
         name: String,
+        #[serde(skip)]
+        disabled: Option<Box<dyn Fn(&ControlValues) -> bool>>,
     },
     Checkbox {
         name: String,
         value: bool,
+        #[serde(skip)]
+        disabled: Option<Box<dyn Fn(&ControlValues) -> bool>>,
     },
     Select {
         name: String,
         value: String,
         options: Vec<String>,
+        #[serde(skip)]
+        disabled: Option<Box<dyn Fn(&ControlValues) -> bool>>,
     },
+}
+
+impl Clone for Control {
+    fn clone(&self) -> Self {
+        match self {
+            Control::Slider {
+                name,
+                value,
+                min,
+                max,
+                step,
+                disabled: _, // Skip cloning the function
+            } => Control::Slider {
+                name: name.clone(),
+                value: *value,
+                min: *min,
+                max: *max,
+                step: *step,
+                disabled: None,
+            },
+            Control::Button { name, disabled: _ } => Control::Button {
+                name: name.clone(),
+                disabled: None,
+            },
+            Control::Checkbox {
+                name,
+                value,
+                disabled: _,
+            } => Control::Checkbox {
+                name: name.clone(),
+                value: *value,
+                disabled: None,
+            },
+            Control::Select {
+                name,
+                value,
+                options,
+                disabled: _,
+            } => Control::Select {
+                name: name.clone(),
+                value: value.clone(),
+                options: options.clone(),
+                disabled: None,
+            },
+        }
+    }
+}
+
+impl Debug for Control {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Control::Slider {
+                name,
+                value,
+                min,
+                max,
+                step,
+                ..
+            } => f
+                .debug_struct("Slider")
+                .field("name", name)
+                .field("value", value)
+                .field("min", min)
+                .field("max", max)
+                .field("step", step)
+                .finish(),
+            Control::Button { name, .. } => {
+                f.debug_struct("Button").field("name", name).finish()
+            }
+            Control::Checkbox { name, value, .. } => f
+                .debug_struct("Checkbox")
+                .field("name", name)
+                .field("value", value)
+                .finish(),
+            Control::Select {
+                name,
+                value,
+                options,
+                ..
+            } => f
+                .debug_struct("Select")
+                .field("name", name)
+                .field("value", value)
+                .field("options", options)
+                .finish(),
+        }
+    }
 }
 
 impl Control {
@@ -62,6 +158,7 @@ impl Control {
         Control::Checkbox {
             name: name.to_string(),
             value,
+            disabled: None,
         }
     }
 
@@ -77,6 +174,7 @@ impl Control {
             min: range.0,
             max: range.1,
             step,
+            disabled: None,
         }
     }
 
@@ -85,16 +183,94 @@ impl Control {
             name: name.into(),
             value: value.into(),
             options,
+            disabled: None,
+        }
+    }
+
+    pub fn slider_x<F>(
+        name: &str,
+        value: f32,
+        range: (f32, f32),
+        step: f32,
+        disabled: F,
+    ) -> Control
+    where
+        F: Fn(&ControlValues) -> bool + 'static,
+    {
+        Control::Slider {
+            name: name.to_string(),
+            value,
+            min: range.0,
+            max: range.1,
+            step,
+            disabled: Some(Box::new(disabled)),
+        }
+    }
+
+    pub fn checkbox_x<F>(name: &str, value: bool, disabled: F) -> Control
+    where
+        F: Fn(&ControlValues) -> bool + 'static,
+    {
+        Control::Checkbox {
+            name: name.to_string(),
+            value,
+            disabled: Some(Box::new(disabled)),
+        }
+    }
+
+    pub fn select_x<F>(
+        name: &str,
+        value: &str,
+        options: Vec<String>,
+        disabled: F,
+    ) -> Control
+    where
+        F: Fn(&ControlValues) -> bool + 'static,
+    {
+        Control::Select {
+            name: name.into(),
+            value: value.into(),
+            options,
+            disabled: Some(Box::new(disabled)),
+        }
+    }
+
+    fn is_disabled(&self, values: &ControlValues) -> bool {
+        match self {
+            Control::Slider { disabled, .. }
+            | Control::Button { disabled, .. }
+            | Control::Checkbox { disabled, .. }
+            | Control::Select { disabled, .. } => {
+                disabled.as_ref().map_or(false, |f| f(values))
+            }
         }
     }
 }
 
 pub type ControlValues = HashMap<String, ControlValue>;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Controls {
     controls: Vec<Control>,
     values: ControlValues,
+}
+
+impl std::fmt::Debug for Controls {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Controls")
+            .field("controls", &self.controls)
+            .field("values", &self.values)
+            .finish()
+    }
+}
+
+impl Clone for Controls {
+    fn clone(&self) -> Self {
+        Self {
+            controls: self.controls.clone(),
+            values: self.values.clone(),
+        }
+    }
 }
 
 impl Controls {
@@ -151,10 +327,12 @@ impl Controls {
 }
 
 pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
-    let controls_list = controls.get_controls().clone();
-    let mut any_changed = false;
+    let values = controls.values().clone();
+    let mut changes = Vec::new();
 
-    for control in controls_list {
+    for control in &controls.controls {
+        let is_disabled = control.is_disabled(&values);
+
         match control {
             Control::Slider {
                 name,
@@ -163,52 +341,66 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
                 step,
                 ..
             } => {
-                let mut value = controls.float(&name);
+                let mut value = controls.float(name);
                 if ui
                     .add_enabled(
-                        true,
-                        egui::Slider::new(&mut value, min..=max)
-                            .text(&name)
-                            .step_by(step.into()),
+                        !is_disabled,
+                        egui::Slider::new(&mut value, *min..=*max)
+                            .text(name)
+                            .step_by((*step).into()),
                     )
                     .changed()
                 {
-                    controls.update_value(&name, ControlValue::Float(value));
-                    any_changed = true;
+                    changes.push((name.clone(), ControlValue::Float(value)));
                 }
+            }
+            Control::Button { name, .. } => {
+                if ui
+                    .add_enabled(!is_disabled, egui::Button::new(name))
+                    .clicked()
+                {}
             }
             Control::Checkbox { name, .. } => {
-                let mut value = controls.bool(&name);
-                if ui.checkbox(&mut value, &name).changed() {
-                    controls.update_value(&name, ControlValue::Bool(value));
-                    any_changed = true;
+                let mut value = controls.bool(name);
+                if ui
+                    .add_enabled(
+                        !is_disabled,
+                        egui::Checkbox::new(&mut value, name),
+                    )
+                    .changed()
+                {
+                    changes.push((name.clone(), ControlValue::Bool(value)));
                 }
             }
-            Control::Button { name } => if ui.button(&name).clicked() {},
             Control::Select { name, options, .. } => {
-                let mut value = controls.string(&name);
-                egui::ComboBox::from_label(&name)
+                let mut value = controls.string(name);
+                egui::ComboBox::from_label(name)
                     .selected_text(&value)
                     .show_ui(ui, |ui| {
+                        ui.set_enabled(!is_disabled);
                         for option in options {
                             if ui
                                 .selectable_value(
                                     &mut value,
                                     option.clone(),
-                                    &option,
+                                    option,
                                 )
                                 .changed()
                             {
-                                controls.update_value(
-                                    &name,
+                                changes.push((
+                                    name.clone(),
                                     ControlValue::String(value.clone()),
-                                );
-                                any_changed = true;
+                                ));
                             }
                         }
                     });
             }
         }
+    }
+
+    let any_changed = !changes.is_empty();
+    for (name, value) in changes {
+        controls.update_value(&name, value);
     }
 
     any_changed

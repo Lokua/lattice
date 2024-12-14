@@ -124,14 +124,17 @@ pub fn init_model() -> Model {
             name: "pattern".into(),
             value: "cos,sin".into(),
             options: generate_pattern_options(),
+            disabled: None,
         },
         Control::Checkbox {
             name: "clamp_circle_radii".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "animate_frequency".into(),
             value: false,
+            disabled: None,
         },
         Control::Slider {
             name: "gradient_spread".into(),
@@ -139,6 +142,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "circle_radius_min".into(),
@@ -146,6 +150,7 @@ pub fn init_model() -> Model {
             min: 0.1,
             max: 12.0,
             step: 0.1,
+            disabled: None,
         },
         Control::Slider {
             name: "circle_radius_max".into(),
@@ -153,6 +158,7 @@ pub fn init_model() -> Model {
             min: 0.1,
             max: 12.0,
             step: 0.1,
+            disabled: None,
         },
         Control::Slider {
             name: "displacer_radius".into(),
@@ -160,6 +166,7 @@ pub fn init_model() -> Model {
             min: 0.0001,
             max: 0.01,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "displacer_strength".into(),
@@ -167,6 +174,7 @@ pub fn init_model() -> Model {
             min: 0.5,
             max: 100.0,
             step: 0.5,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_frequency".into(),
@@ -174,6 +182,7 @@ pub fn init_model() -> Model {
             min: 0.01,
             max: 0.2,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_scale".into(),
@@ -181,6 +190,7 @@ pub fn init_model() -> Model {
             min: 0.001,
             max: 0.1,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_amplitude".into(),
@@ -188,26 +198,32 @@ pub fn init_model() -> Model {
             min: 0.0001,
             max: 0.01,
             step: 0.0001,
+            disabled: None,
         },
         Control::Checkbox {
             name: "center".into(),
             value: true,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_1".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_2".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_3".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_4".into(),
             value: false,
+            disabled: None,
         },
     ]);
 
