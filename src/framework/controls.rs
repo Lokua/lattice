@@ -79,6 +79,14 @@ impl Control {
             step,
         }
     }
+
+    pub fn select(name: &str, value: &str, options: Vec<String>) -> Control {
+        Control::Select {
+            name: name.into(),
+            value: value.into(),
+            options,
+        }
+    }
 }
 
 pub type ControlValues = HashMap<String, ControlValue>;
@@ -157,7 +165,8 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
             } => {
                 let mut value = controls.float(&name);
                 if ui
-                    .add(
+                    .add_enabled(
+                        true,
                         egui::Slider::new(&mut value, min..=max)
                             .text(&name)
                             .step_by(step.into()),

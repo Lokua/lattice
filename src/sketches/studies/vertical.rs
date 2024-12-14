@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(200),
+    gui_h: Some(500),
 };
 
 pub struct Model {
@@ -19,7 +19,7 @@ pub struct Model {
     animation: Animation,
     controls: Controls,
     lines: Vec<Vec<Point2>>,
-    patterns: Vec<XPosFn>,
+    patterns: Vec<XModFn>,
 }
 
 impl SketchModel for Model {
@@ -28,16 +28,23 @@ impl SketchModel for Model {
     }
 }
 
-type XPosFn = fn(f32, f32, f32, f32, f32, f32) -> f32;
-
 pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
+    let mode_options = [string_vec!["multi_lerp"], XMods::to_names()].concat();
+
     let controls = Controls::new(vec![
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
+        Control::select("mode", "per_line", mode_options),
         Control::slider("n_lines", 64.0, (16.0, 256.0), 2.0),
         Control::slider("amplitude", 20.0, (0.0, 300.0), 1.0),
         Control::slider("frequency", 0.1, (0.0, 0.1), 0.00001),
+        Control::slider("weight", 1.0, (0.1, 4.0), 0.1),
+        Control::slider("x_line_scaling", 0.1, (0.0, 0.5), 0.01),
+        Control::slider("x_phase_shift", 0.1, (0.0, 1.0), 0.01),
+        Control::slider("x_harmonic_ratio", 2.0, (1.0, 4.0), 0.1),
+        Control::slider("x_distance_scaling", 0.05, (0.0, 0.2), 0.01),
+        Control::slider("x_complexity", 1.0, (0.1, 3.0), 0.1),
     ]);
 
     let lines = Vec::with_capacity(controls.float("n_lines") as usize);
@@ -46,20 +53,7 @@ pub fn init_model() -> Model {
         animation,
         controls,
         lines,
-        patterns: vec![
-            per_line,      // v
-            serrated,      // u
-            ripples,       // v
-            zipper,        // u
-            pockets,       // v
-            morse,         // u
-            line_phase,    // v
-            double_helix,  // u
-            pattern_sine,  // v
-            pinch,         // u
-            pattern_helix, // v
-            breathing,     // u
-        ],
+        patterns: XMods::to_vec(),
     }
 }
 
@@ -70,8 +64,15 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let a = model.controls.float("amplitude");
     let f = model.controls.float("frequency");
 
-    model.lines = Vec::new();
+    let params = XModParams {
+        line_scaling: model.controls.float("x_line_scaling"),
+        phase_shift: model.controls.float("x_phase_shift"),
+        harmonic_ratio: model.controls.float("x_harmonic_ratio"),
+        distance_scaling: model.controls.float("x_distance_scaling"),
+        complexity: model.controls.float("x_complexity"),
+    };
 
+    model.lines = Vec::new();
     let step = w / n_lines as f32;
     let start_x = -(w / 2.0) + (step / 2.0);
 
@@ -82,13 +83,24 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         for j in 0..n_lines {
             let y = map_range(j, 0, n_lines - 1, -h / 2.0, h / 2.0);
 
-            let values = model
-                .patterns
-                .iter()
-                .map(|func| func(x, y, i as f32, a, f, n_lines as f32))
-                .collect::<Vec<f32>>();
+            let x = match model.controls.string("mode").as_str() {
+                "multi_lerp" => {
+                    let values = model
+                        .patterns
+                        .iter()
+                        .map(|func| {
+                            func(x, y, i as f32, a, f, n_lines as f32, &params)
+                        })
+                        .collect::<Vec<f32>>();
 
-            let x = multi_lerp(&values, model.animation.ping_pong(36.0));
+                    multi_lerp(&values, model.animation.ping_pong(24.0))
+                }
+                _ => {
+                    let func =
+                        XMods::func_by_name(model.controls.string("mode"));
+                    func(x, y, i as f32, a, f, n_lines as f32, &params)
+                }
+            };
 
             points.push(pt2(x, y));
         }
@@ -115,7 +127,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     for (index, line) in model.lines.iter().enumerate() {
         zoomed_draw
             .polyline()
-            .weight(2.0)
+            .weight(model.controls.float("weight"))
             .points(line.iter().cloned())
             .color(hsla(
                 0.44,
@@ -128,53 +140,215 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-// Varied from line to line (v)
-// ----------------------------
+type XModFn = fn(f32, f32, f32, f32, f32, f32, &XModParams) -> f32;
 
-fn per_line(x: f32, y: f32, i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    let line_f = f * (1.0 + i * 0.1);
-    x + a * (y * line_f).sin()
-}
-fn ripples(x: f32, y: f32, i: f32, a: f32, f: f32, n: f32) -> f32 {
-    let distance_from_center = (i as f32 - n as f32 / 2.0).abs();
-    let line_f = f * (1.0 + distance_from_center * 0.05);
-    x + a * (y * line_f).sin()
-}
-fn pockets(x: f32, y: f32, i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    let group = (i as f32 * 0.2).sin();
-    x + a * (y * f).sin() * group
-}
-fn line_phase(x: f32, y: f32, i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    let line_phase = i as f32 * 0.1;
-    x + a * (y * f + line_phase).sin() * (y * f * 2.0 + line_phase).cos()
-}
-fn pattern_sine(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * (y * f).sin()
-}
-fn pattern_helix(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * (y * f).sin() * (1.0 + (y * f * 0.5).cos())
+struct XModParams {
+    line_scaling: f32,
+    phase_shift: f32,
+    harmonic_ratio: f32,
+    distance_scaling: f32,
+    complexity: f32,
 }
 
-// Unified aross all lines (u)
-// ---------------------------
-fn serrated(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * ((y * f).sin() * (y * f * 5.0).cos())
+impl XModParams {
+    #[allow(dead_code)]
+    fn default() -> Self {
+        Self {
+            line_scaling: 0.1,
+            phase_shift: 0.1,
+            harmonic_ratio: 2.0,
+            distance_scaling: 0.05,
+            complexity: 1.0,
+        }
+    }
 }
-fn zipper(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * (y * f).sin() * ((y * f * 3.0).cos()).abs()
-}
-fn morse(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    let fast = (y * f * 10.0).sin().abs();
-    let slow = (y * f).sin();
-    x + a * fast * slow
-}
-fn double_helix(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * (y * f).sin() * (1.0 + (y * f * 0.5).cos())
-}
-fn pinch(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    let pinch = 1.0 / (1.0 + (y * f).cos().abs());
-    x + a * pinch * (y * f).sin()
-}
-fn breathing(x: f32, y: f32, _i: f32, a: f32, f: f32, _n: f32) -> f32 {
-    x + a * (y * f).sin() * (y * 0.01).cos()
+
+struct XMods {}
+
+impl XMods {
+    fn to_names() -> Vec<String> {
+        string_vec![
+            "per_line",
+            "ripples",
+            "line_phase",
+            "spiral",
+            "wave_interference",
+            "harmonic_cascade",
+            "fractal_waves",
+            "moire",
+            "standing_waves",
+            "quantum_ripples"
+        ]
+    }
+
+    fn func_by_name(name: String) -> XModFn {
+        match name.as_str() {
+            "per_line" => XMods::per_line,
+            "ripples" => XMods::ripples,
+            "line_phase" => XMods::line_phase,
+            "spiral" => XMods::spiral,
+            "wave_interference" => XMods::wave_interference,
+            "harmonic_cascade" => XMods::harmonic_cascade,
+            "fractal_waves" => XMods::fractal_waves,
+            "moire" => XMods::moire,
+            "standing_waves" => XMods::standing_waves,
+            "quantum_ripples" => XMods::quantum_ripples,
+            _ => panic!("No function named '{name}'"),
+        }
+    }
+
+    fn to_vec() -> Vec<XModFn> {
+        XMods::to_names()
+            .into_iter()
+            .map(XMods::func_by_name)
+            .collect()
+    }
+
+    fn per_line(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let freq = f * (1.0 + i * p.line_scaling);
+        x + a * (y * freq).sin()
+    }
+
+    fn ripples(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let distance_from_center = (i - n / 2.0).abs();
+        let freq = f * (1.0 + distance_from_center * p.distance_scaling);
+        x + a * (y * freq).sin()
+    }
+
+    fn line_phase(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let phase = i * p.phase_shift;
+        x + a * (y * f + phase).sin() * (y * f * p.harmonic_ratio + phase).cos()
+    }
+
+    fn spiral(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let angle = (i / n) * TAU;
+        let radius = ((x * x + y * y).sqrt() * f).sin();
+        x + a * (radius * angle * p.complexity).sin()
+    }
+
+    fn wave_interference(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let wave1 = (x * f + i * p.phase_shift).sin();
+        let wave2 = (y * f * p.harmonic_ratio + i * p.phase_shift).sin();
+        x + a * wave1 * wave2 * p.complexity
+    }
+
+    fn harmonic_cascade(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let base_wave = (y * f).sin();
+        let harmonic1 = (y * f * p.harmonic_ratio).sin() * 0.5;
+        let harmonic2 = (y * f * p.harmonic_ratio * 2.0).sin() * 0.25;
+        x + a * (base_wave + harmonic1 + harmonic2) * (1.0 + i * p.line_scaling)
+    }
+
+    fn fractal_waves(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let mut sum = 0.0;
+        let mut amplitude = a;
+        let mut frequency = f;
+
+        for _ in 0..3 {
+            sum += (y * frequency + i * p.phase_shift).sin() * amplitude;
+            amplitude *= 0.5;
+            frequency *= p.harmonic_ratio;
+        }
+        x + sum * p.complexity
+    }
+
+    fn moire(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let pattern1 = (x * f + i * p.phase_shift).sin();
+        let pattern2 =
+            (y * f * p.harmonic_ratio + (n - i) * p.phase_shift).sin();
+        x + a * pattern1 * pattern2 * p.complexity
+    }
+
+    fn standing_waves(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        _n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let spatial = (x * f).sin() * (y * f).cos();
+        let temporal = (i * p.phase_shift).cos();
+        x + a * spatial * temporal * p.complexity
+    }
+
+    fn quantum_ripples(
+        x: f32,
+        y: f32,
+        i: f32,
+        a: f32,
+        f: f32,
+        n: f32,
+        p: &XModParams,
+    ) -> f32 {
+        let distance = ((x * x + y * y).sqrt() + i * p.line_scaling) * f;
+        let interference =
+            (distance * p.harmonic_ratio).sin() * (distance / n).cos();
+        x + a * interference * p.complexity
+    }
 }
