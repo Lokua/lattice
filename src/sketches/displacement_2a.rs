@@ -135,6 +135,7 @@ pub fn init_model() -> Model {
         Control::Checkbox {
             name: "audio_enabled".into(),
             value: false,
+            disabled: None,
         },
         Control::Slider {
             name: "rise_rate".into(),
@@ -142,6 +143,7 @@ pub fn init_model() -> Model {
             min: 0.001,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "fall_rate".to_string(),
@@ -149,11 +151,13 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Select {
             name: "pattern".into(),
             value: "cos,sin".into(),
             options: generate_pattern_options(),
+            disabled: None,
         },
         Control::Slider {
             name: "scale".into(),
@@ -161,18 +165,22 @@ pub fn init_model() -> Model {
             min: 0.1,
             max: 4.0,
             step: 0.1,
+            disabled: None,
         },
         Control::Checkbox {
             name: "clamp_circle_radii".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "animate_frequency".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_restraint".into(),
             value: false,
+            disabled: None,
         },
         Control::Slider {
             name: "qr_lerp".into(),
@@ -180,6 +188,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "qr_divisor".into(),
@@ -187,6 +196,7 @@ pub fn init_model() -> Model {
             min: 0.5,
             max: 16.0,
             step: 0.125,
+            disabled: None,
         },
         Control::Slider {
             name: "qr_pos".into(),
@@ -194,6 +204,7 @@ pub fn init_model() -> Model {
             min: 0.125,
             max: 1.0,
             step: 0.125,
+            disabled: None,
         },
         Control::Slider {
             name: "qr_size".into(),
@@ -201,11 +212,13 @@ pub fn init_model() -> Model {
             min: 0.125,
             max: 1.0,
             step: 0.125,
+            disabled: None,
         },
         Control::Select {
             name: "position_animation".into(),
             value: "Counter Clockwise".into(),
             options: vec!["None".into(), "Counter Clockwise".into()],
+            disabled: None,
         },
         Control::Select {
             name: "qr_shape".into(),
@@ -216,26 +229,32 @@ pub fn init_model() -> Model {
                 "Ripple".into(),
                 "Spiral".into(),
             ],
+            disabled: None,
         },
         Control::Checkbox {
             name: "center".into(),
             value: true,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_1".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_2".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_3".into(),
             value: false,
+            disabled: None,
         },
         Control::Checkbox {
             name: "quad_4".into(),
             value: false,
+            disabled: None,
         },
         Control::Slider {
             name: "gradient_spread".into(),
@@ -243,6 +262,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "circle_radius_min".into(),
@@ -250,6 +270,7 @@ pub fn init_model() -> Model {
             min: 0.1,
             max: 12.0,
             step: 0.1,
+            disabled: None,
         },
         Control::Slider {
             name: "circle_radius_max".into(),
@@ -257,6 +278,7 @@ pub fn init_model() -> Model {
             min: 0.1,
             max: 12.0,
             step: 0.1,
+            disabled: None,
         },
         Control::Slider {
             name: "displacer_radius".into(),
@@ -264,6 +286,7 @@ pub fn init_model() -> Model {
             min: 0.0001,
             max: 0.01,
             step: 0.0001,
+            disabled: None,
         },
         Control::Slider {
             name: "displacer_strength".into(),
@@ -271,6 +294,7 @@ pub fn init_model() -> Model {
             min: 0.5,
             max: 100.0,
             step: 0.5,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_frequency".into(),
@@ -278,6 +302,7 @@ pub fn init_model() -> Model {
             min: 0.01,
             max: 0.2,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_scale".into(),
@@ -285,6 +310,7 @@ pub fn init_model() -> Model {
             min: 0.001,
             max: 0.1,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "weave_amplitude".into(),
@@ -292,6 +318,7 @@ pub fn init_model() -> Model {
             min: 0.0001,
             max: 0.01,
             step: 0.0001,
+            disabled: None,
         },
     ]);
 

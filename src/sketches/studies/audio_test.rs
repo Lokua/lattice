@@ -40,6 +40,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "rise_rate".to_string(),
@@ -47,6 +48,7 @@ pub fn init_model() -> Model {
             min: 0.001,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
         Control::Slider {
             name: "fall_rate".to_string(),
@@ -54,6 +56,7 @@ pub fn init_model() -> Model {
             min: 0.0,
             max: 1.0,
             step: 0.001,
+            disabled: None,
         },
     ]);
 
