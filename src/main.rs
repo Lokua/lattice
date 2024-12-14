@@ -77,7 +77,6 @@ fn main() {
         "noise" => run_sketch!(noise),
         "perlin_loop" => run_sketch!(perlin_loop),
         "template" => run_sketch!(template),
-        "untitled" => run_sketch!(untitled),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)
