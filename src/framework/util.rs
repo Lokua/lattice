@@ -10,7 +10,7 @@ pub const TWO_PI: f32 = PI * 2.0;
 
 #[macro_export]
 macro_rules! string_vec {
-    ($($x:expr),*) => (vec![$($x.to_string()),*]);
+    ($($x:expr),* $(,)?) => (vec![$($x.to_string()),*]);
 }
 
 pub trait IntoLinSrgb {
