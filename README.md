@@ -5,7 +5,9 @@ A hobbyist project exploring generative art while learning Rust and
 
 Stuff like this:
 
-<img src="images/displacement_2-tm8s9.png" alt="displacement_2-tm8s9" width="400">
+<img src="images/displacement_2-627iz.png" alt="displacement_2-627iz">
+<img src="images/displacement_2-tm8s9.png" alt="displacement_2-tm8s9">
+<img src="images/displacement_2-vnh7y.png" alt="displacement_2-vnh7y.png">
 
 You can see more here on github by looking at the auto generated
 [markdown index](index.md).
