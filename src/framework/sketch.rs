@@ -1,3 +1,5 @@
+use nannou::color::Rgba;
+
 use super::controls::Controls;
 
 pub struct SketchConfig {
@@ -14,5 +16,9 @@ pub struct SketchConfig {
 pub trait SketchModel {
     fn controls(&mut self) -> Option<&mut Controls> {
         None
+    }
+
+    fn clear_color(&self) -> Rgba {
+        Rgba::new(0.0, 0.0, 0.0, 0.0)
     }
 }

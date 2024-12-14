@@ -1,17 +1,16 @@
 use nannou::color::*;
 use nannou::noise::NoiseFn;
-use nannou::noise::Perlin;
 use nannou::noise::Seedable;
+use nannou::noise::SuperSimplex;
 use nannou::prelude::*;
 
 use crate::framework::prelude::*;
 
 // https://www.youtube.com/watch?v=0YvPgYDR1oM&list=PLeCiJGCSl7jc5UWvIeyQAvmCNc47IuwkM&index=6
-// https://github.com/Lokua/p5/blob/main/src/sketches/perlinNoiseLoop.mjs
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "perlin_loop",
-    display_name: "Perlin Loop",
+    name: "noise",
+    display_name: "Noise",
     fps: 60.0,
     bpm: 134.0,
     w: 700,
@@ -24,13 +23,17 @@ pub struct Model {
     #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
-    noise: Perlin,
+    noise: SuperSimplex,
     last_seed: u32,
 }
 
 impl SketchModel for Model {
     fn controls(&mut self) -> Option<&mut Controls> {
         Some(&mut self.controls)
+    }
+
+    fn clear_color(&self) -> Rgba {
+        hsla(0.0, 0.0, 1.0, 1.0).into()
     }
 }
 
@@ -39,16 +42,15 @@ pub fn init_model() -> Model {
 
     let controls = Controls::new(vec![
         Control::checkbox("rotate", false),
-        Control::slider("circle_radius", 200.0, (1.0, 500.0), 1.0),
-        Control::slider("max_rect_length", 10.0, (1.0, 200.0), 1.0),
-        Control::slider("rect_width", 1.5, (0.5, 5.0), 0.25),
+        Control::slider("max_rect_length", 10.0, (1.0, 400.0), 1.0),
+        Control::slider("rect_width", 1.5, (0.5, 10.0), 0.25),
         Control::slider("noise_scale", 3.0, (0.5, 10.0), 0.1),
         Control::slider("seed", 3.0, (3.0, 33_333.0), 33.0),
-        Control::slider("angle_resolution", 45.0, (15.0, 180.0), 1.0),
+        Control::slider("angle_resolution", 45.0, (3.0, 180.0), 1.0),
         Control::slider("time_x", 1.0, (0.01, 10.0), 0.01),
     ]);
 
-    let noise = Perlin::new();
+    let noise = SuperSimplex::new();
     let last_seed = noise.seed();
 
     Model {
@@ -68,15 +70,23 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
-    let _window_rect = app
+    let window_rect = app
         .window(frame.window_id())
         .expect("Unable to get window")
         .rect();
 
     let draw = app.draw();
-    draw.background().hsl(0.0, 0.0, 0.03);
 
-    let circle_radius = model.controls.float("circle_radius");
+    if frame.nth() == 0 {
+        draw.background().color(WHITE);
+    }
+
+    draw.rect()
+        .w_h(window_rect.w(), window_rect.h())
+        .color(hsla(0.0, 0.0, 1.0, 0.001));
+
+    let circle_radius =
+        model.animation.ping_pong(8.0) * window_rect.w() * (2.0 / 3.0);
     let max_rect_length = model.controls.float("max_rect_length");
     let rect_width = model.controls.float("rect_width");
     let noise_scale = model.controls.float("noise_scale");
@@ -103,7 +113,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         let rect_length = (noise_value + 1.0) * (max_rect_length / 2.0);
         draw_rotated
             .rect()
-            .color(BEIGE)
+            .color(hsl(0.3, 0.05, model.animation.ping_pong(1.0)))
             .x_y(
                 circle_radius * current_angle.cos(),
                 circle_radius * current_angle.sin(),

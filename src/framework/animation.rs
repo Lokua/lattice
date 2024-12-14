@@ -66,6 +66,10 @@ impl Animation {
         progress
     }
 
+    pub fn ping_pong(&self, duration: f32) -> f32 {
+        self.ping_pong_loop_progress(duration)
+    }
+
     pub fn ping_pong_loop_progress(&self, duration: f32) -> f32 {
         let progress = self.loop_progress(duration * 2.0);
         if progress < 0.5 {

@@ -57,8 +57,8 @@ impl FrameController {
         }
 
         if self.render_flag {
-            let rener_interval = now - self.last_render_time;
-            self.frame_intervals.push(rener_interval);
+            let render_interval = now - self.last_render_time;
+            self.frame_intervals.push(render_interval);
             if self.frame_intervals.len() > self.max_intervals {
                 self.frame_intervals.remove(0);
             }

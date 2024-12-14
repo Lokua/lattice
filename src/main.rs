@@ -5,7 +5,7 @@ use nannou_egui::{
     Egui,
 };
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     env,
     error::Error,
     fs,
@@ -74,6 +74,7 @@ fn main() {
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
         "midi_test" => run_sketch!(midi_test),
+        "noise" => run_sketch!(noise),
         "perlin_loop" => run_sketch!(perlin_loop),
         "template" => run_sketch!(template),
         "untitled" => run_sketch!(untitled),
@@ -91,6 +92,7 @@ struct AppModel<S> {
     egui: Egui,
     session_id: String,
     alert_text: String,
+    clear_flag: Cell<bool>,
     recording_state: RecordingState,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
@@ -150,6 +152,7 @@ fn model<S: SketchModel + 'static>(
         gui_window_id,
         egui,
         session_id,
+        clear_flag: Cell::new(false),
         alert_text: "".into(),
         recording_state: RecordingState::new(recording_dir.clone()),
         sketch_model,
@@ -228,6 +231,7 @@ fn update<S: SketchModel>(
         model.sketch_config,
         &mut model.sketch_model,
         &mut model.alert_text,
+        &mut model.clear_flag,
         &mut model.recording_state,
         &ctx,
     );
@@ -240,6 +244,7 @@ fn update_gui<S: SketchModel>(
     sketch_config: &SketchConfig,
     sketch_model: &mut S,
     alert_text: &mut String,
+    clear_flag: &Cell<bool>,
     recording_state: &mut RecordingState,
     ctx: &egui::Context,
 ) {
@@ -274,6 +279,7 @@ fn update_gui<S: SketchModel>(
 
                 draw_pause_button(ui, alert_text);
                 draw_reset_button(ui, alert_text);
+                draw_clear_button(ui, clear_flag, alert_text);
                 draw_clear_cache_button(ui, sketch_config.name, alert_text);
                 draw_queue_record_button(ui, recording_state, alert_text);
                 draw_record_button(
@@ -293,12 +299,17 @@ fn update_gui<S: SketchModel>(
         });
 }
 
-fn view<S>(
+fn view<S: SketchModel>(
     app: &App,
     model: &AppModel<S>,
     frame: Frame,
     sketch_view_fn: fn(&App, &S, Frame),
 ) {
+    if model.clear_flag.get() {
+        frame.clear(model.sketch_model.clear_color());
+        model.clear_flag.set(false);
+    }
+
     let did_render = frame_controller::wrapped_view(
         app,
         &model.sketch_model,
@@ -325,7 +336,7 @@ fn view<S>(
     }
 }
 
-fn view_gui<S>(_app: &App, model: &AppModel<S>, frame: Frame) {
+fn view_gui<S: SketchModel>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
 }
 
@@ -441,7 +452,7 @@ fn capture_frame(
     *alert_text = format!("Image saved to {:?}", file_path);
 }
 
-// I suck at math. Can't figure this out. EGUI controls don't seem to stack linearly.
+// Can't figure this out. EGUI controls don't seem to stack linearly.
 // The more controls, the more the empty space grows between the last control and alert panel.
 // Stick with per-sketch heights for now.
 fn calculate_gui_dimensions(controls: Option<&mut Controls>) -> (u32, u32) {
@@ -461,7 +472,7 @@ fn calculate_gui_dimensions(controls: Option<&mut Controls>) -> (u32, u32) {
 
     let height = HEADER_HEIGHT + controls_height + MIN_FINAL_GAP + ALERT_HEIGHT;
 
-    (410, height)
+    (458, height)
 }
 
 fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {
@@ -485,6 +496,18 @@ fn draw_reset_button(ui: &mut egui::Ui, alert_text: &mut String) {
         frame_controller::reset_frame_count();
         info!("Frame count reset");
         *alert_text = "Reset".into()
+    });
+}
+
+fn draw_clear_button(
+    ui: &mut egui::Ui,
+    clear_flag: &Cell<bool>,
+    alert_text: &mut String,
+) {
+    ui.add(egui::Button::new("Clear")).clicked().then(|| {
+        clear_flag.set(true);
+        info!("Frame cleared");
+        *alert_text = "Cleared".into()
     });
 }
 
@@ -562,6 +585,27 @@ fn draw_record_button(
     });
 }
 
+fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
+    egui::TopBottomPanel::bottom("alerts")
+        .frame(
+            egui::Frame::default()
+                .fill(Color32::from_gray(2))
+                .outer_margin(egui::Margin::same(6.0))
+                .inner_margin(egui::Margin::same(4.0)),
+        )
+        .show_separator_line(false)
+        .min_height(40.0)
+        .show(ctx, |ui| {
+            ui.colored_label(Color32::from_gray(180), alert_text);
+        });
+}
+
+fn draw_avg_fps(ui: &mut egui::Ui) {
+    let avg_fps = frame_controller::average_fps();
+    ui.label("FPS:");
+    ui.colored_label(Color32::from_rgb(0, 255, 0), format!("{:.1}", avg_fps));
+}
+
 fn draw_sketch_controls<S: SketchModel>(
     ui: &mut egui::Ui,
     sketch_model: &mut S,
@@ -584,25 +628,4 @@ fn draw_sketch_controls<S: SketchModel>(
             }
         }
     }
-}
-
-fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
-    egui::TopBottomPanel::bottom("alerts")
-        .frame(
-            egui::Frame::default()
-                .fill(Color32::from_gray(2))
-                .outer_margin(egui::Margin::same(6.0))
-                .inner_margin(egui::Margin::same(4.0)),
-        )
-        .show_separator_line(false)
-        .min_height(40.0)
-        .show(ctx, |ui| {
-            ui.colored_label(Color32::from_gray(180), alert_text);
-        });
-}
-
-fn draw_avg_fps(ui: &mut egui::Ui) {
-    let avg_fps = frame_controller::average_fps();
-    ui.label("FPS:");
-    ui.colored_label(Color32::from_rgb(0, 255, 0), format!("{:.1}", avg_fps));
 }

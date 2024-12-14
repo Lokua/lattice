@@ -145,7 +145,7 @@ impl AudioProcessor {
             .sqrt()
     }
 
-    /// Standard pre-emphasis filter: y[n] = x[n] - α * x[n-1]
+    /// Standard pre-emphasis filter: `y[n] = x[n] - α * x[n-1]`
     /// 0.97 is common is it gives about +20dB emphasis starting around 1kHz
     pub fn apply_pre_emphasis(&self, coefficient: f32) -> Vec<f32> {
         let mut filtered = Vec::with_capacity(self.buffer.len());

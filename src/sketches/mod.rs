@@ -9,4 +9,5 @@ pub mod template;
 pub mod untitled;
 
 pub mod studies;
+pub use self::studies::noise;
 pub use self::studies::perlin_loop;
