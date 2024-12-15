@@ -77,7 +77,6 @@ pub fn init_model() -> Model {
                 "harmonic_cascade",
                 "fractal_waves",
                 "moire",
-                "standing_waves",
                 "quantum_ripples",
             ]),
         ),
@@ -138,8 +137,9 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         let x = start_x + i as f32 * step;
         let mut points = Vec::new();
 
-        for j in 0..n_lines {
-            let y = map_range(j, 0, n_lines - 1, -h / 2.0, h / 2.0);
+        let n_points = SKETCH_CONFIG.h as usize / 2;
+        for j in 0..n_points {
+            let y = map_range(j, 0, n_points - 1, -h / 2.0, h / 2.0);
 
             let x = match model.controls.string("mode").as_str() {
                 "multi_lerp" => {
@@ -178,21 +178,16 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.rect()
         .x_y(0.0, 0.0)
         .w_h(window_rect.w(), window_rect.h())
-        .hsla(0.0, 0.0, 0.02, 0.7);
+        .hsla(0.0, 0.0, 1.0, 1.0);
 
     let zoomed_draw = draw.scale(model.controls.float("scale"));
 
-    for (index, line) in model.lines.iter().enumerate() {
+    for (_, line) in model.lines.iter().enumerate() {
         zoomed_draw
             .polyline()
             .weight(model.controls.float("weight"))
             .points(line.iter().cloned())
-            .color(hsla(
-                0.44,
-                index as f32 / model.lines.len() as f32,
-                0.45,
-                0.3,
-            ));
+            .color(hsla(0.4, 0.0, 0.0, 0.9));
     }
 
     draw.to_frame(app, &frame).unwrap();

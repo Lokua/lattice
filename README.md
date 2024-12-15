@@ -105,6 +105,21 @@ for controlling a live parameter with that same CC, follow these steps:
 See the [midi_test.rs sketch][midi-sketch-link] for an example of how to map a
 control to something.
 
+> Note: the above instructions are for working without a MIDI controller. When
+> working with a MIDI controller you can just map the MIDI control to an Ableton
+> device knob that can send CC out to Lattice and also map the controller to an
+> Ableton parameter. In this case _you do not_ want Lattice enabled in Ableton's
+> MIDI Input ports at all as that just complicates things.
+
+#### Sync Recording
+
+1. In Ableton > Preferences > Record, make sure **Start Transport With Record**
+   is set to **Off**
+2. Hit **Q Rec** in Lattice.
+3. Arm tracks in Ableton, arm the transport (Record button)
+4. Now, pressing play in Ableton will also initiate recording in Lattice,
+   likewise pressing Stop in Ableton will stop recording in Lattice.
+
 [nannou-link]: https://github.com/nannou-org/nannou
 [p5-link]: https://github.com/Lokua/p5/tree/main
 [just-link]: https://github.com/casey/just

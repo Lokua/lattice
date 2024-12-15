@@ -3,3 +3,4 @@ pub mod midi_test;
 pub mod noise;
 pub mod perlin_loop;
 pub mod vertical;
+pub mod vertical_2;
