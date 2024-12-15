@@ -88,43 +88,6 @@ impl SketchModel for Model {
     }
 }
 
-type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
-
-struct DisplacerConfig {
-    kind: &'static str,
-    displacer: Displacer,
-    position_animation: AnimationFn<Vec2>,
-    radius_animation: AnimationFn<f32>,
-}
-
-impl DisplacerConfig {
-    pub fn new(
-        kind: &'static str,
-        displacer: Displacer,
-        position_animation: AnimationFn<Vec2>,
-        radius_animation: AnimationFn<f32>,
-    ) -> Self {
-        Self {
-            kind,
-            displacer,
-            position_animation,
-            radius_animation,
-        }
-    }
-
-    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
-        if let Some(position_fn) = &self.position_animation {
-            self.displacer.position =
-                position_fn(&self.displacer, animation, controls);
-        }
-        if let Some(radius_fn) = &self.radius_animation {
-            self.displacer.radius =
-                radius_fn(&self.displacer, animation, controls);
-        }
-    }
-}
-
 pub fn init_model() -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
@@ -456,6 +419,43 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     draw.to_frame(app, &frame).unwrap();
+}
+
+type AnimationFn<R> =
+    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
+
+struct DisplacerConfig {
+    kind: &'static str,
+    displacer: Displacer,
+    position_animation: AnimationFn<Vec2>,
+    radius_animation: AnimationFn<f32>,
+}
+
+impl DisplacerConfig {
+    pub fn new(
+        kind: &'static str,
+        displacer: Displacer,
+        position_animation: AnimationFn<Vec2>,
+        radius_animation: AnimationFn<f32>,
+    ) -> Self {
+        Self {
+            kind,
+            displacer,
+            position_animation,
+            radius_animation,
+        }
+    }
+
+    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
+        if let Some(position_fn) = &self.position_animation {
+            self.displacer.position =
+                position_fn(&self.displacer, animation, controls);
+        }
+        if let Some(radius_fn) = &self.radius_animation {
+            self.displacer.radius =
+                radius_fn(&self.displacer, animation, controls);
+        }
+    }
 }
 
 pub fn weave(
