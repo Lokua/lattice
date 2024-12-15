@@ -30,21 +30,17 @@ impl SketchModel for Model {
 pub fn init_model() -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
-    let controls = Controls::new(vec![Control::Slider {
-        name: "radius".to_string(),
-        value: 100.0,
-        min: 10.0,
-        max: 500.0,
-        step: 1.0,
-        disabled: None,
-    }]);
-
-    let radius = controls.float("radius");
+    let controls = Controls::new(vec![Control::slider(
+        "radius",
+        100.0,
+        (10.0, 500.0),
+        1.0,
+    )]);
 
     Model {
         animation,
         controls,
-        radius,
+        radius: 0.0,
         hue: 0.0,
     }
 }
@@ -62,6 +58,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         ],
         0.0,
     );
+
     model.hue = model.animation.ping_pong_loop_progress(12.0)
 }
 

@@ -78,6 +78,7 @@ fn main() {
         "perlin_loop" => run_sketch!(perlin_loop),
         "template" => run_sketch!(template),
         "vertical" => run_sketch!(vertical),
+        "vertical_2" => run_sketch!(vertical_2),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)

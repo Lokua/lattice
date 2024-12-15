@@ -11,3 +11,4 @@ pub use self::studies::midi_test;
 pub use self::studies::noise;
 pub use self::studies::perlin_loop;
 pub use self::studies::vertical;
+pub use self::studies::vertical_2;

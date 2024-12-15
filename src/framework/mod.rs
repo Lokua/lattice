@@ -8,6 +8,7 @@ pub mod easing;
 pub mod frame_controller;
 pub mod logging;
 pub mod midi;
+pub mod noise;
 pub mod prelude;
 pub mod sketch;
 pub mod util;
