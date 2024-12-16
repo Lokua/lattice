@@ -249,7 +249,7 @@ pub fn init_model() -> Model {
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    let offset = model.animation.animate(
+    let offset = model.animation.lerp(
         vec![KF::new(1.0, 2.0), KF::new(2.0, 2.0), KF::new(3.0, 2.0)],
         0.0,
     );

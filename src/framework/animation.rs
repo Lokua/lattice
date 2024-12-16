@@ -85,7 +85,13 @@ impl Animation {
         }
     }
 
-    pub fn animate(&self, keyframes: Vec<Keyframe>, delay: f32) -> f32 {
+    /// Animates through keyframes with continuous linear interpolation.
+    /// Each keyframe value smoothly transitions to the next over its duration.
+    ///
+    /// # Arguments
+    /// * `keyframes` - Vector of keyframes defining values and their durations (in beats)
+    /// * `delay` - Initial delay before animation starts in each keyframe (in beats)
+    pub fn lerp(&self, keyframes: Vec<Keyframe>, delay: f32) -> f32 {
         let total_beats: f32 = keyframes
             .iter()
             .take(keyframes.len() - 1)
@@ -153,12 +159,12 @@ impl Animation {
 
     /// Animates through keyframes with stepped transitions and configurable ramping.
     ///
-    /// Each keyframe value is held for its full duration. When transitioning to the
+    /// Each keyframe value is held for its full duration. After transitioning to the
     /// next keyframe, the value ramps to the next value over the specified ramp_time.
     ///
     /// # Arguments
     /// * `keyframes` - Vector of keyframes defining values and their durations
-    /// * `delay` - Initial delay before animation starts (in beats)
+    /// * `delay` - Initial delay before ramp starts in each keyframe
     /// * `ramp_time` - Duration of transition between keyframe values (in beats)
     /// * `ramp` - Function to control the transition curve (0.0 to 1.0)
     pub fn ramp(
@@ -250,6 +256,15 @@ impl Animation {
         value
     }
 
+    /// Creates a new trigger that when used in conjuction with `should_trigger`
+    /// will fire at regular intervals with an optional delay.
+    ///
+    /// # Arguments
+    /// * `every` - Number of beats between each trigger
+    /// * `delay` - Offfset before trigger (in beats)
+    ///
+    /// # Panics
+    /// * If delay is greater than or equal to the interval length (`every`)
     pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
         if delay >= every {
             panic!("Delay must be less than interval length");
@@ -262,6 +277,17 @@ impl Animation {
         }
     }
 
+    /// Checks if a trigger should fire based on the current beat position.
+    /// Returns true if:
+    /// 1. We're in a new interval (crossed an interval boundary)
+    /// 2. We're past the delay point in the current interval
+    /// 3. We haven't already triggered in this interval
+    ///
+    /// # Arguments
+    /// * `config` - Mutable reference to a Trigger config
+    ///
+    /// # Returns
+    /// * `true` if the trigger should fire, `false` otherwise
     pub fn should_trigger(&self, config: &mut Trigger) -> bool {
         let total_beats_elapsed = self.get_total_beats_elapsed();
         let current_interval = (total_beats_elapsed / config.every).floor();
@@ -308,10 +334,8 @@ mod tests {
     fn test_lerp_returns_initial_value() {
         init(0);
         let a = create_instance();
-        let result = a.animate(
-            vec![Keyframe::new(99.0, 1.0), Keyframe::new(1.0, 0.0)],
-            0.0,
-        );
+        let result = a
+            .lerp(vec![Keyframe::new(99.0, 1.0), Keyframe::new(1.0, 0.0)], 0.0);
         assert_eq!(result, 99.0, "returns 0 at frame 0");
     }
 
@@ -320,10 +344,8 @@ mod tests {
     fn test_lerp_returns_halfway_point() {
         init(2);
         let a = create_instance();
-        let result = a.animate(
-            vec![Keyframe::new(0.0, 1.0), Keyframe::new(1.0, 0.0)],
-            0.0,
-        );
+        let result =
+            a.lerp(vec![Keyframe::new(0.0, 1.0), Keyframe::new(1.0, 0.0)], 0.0);
         assert_eq!(result, 0.5, "returns 0.5 when 1/2 between 0 and 1");
     }
 
@@ -337,7 +359,7 @@ mod tests {
         for beats in times {
             let frame_count = a.beats_to_frames(beats) as u32;
             frame_controller::set_frame_count(frame_count);
-            let result = a.animate(
+            let result = a.lerp(
                 vec![
                     Keyframe::new(0.0, 1.0),
                     Keyframe::new(1.0, 1.0),
