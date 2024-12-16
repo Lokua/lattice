@@ -27,6 +27,26 @@ impl IntoLinSrgb for Srgb<u8> {
     }
 }
 
+pub trait IntoLinSrgba {
+    fn into_lin_srgba(self, alpha: f32) -> LinSrgba;
+}
+
+impl IntoLinSrgba for Srgb<u8> {
+    fn into_lin_srgba(self, alpha: f32) -> LinSrgba {
+        LinSrgba::new(
+            self.red as f32 / 255.0,
+            self.green as f32 / 255.0,
+            self.blue as f32 / 255.0,
+            alpha,
+        )
+    }
+}
+
+// Because it's annoying having to qualify the above traits against the Nannou ones
+pub fn srgb_u8_to_lin_srgba(color: Srgb<u8>, alpha: f32) -> LinSrgba {
+    color.into_lin_srgba(alpha)
+}
+
 pub fn lin_srgb_to_lin_srgba(color: LinSrgb, alpha: f32) -> LinSrgba {
     LinSrgba::from_components((color.red, color.green, color.blue, alpha))
 }

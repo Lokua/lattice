@@ -67,6 +67,7 @@ fn main() {
     let sketch_name = args.get(1).map(|s| s.as_str()).unwrap_or("template");
 
     match sketch_name {
+        "animation_test" => run_sketch!(animation_test),
         "audio_test" => run_sketch!(audio_test),
         "displacement_1" => run_sketch!(displacement_1),
         "displacement_1a" => run_sketch!(displacement_1a),

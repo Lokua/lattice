@@ -105,29 +105,29 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let show_center = model.controls.bool("show_center");
     let show_corner = model.controls.bool("show_corner");
 
-    for config in &mut model.displacer_configs {
-        config.update(&model.animation, &model.controls);
-        match config.kind {
-            DisplacerConfigKind::Center => {
-                config.displacer.set_strength(strength);
-                config.displacer.set_radius(radius);
-            }
-            DisplacerConfigKind::Corner => {
-                config.displacer.set_strength(corner_radius);
-                config.displacer.set_radius(corner_strength);
-            }
-        }
-    }
-
     let max_mag = model.displacer_configs.len() as f32 * strength;
     let gradient = &model.gradient;
 
-    let configs: Vec<&DisplacerConfig> = model
+    let configs: Vec<&mut DisplacerConfig> = model
         .displacer_configs
-        .iter()
+        .iter_mut()
         .filter(|config| match config.kind {
             DisplacerConfigKind::Center => show_center,
             DisplacerConfigKind::Corner => show_corner,
+        })
+        .map(|config| {
+            config.update(&model.animation, &model.controls);
+            match config.kind {
+                DisplacerConfigKind::Center => {
+                    config.displacer.set_strength(strength);
+                    config.displacer.set_radius(radius);
+                }
+                DisplacerConfigKind::Corner => {
+                    config.displacer.set_strength(corner_radius);
+                    config.displacer.set_radius(corner_strength);
+                }
+            }
+            config
         })
         .collect();
 

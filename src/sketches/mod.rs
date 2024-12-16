@@ -9,6 +9,7 @@ pub mod drop_walk;
 pub mod template;
 
 pub mod studies;
+pub use self::studies::animation_test;
 pub use self::studies::audio_test;
 pub use self::studies::midi_test;
 pub use self::studies::noise;

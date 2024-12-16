@@ -1,3 +1,4 @@
+pub mod animation_test;
 pub mod audio_test;
 pub mod midi_test;
 pub mod noise;
