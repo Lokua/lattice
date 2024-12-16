@@ -27,6 +27,10 @@ impl IntoLinSrgb for Srgb<u8> {
     }
 }
 
+pub fn lin_srgb_to_lin_srgba(color: LinSrgb, alpha: f32) -> LinSrgba {
+    LinSrgba::from_components((color.red, color.green, color.blue, alpha))
+}
+
 pub fn create_grid<F>(
     w: f32,
     h: f32,
@@ -179,4 +183,18 @@ pub fn multi_lerp(values: &[f32], t: f32) -> f32 {
     }
 
     lerp(values[index], values[index + 1], segment_t)
+}
+
+pub fn map_clamp(
+    value: f32,
+    in_min: f32,
+    in_max: f32,
+    out_min: f32,
+    out_max: f32,
+    ease: impl Fn(f32) -> f32,
+) -> f32 {
+    let normalized = (value - in_min) / (in_max - in_min);
+    let eased = ease(normalized);
+    let clamped = eased.clamp(0.0, 1.0);
+    out_min + (clamped * (out_max - out_min))
 }

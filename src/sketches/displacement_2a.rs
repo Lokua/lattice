@@ -355,6 +355,11 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
             } else {
                 total_displacement.length()
             };
+
+            // let blended_color = gradient.get(
+            //     (magnitude / max_mag).powf(gradient_spread).clamp(0.0, 1.0),
+            // );
+
             let radius = map_range(
                 magnitude,
                 0.0,

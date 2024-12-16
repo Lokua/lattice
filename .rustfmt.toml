@@ -153,3 +153,5 @@ max_width = 80
 
 # Format only these files
 #file_lines = []
+
+merge_imports = false

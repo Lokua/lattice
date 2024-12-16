@@ -1,4 +1,7 @@
 pub mod displacement_1;
+pub mod displacement_1a;
+pub mod displacement_1b;
+pub mod displacement_1b_animated;
 pub mod displacement_2;
 pub mod displacement_2a;
 pub mod drop;

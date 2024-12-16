@@ -69,6 +69,9 @@ fn main() {
     match sketch_name {
         "audio_test" => run_sketch!(audio_test),
         "displacement_1" => run_sketch!(displacement_1),
+        "displacement_1a" => run_sketch!(displacement_1a),
+        "displacement_1b" => run_sketch!(displacement_1b),
+        "displacement_1b_animated" => run_sketch!(displacement_1b_animated),
         "displacement_2" => run_sketch!(displacement_2),
         "displacement_2a" => run_sketch!(displacement_2a),
         "drop" => run_sketch!(drop),
