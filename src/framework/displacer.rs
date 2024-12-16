@@ -1,16 +1,6 @@
 use nannou::prelude::*;
+use std::fmt::{Debug, Formatter, Result};
 use std::sync::Arc;
-
-impl std::fmt::Debug for Displacer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Displacer")
-            .field("position", &self.position)
-            .field("radius", &self.radius)
-            .field("strength", &self.strength)
-            .field("custom_distance_fn", &"<function>")
-            .finish()
-    }
-}
 
 pub type CustomDistanceFn =
     Option<Arc<dyn Fn(Vec2, Vec2) -> f32 + Send + Sync>>;
@@ -37,6 +27,10 @@ impl Displacer {
         }
     }
 
+    pub fn new_with_position(position: Vec2) -> Self {
+        Self::new(position, 50.0, 10.0, None)
+    }
+
     pub fn update(&mut self, state: Option<DisplacerState>) {
         if let Some(state) = state {
             if let Some(position) = state.position {
@@ -52,6 +46,43 @@ impl Displacer {
     }
 
     pub fn influence(&self, grid_point: Vec2) -> Vec2 {
+        // Ensure radius is never zero to avoid division by zero
+        let radius = self.radius.max(f32::EPSILON);
+
+        let distance_to_center = match &self.custom_distance_fn {
+            Some(f) => f(grid_point, self.position),
+            None => grid_point.distance(self.position),
+        };
+
+        if distance_to_center == 0.0 {
+            return vec2(0.0, 0.0);
+        }
+
+        // Calculate how close the point is to the displacer on a 0-1 scale
+        // 1.0 = point is at center, 0.0 = point is at or beyond twice the radius
+        let proximity = 1.0 - distance_to_center / (radius * 2.0);
+
+        // Ensure proximity doesn't go negative (keeps points beyond radius * 2 at zero)
+        let distance_factor = proximity.max(0.0);
+
+        // Calculate the angle between the grid point and displacer center
+        // atan2 gives us angle in radians (-π to π) based on x,y differences
+        let angle = (grid_point.y - self.position.y)
+            .atan2(grid_point.x - self.position.x);
+
+        // Calculate force magnitude:
+        // - Squared distance factor makes influence drop off quadratically
+        // - Multiply by strength to control overall displacement amount
+        let force = self.strength * distance_factor.powi(2);
+
+        // Convert polar coordinates (angle & force) to cartesian (x,y):
+        let dx = angle.cos() * force;
+        let dy = angle.sin() * force;
+
+        vec2(dx, dy)
+    }
+
+    pub fn attract(&self, grid_point: Vec2, scaling_power: f32) -> Vec2 {
         let radius = self.radius.max(f32::EPSILON);
 
         let distance_to_center = match &self.custom_distance_fn {
@@ -64,13 +95,17 @@ impl Displacer {
         }
 
         let proximity = 1.0 - distance_to_center / (radius * 2.0);
-        // let proximity = 1.0 - distance_to_center / (radius + self.strength);
         let distance_factor = proximity.max(0.0);
+
+        let force = self.strength
+            * distance_factor
+            * (distance_to_center / radius).powf(scaling_power);
+
         let angle = (grid_point.y - self.position.y)
             .atan2(grid_point.x - self.position.x);
-        let force = self.strength * distance_factor.powi(2);
-        let dx = angle.cos() * force;
-        let dy = angle.sin() * force;
+
+        let dx = -angle.cos() * force;
+        let dy = -angle.sin() * force;
 
         vec2(dx, dy)
     }
@@ -95,34 +130,20 @@ impl Displacer {
     }
 }
 
+impl Debug for Displacer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.debug_struct("Displacer")
+            .field("position", &self.position)
+            .field("radius", &self.radius)
+            .field("strength", &self.strength)
+            .field("custom_distance_fn", &"<function>")
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DisplacerState {
     pub position: Option<Vec2>,
     pub radius: Option<f32>,
     pub strength: Option<f32>,
-}
-
-impl DisplacerState {
-    pub fn new() -> Self {
-        Self {
-            position: None,
-            radius: None,
-            strength: None,
-        }
-    }
-
-    pub fn with_position(mut self, position: Vec2) -> Self {
-        self.position = Some(position);
-        self
-    }
-
-    pub fn with_radius(mut self, radius: f32) -> Self {
-        self.radius = Some(radius);
-        self
-    }
-
-    pub fn with_strength(mut self, strength: f32) -> Self {
-        self.strength = Some(strength);
-        self
-    }
 }

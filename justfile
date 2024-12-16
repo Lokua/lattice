@@ -11,11 +11,18 @@ trace *ARGS:
 trace-module MODULE *ARGS:
     RUST_LOG=lattice=info,lattice::{{MODULE}}=trace cargo run --release {{ARGS}}
 
+# To test just a single test, past the test name e.g. just test my_test
 test *ARGS:
   RUST_LOG=lattice=trace cargo test -- {{ARGS}}
 
-test-1-thread *ARGS:
-  RUST_LOG=lattice=trace cargo test -- --test-threads=1 {{ARGS}}
+test-trace *ARGS:
+  just test --nocapture {{ARGS}}
+
+test-trace-solo *ARGS:
+  RUST_LOG=lattice=trace cargo test {{ARGS}} -- --nocapture
+
+# test-1-thread *ARGS:
+#   RUST_LOG=lattice=trace cargo test -- --test-threads=1 {{ARGS}}
 
 generate-markdown-index:
   cargo run -p image-markdown --release

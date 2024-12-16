@@ -135,7 +135,7 @@ impl Animation {
             segment_progress,
         );
 
-        trace!("---");
+        trace!("--- animation#lerp");
         trace!("wrapped_frame: {}", wrapped_frame);
         trace!("total_beats: {}", total_beats);
         trace!("total_frames: {}", total_frames);
@@ -145,6 +145,105 @@ impl Animation {
         trace!("segment_start_beats: {}", segment_start_beats);
         trace!("frame_in_segment: {}", frame_in_segment);
         trace!("segment_progress: {}", segment_progress);
+        trace!("value: {}", value);
+        trace!("---");
+
+        value
+    }
+
+    /// Animates through keyframes with stepped transitions and configurable ramping.
+    ///
+    /// Each keyframe value is held for its full duration. When transitioning to the
+    /// next keyframe, the value ramps to the next value over the specified ramp_time.
+    ///
+    /// # Arguments
+    /// * `keyframes` - Vector of keyframes defining values and their durations
+    /// * `delay` - Initial delay before animation starts (in beats)
+    /// * `ramp_time` - Duration of transition between keyframe values (in beats)
+    /// * `ramp` - Function to control the transition curve (0.0 to 1.0)
+    pub fn ramp(
+        &self,
+        keyframes: Vec<Keyframe>,
+        delay: f32,
+        ramp_time: f32,
+        ramp: fn(f32) -> f32,
+    ) -> f32 {
+        if keyframes.is_empty() {
+            return 0.0;
+        }
+
+        let total_beats: f32 = keyframes.iter().map(|kf| kf.duration).sum();
+        let total_frames = self.beats_to_frames(total_beats);
+        let delay_frames = self.beats_to_frames(delay);
+        let wrapped_frame = self.current_frame() % total_frames;
+
+        // Handle delay period
+        if wrapped_frame < delay_frames {
+            return keyframes[0].value;
+        }
+
+        // No ramping at absolute start
+        if self.current_frame() <= self.beats_to_frames(ramp_time) {
+            return keyframes[0].value;
+        }
+
+        // Find current segment
+        let mut current_segment_index = 0;
+        let mut beats_elapsed = 0.0;
+
+        for (index, kf) in keyframes.iter().enumerate() {
+            beats_elapsed += kf.duration;
+            let frames_elapsed = self.beats_to_frames(beats_elapsed);
+
+            if wrapped_frame < frames_elapsed {
+                current_segment_index = index;
+                break;
+            }
+        }
+
+        // Get the current keyframe
+        let current_keyframe = &keyframes[current_segment_index];
+
+        // Calculate position within current segment
+        let segment_start_beats: f32 = keyframes
+            .iter()
+            .take(current_segment_index)
+            .map(|kf| kf.duration)
+            .sum();
+
+        let frame_in_segment =
+            wrapped_frame - self.beats_to_frames(segment_start_beats);
+        let time_in_segment = frame_in_segment / self.beats_to_frames(1.0);
+
+        let previous_index = if current_segment_index == 0 {
+            keyframes.len() - 1
+        } else {
+            current_segment_index - 1
+        };
+        let previous_value = keyframes[previous_index].value;
+
+        let ramp_progress = time_in_segment / ramp_time;
+        let clamped_progress = ramp_progress.clamp(0.0, 1.0);
+        let eased_progress = ramp(clamped_progress);
+
+        let value = if time_in_segment <= ramp_time {
+            lerp(previous_value, current_keyframe.value, eased_progress)
+        } else {
+            current_keyframe.value
+        };
+
+        trace!("--- animation#ramp");
+        trace!("wrapped_frame: {}", wrapped_frame);
+        trace!("total_beats: {}", total_beats);
+        trace!("total_frames: {}", total_frames);
+        trace!("current_segment_index: {}", current_segment_index);
+        trace!("current_keyframe.value: {}", current_keyframe.value);
+        trace!("previous_value: {}", previous_value);
+        trace!("segment_start_beats: {}", segment_start_beats);
+        trace!("frame_in_segment: {}", frame_in_segment);
+        trace!("time_in_segment: {}", time_in_segment);
+        trace!("clamped_progress: {}", clamped_progress);
+        trace!("eased_progress: {}", eased_progress);
         trace!("value: {}", value);
         trace!("---");
 
@@ -206,7 +305,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_animate_returns_initial_value() {
+    fn test_lerp_returns_initial_value() {
         init(0);
         let a = create_instance();
         let result = a.animate(
@@ -218,7 +317,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_animate_returns_halfway_point() {
+    fn test_lerp_returns_halfway_point() {
         init(2);
         let a = create_instance();
         let result = a.animate(
@@ -230,7 +329,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_animate_consistently_returns_correct_value() {
+    fn test_lerp_consistently_returns_correct_value() {
         init(0);
         let a = create_instance();
         let times = vec![0.5, 1.5];
@@ -255,22 +354,19 @@ mod tests {
     fn test_trigger_on_beat() {
         init(0);
         let animation = Animation::new(BPM);
-        let mut trigger = animation.create_trigger(1.0, 0.0); // Trigger every beat with no delay
+        let mut trigger = animation.create_trigger(1.0, 0.0);
 
-        // At frame 0 (start of first beat)
         assert!(
             animation.should_trigger(&mut trigger),
             "should trigger at start"
         );
 
-        // At frame 1 (still in first beat)
         init(1);
         assert!(
             !animation.should_trigger(&mut trigger),
             "should not trigger mid-beat"
         );
 
-        // At frame 4 (start of second beat)
         init(4);
         assert!(
             animation.should_trigger(&mut trigger),
@@ -283,33 +379,110 @@ mod tests {
     fn test_trigger_with_delay() {
         init(0);
         let animation = Animation::new(BPM);
-        let mut trigger = animation.create_trigger(2.0, 0.5); // Trigger every 2 beats with 0.5 beat delay
+        let mut trigger = animation.create_trigger(2.0, 0.5);
 
-        // At frame 0 (start)
         assert!(
             !animation.should_trigger(&mut trigger),
             "should not trigger at start due to delay"
         );
 
-        // At frame 2 (0.5 beats in - delay point)
         init(2);
         assert!(
             animation.should_trigger(&mut trigger),
             "should trigger at delay point"
         );
 
-        // At frame 4 (1.0 beats in)
         init(4);
         assert!(
             !animation.should_trigger(&mut trigger),
             "should not trigger before next interval"
         );
 
-        // At frame 10 (2.5 beats in - next trigger point after delay)
         init(10);
         assert!(
             animation.should_trigger(&mut trigger),
             "should trigger at next interval after delay"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_ramp_basic() {
+        init(0);
+        let a = create_instance();
+
+        // Test at start (frame 0)
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 0.0, 0.5, |x| x);
+        assert_eq!(result, 0.0, "should start at initial value");
+
+        // Test just before end of first keyframe (frame 7)
+        init(7);
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 0.0, 0.5, |x| x);
+        println!("Frame 7 result: {}", result);
+        assert_eq!(
+            result, 0.0,
+            "should still be at initial value just before duration end"
+        );
+
+        // Test at exact end of first keyframe (frame 8)
+        init(8);
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 0.0, 0.5, |x| x);
+        println!("Frame 8 result: {}", result);
+        assert_eq!(result, 0.0, "should start ramping after first keyframe");
+
+        // Test one frame into ramp (frame 9)
+        init(9);
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 0.0, 0.5, |x| x);
+        println!("Frame 9 result: {}", result);
+        let time_in_segment = 9.0 / a.beats_to_frames(1.0);
+        println!("Time in segment at frame 9: {}", time_in_segment);
+        println!("Beats to frames(1.0): {}", a.beats_to_frames(1.0));
+        assert!(
+            result > 0.45 && result < 0.55,
+            "should be halfway through ramp"
+        );
+
+        // Test at end of ramp (frame 10)
+        init(10);
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 0.0, 0.5, |x| x);
+        println!("Frame 10 result: {}", result);
+        assert_eq!(result, 1.0, "should reach final value after ramp");
+    }
+
+    #[test]
+    #[serial]
+    fn test_ramp_with_delay() {
+        init(0);
+        let a = create_instance();
+        let result =
+            a.ramp(vec![KF::new(0.0, 2.0), KF::new(1.0, 2.0)], 1.0, 0.5, |x| x);
+        assert_eq!(result, 0.0, "should return initial value during delay");
+    }
+
+    #[test]
+    #[serial]
+    fn test_ramp_first_vs_subsequent_cycles() {
+        init(0);
+        let a = create_instance();
+
+        let result =
+            a.ramp(vec![KF::new(1.0, 2.0), KF::new(0.0, 2.0)], 0.0, 0.5, |x| x);
+        assert_eq!(
+            result, 1.0,
+            "first cycle should start at value without ramping"
+        );
+
+        init(17);
+        let result =
+            a.ramp(vec![KF::new(1.0, 2.0), KF::new(0.0, 2.0)], 0.0, 0.5, |x| x);
+        assert!(
+            result > 0.45 && result < 0.55,
+            "subsequent cycles should ramp between values"
         );
     }
 }
