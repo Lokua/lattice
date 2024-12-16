@@ -63,7 +63,7 @@ impl Model {
         let value = self.controls.float("weave_frequency");
         if self.controls.bool("animate_frequency") {
             map_range(
-                self.animation.animate(
+                self.animation.lerp(
                     vec![
                         KF::new(0.0, 16.0),
                         KF::new(1.0, 16.0),
@@ -579,7 +579,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             let h = SKETCH_CONFIG.h as f32;
             let xp = w / 4.0;
             let yp = h / 4.0;
-            let x = ax.animate(
+            let x = ax.lerp(
                 vec![
                     KF::new(xp, BEATS),   // Start at right
                     KF::new(-xp, BEATS),  // Move to left
@@ -589,7 +589,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
                 ],
                 0.0,
             );
-            let y = ax.animate(
+            let y = ax.lerp(
                 vec![
                     KF::new(yp, BEATS),   // Start at top
                     KF::new(yp, BEATS),   // Stay at top
@@ -606,7 +606,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             let h = SKETCH_CONFIG.h as f32;
             let xp = w / 4.0;
             let yp = -h / 4.0;
-            let x = ax.animate(
+            let x = ax.lerp(
                 vec![
                     KF::new(xp, BEATS),   // Start at right
                     KF::new(xp, BEATS),   // Stay at right
@@ -616,7 +616,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
                 ],
                 0.0,
             );
-            let y = ax.animate(
+            let y = ax.lerp(
                 vec![
                     KF::new(yp, BEATS),   // Start at bottom
                     KF::new(-yp, BEATS),  // Move to top
@@ -633,7 +633,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             let h = SKETCH_CONFIG.h as f32;
             let xp = -w / 4.0;
             let yp = -h / 4.0;
-            let x = ax.animate(
+            let x = ax.lerp(
                 vec![
                     KF::new(xp, BEATS),   // Start at left
                     KF::new(-xp, BEATS),  // Move to right
@@ -643,7 +643,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
                 ],
                 0.0,
             );
-            let y = ax.animate(
+            let y = ax.lerp(
                 vec![
                     KF::new(yp, BEATS),   // Start at bottom
                     KF::new(yp, BEATS),   // Move to top
@@ -660,7 +660,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             let h = SKETCH_CONFIG.h as f32;
             let xp = -w / 4.0;
             let yp = h / 4.0;
-            let x = ax.animate(
+            let x = ax.lerp(
                 vec![
                     KF::new(xp, BEATS),   // Start at left
                     KF::new(xp, BEATS),   // Stay at left
@@ -670,7 +670,7 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
                 ],
                 0.0,
             );
-            let y = ax.animate(
+            let y = ax.lerp(
                 vec![
                     KF::new(yp, BEATS),   // Start at top
                     KF::new(-yp, BEATS),  // Move to bottom
