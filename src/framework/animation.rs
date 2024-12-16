@@ -1,3 +1,8 @@
+use nannou::rand;
+use rand::rngs::StdRng;
+use rand::Rng;
+use rand::SeedableRng;
+
 use crate::framework::prelude::*;
 
 #[derive(Copy, Clone, Debug)]
@@ -18,6 +23,31 @@ impl Keyframe {
 
 pub fn kf(value: f32, duration: f32) -> KF {
     KF::new(value, duration)
+}
+
+#[derive(Clone, Debug)]
+pub struct KeyframeRandom {
+    pub range: (f32, f32),
+    pub duration: f32,
+}
+
+impl KeyframeRandom {
+    pub fn new(range: (f32, f32), duration: f32) -> Self {
+        Self { range, duration }
+    }
+
+    // TODO: make private again after merging
+    fn generate_value(&self, seed: u64) -> f32 {
+        let mut rng = StdRng::seed_from_u64(seed);
+        let random = rng.gen::<f32>();
+        self.range.0 + (self.range.1 - self.range.0) * random
+    }
+}
+
+pub type KFR = KeyframeRandom;
+
+pub fn kfr(range: (f32, f32), duration: f32) -> KFR {
+    KFR::new(range, duration)
 }
 
 pub struct Trigger {
@@ -83,6 +113,53 @@ impl Animation {
         } else {
             (1.0 - progress) * 2.0
         }
+    }
+
+    /// Creates a new trigger that when used in conjuction with `should_trigger`
+    /// will fire at regular intervals with an optional delay.
+    ///
+    /// # Arguments
+    /// * `every` - Number of beats between each trigger
+    /// * `delay` - Offfset before trigger (in beats)
+    ///
+    /// # Panics
+    /// * If delay is greater than or equal to the interval length (`every`)
+    pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
+        if delay >= every {
+            panic!("Delay must be less than interval length");
+        }
+
+        Trigger {
+            every,
+            delay,
+            last_trigger_count: -1.0,
+        }
+    }
+
+    /// Checks if a trigger should fire based on the current beat position.
+    /// Returns true if:
+    /// 1. We're in a new interval (crossed an interval boundary)
+    /// 2. We're past the delay point in the current interval
+    /// 3. We haven't already triggered in this interval
+    ///
+    /// # Arguments
+    /// * `config` - Mutable reference to a Trigger config
+    ///
+    /// # Returns
+    /// * `true` if the trigger should fire, `false` otherwise
+    pub fn should_trigger(&self, config: &mut Trigger) -> bool {
+        let total_beats_elapsed = self.get_total_beats_elapsed();
+        let current_interval = (total_beats_elapsed / config.every).floor();
+        let position_in_interval = total_beats_elapsed % config.every;
+
+        let should_trigger = current_interval != config.last_trigger_count
+            && position_in_interval >= config.delay;
+
+        if should_trigger {
+            config.last_trigger_count = current_interval;
+        }
+
+        should_trigger
     }
 
     /// Animates through keyframes with continuous linear interpolation.
@@ -256,51 +333,104 @@ impl Animation {
         value
     }
 
-    /// Creates a new trigger that when used in conjuction with `should_trigger`
-    /// will fire at regular intervals with an optional delay.
+    /// Animates through random keyframes with stepped transitions and configurable ramping.
+    ///
+    /// This method generates random values for each keyframe within specified ranges and
+    /// animates between them using a configurable transition curve. The randomness is
+    /// deterministic within a single animation cycle, meaning the same random values
+    /// will be generated for consistent rendering.
     ///
     /// # Arguments
-    /// * `every` - Number of beats between each trigger
-    /// * `delay` - Offfset before trigger (in beats)
-    ///
-    /// # Panics
-    /// * If delay is greater than or equal to the interval length (`every`)
-    pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
-        if delay >= every {
-            panic!("Delay must be less than interval length");
-        }
-
-        Trigger {
-            every,
-            delay,
-            last_trigger_count: -1.0,
-        }
-    }
-
-    /// Checks if a trigger should fire based on the current beat position.
-    /// Returns true if:
-    /// 1. We're in a new interval (crossed an interval boundary)
-    /// 2. We're past the delay point in the current interval
-    /// 3. We haven't already triggered in this interval
-    ///
-    /// # Arguments
-    /// * `config` - Mutable reference to a Trigger config
+    /// * `keyframes` - Vector of random keyframes defining value ranges and their durations
+    /// * `delay` - Initial delay before ramp starts in each keyframe (in beats)
+    /// * `ramp_time` - Duration of transition between keyframe values (in beats)
+    /// * `ramp` - Function to control the transition curve, mapping input from 0.0 to 1.0
     ///
     /// # Returns
-    /// * `true` if the trigger should fire, `false` otherwise
-    pub fn should_trigger(&self, config: &mut Trigger) -> bool {
-        let total_beats_elapsed = self.get_total_beats_elapsed();
-        let current_interval = (total_beats_elapsed / config.every).floor();
-        let position_in_interval = total_beats_elapsed % config.every;
-
-        let should_trigger = current_interval != config.last_trigger_count
-            && position_in_interval >= config.delay;
-
-        if should_trigger {
-            config.last_trigger_count = current_interval;
+    /// A randomly generated f32 value that smoothly transitions between keyframe ranges
+    pub fn r_ramp(
+        &self,
+        keyframes: Vec<KeyframeRandom>,
+        delay: f32,
+        ramp_time: f32,
+        ramp: fn(f32) -> f32,
+    ) -> f32 {
+        if keyframes.is_empty() {
+            return 0.0;
         }
 
-        should_trigger
+        let total_beats: f32 = keyframes.iter().map(|kf| kf.duration).sum();
+        let total_frames = self.beats_to_frames(total_beats);
+        let wrapped_frame = self.current_frame() % total_frames;
+
+        // No ramping at absolute start
+        if self.current_frame() <= self.beats_to_frames(ramp_time) {
+            return keyframes[0].generate_value(0);
+        }
+
+        // Find current segment
+        let mut current_segment_index = 0;
+        let mut beats_elapsed = 0.0;
+
+        for (index, kf) in keyframes.iter().enumerate() {
+            beats_elapsed += kf.duration;
+            let frames_elapsed = self.beats_to_frames(beats_elapsed);
+
+            if wrapped_frame < frames_elapsed {
+                current_segment_index = index;
+                break;
+            }
+        }
+
+        // Calculate position within current segment
+        let segment_start_beats: f32 = keyframes
+            .iter()
+            .take(current_segment_index)
+            .map(|kf| kf.duration)
+            .sum();
+
+        let frame_in_segment =
+            wrapped_frame - self.beats_to_frames(segment_start_beats);
+        let time_in_segment = frame_in_segment / self.beats_to_frames(1.0);
+
+        // Get current and previous keyframes with consistent seeds
+        let cycle_number = (self.current_frame() / total_frames) as u64;
+        let segment_seed = cycle_number * keyframes.len() as u64
+            + current_segment_index as u64;
+
+        let current_keyframe = &keyframes[current_segment_index];
+        let current_value = current_keyframe.generate_value(segment_seed);
+
+        let previous_index = if current_segment_index == 0 {
+            keyframes.len() - 1
+        } else {
+            current_segment_index - 1
+        };
+        let previous_value = keyframes[previous_index].generate_value(
+            if current_segment_index == 0 {
+                segment_seed - 1 + keyframes.len() as u64
+            } else {
+                segment_seed - 1
+            },
+        );
+
+        // Return previous value during delay period
+        if time_in_segment < delay {
+            return previous_value;
+        }
+
+        let adjusted_time = time_in_segment - delay;
+        let ramp_progress = adjusted_time / ramp_time;
+        let clamped_progress = ramp_progress.clamp(0.0, 1.0);
+        let eased_progress = ramp(clamped_progress);
+
+        let value = if adjusted_time <= ramp_time {
+            lerp(previous_value, current_value, eased_progress)
+        } else {
+            current_value
+        };
+
+        value
     }
 }
 
@@ -505,6 +635,87 @@ mod tests {
         assert!(
             result > 0.45 && result < 0.55,
             "subsequent cycles should ramp between values"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_r_ramp_delay_at_keyframe_transition() {
+        init(8); // Start at second keyframe transition
+        let a = create_instance();
+
+        let previous_value = a.r_ramp(
+            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            0.5, // 0.5 beat delay
+            0.5,
+            |x| x,
+        );
+
+        // Move just past keyframe boundary but still within delay period
+        init(9);
+        let delayed_value = a.r_ramp(
+            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            0.5,
+            0.5,
+            |x| x,
+        );
+
+        assert_eq!(
+            previous_value, delayed_value,
+            "Should maintain previous value"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_r_ramp_single_keyframe() {
+        init(0);
+        let a = create_instance();
+
+        let first_value =
+            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+
+        // Second cycle
+        init(8);
+        let second_value =
+            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+
+        assert!(
+            second_value != first_value,
+            "Should generate different value in next cycle"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_r_ramp_post_delay_transition() {
+        // Frame 8 would be the start of second keyframe
+        // Frame 10 = frame 8 + delay (0.5 beats = 2 frames)
+        // Frame 11 should be in the middle of the transition
+        init(11);
+        let a = create_instance();
+
+        let value = a.r_ramp(
+            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            0.5, // 0.5 beats delay
+            1.0, // 1.0 beats ramp time
+            |x| x,
+        );
+
+        // At this point, we should be transitioning from first keyframe value (0.0-1.0)
+        // to second keyframe value (2.0-3.0)
+        let first_keyframe_value = KFR::new((0.0, 1.0), 2.0).generate_value(0);
+        let second_keyframe_value = KFR::new((2.0, 3.0), 2.0).generate_value(1);
+
+        let min_expected = first_keyframe_value.min(second_keyframe_value);
+        let max_expected = first_keyframe_value.max(second_keyframe_value);
+
+        assert!(
+            value >= min_expected && value <= max_expected,
+            "Value {} should be between {} and {} during transition",
+            value,
+            min_expected,
+            max_expected
         );
     }
 }
