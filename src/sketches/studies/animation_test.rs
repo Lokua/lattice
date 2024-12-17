@@ -8,6 +8,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Animation Test",
     fps: 60.0,
     bpm: 134.0,
+    // fps: 24.0,
+    // bpm: 360.0,
     w: 500,
     h: 500,
     gui_w: None,
@@ -48,11 +50,17 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     );
 
     model.r_ramp = model.animation.r_ramp(
-        vec![KFR::new((0.0, 1.0), 4.0), KFR::new((0.0, 1.0), 4.0)],
+        vec![KFR::new((0.0, 1.0), 4.0)],
         0.0,
         1.0,
         linear,
     );
+
+    // debug!(
+    //     "frame_count: {}, model.r_ramp: {}",
+    //     frame_controller::frame_count(),
+    //     model.r_ramp
+    // );
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
