@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "displacement_2a",
     display_name: "Displacement 2a",
     fps: 30.0,
-    bpm: 134.0,
+    bpm: 135.0,
     w: 1000,
     h: 1000,
     gui_w: None,
@@ -290,7 +290,7 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
         config.displacer.set_custom_distance_fn(distance_fn.clone());
         config.displacer.set_radius(displacer_radius);
         config.displacer.set_strength(if audio_enabled {
-            map_range(model.fft_bands[7], 0.0, 1.0, 0.5, displacer_strength)
+            map_range(model.fft_bands[3], 0.0, 1.0, 0.5, displacer_strength)
         } else {
             displacer_strength
         });
@@ -383,7 +383,7 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
                 };
                 let displaced_point = if audio_enabled {
                     let bass_to_qr_divisor = map_range(
-                        model.fft_bands[5],
+                        model.fft_bands[4],
                         0.0,
                         1.0,
                         qr_divisor,
@@ -420,6 +420,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .stroke(*color)
             .stroke_weight(0.5)
             .radius(*radius)
+            .resolution(12.0)
             .xy(*position);
     }
 

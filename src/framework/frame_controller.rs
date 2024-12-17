@@ -63,7 +63,8 @@ impl FrameController {
                 self.frame_intervals.remove(0);
             }
             trace!(
-                "Rendering. Time since last render: {:.2?} (expected: {:.2?})",
+                "Rendering. frame_count: {}. Time since last render: {:.2?} (expected: {:.2?})",
+                self.frame_count(),
                 now - self.last_render_time,
                 self.frame_duration
             );

@@ -87,7 +87,7 @@ pub fn init_model() -> Model {
         gradient: Gradient::new(vec![
             CYAN.into_lin_srgb(),
             MAGENTA.into_lin_srgb(),
-            YELLOW.into_lin_srgb(),
+            GREEN.into_lin_srgb(),
         ]),
         ellipses: Vec::with_capacity(GRID_SIZE * GRID_SIZE),
     }
@@ -96,10 +96,7 @@ pub fn init_model() -> Model {
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let size_min = model.controls.float("size_min");
     let size_max = model.controls.float("size_max");
-    let radius = model.controls.float("displacer_radius");
     let strength = model.controls.float("displacer_strength");
-    let corner_radius = model.controls.float("corner_radius");
-    let corner_strength = model.controls.float("corner_strength");
     let gradient_spread = model.controls.float("gradient_spread");
     let scaling_power = model.controls.float("scaling_power");
     let show_center = model.controls.bool("show_center");
@@ -119,12 +116,40 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             config.update(&model.animation, &model.controls);
             match config.kind {
                 DisplacerConfigKind::Center => {
-                    config.displacer.set_strength(strength);
-                    config.displacer.set_radius(radius);
+                    let strength_range =
+                        model.controls.slider_range("displacer_strength");
+                    config.displacer.set_strength(model.animation.r_ramp(
+                        vec![KFR::new(strength_range, 8.0)],
+                        0.0,
+                        4.0,
+                        linear,
+                    ));
+                    let radius_range =
+                        model.controls.slider_range("displacer_radius");
+                    config.displacer.set_radius(model.animation.r_ramp(
+                        vec![KFR::new(radius_range, 12.0)],
+                        1.0,
+                        3.0,
+                        linear,
+                    ));
                 }
                 DisplacerConfigKind::Corner => {
-                    config.displacer.set_strength(corner_radius);
-                    config.displacer.set_radius(corner_strength);
+                    let strength_range =
+                        model.controls.slider_range("corner_strength");
+                    config.displacer.set_strength(model.animation.r_ramp(
+                        vec![KFR::new(strength_range, 4.0)],
+                        0.0,
+                        4.0,
+                        linear,
+                    ));
+                    let radius_range =
+                        model.controls.slider_range("corner_radius");
+                    config.displacer.set_radius(model.animation.r_ramp(
+                        vec![KFR::new(radius_range, 8.0)],
+                        1.0,
+                        3.0,
+                        linear,
+                    ));
                 }
             }
             config

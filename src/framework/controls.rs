@@ -221,6 +221,33 @@ impl Controls {
     pub fn update_value(&mut self, name: &str, value: ControlValue) {
         self.values.insert(name.to_string(), value);
     }
+
+    /// Retrieves the original control configuration by name
+    ///
+    /// # Arguments
+    /// * `name` - The name of the control to retrieve
+    ///
+    /// # Returns
+    /// An Option containing a reference to the Control if found, None otherwise
+    pub fn get_original_config(&self, name: &str) -> Option<&Control> {
+        self.controls.iter().find(|control| control.name() == name)
+    }
+
+    /// Helper method to get min and max values for a slider control
+    ///
+    /// # Arguments
+    /// * `name` - The name of the slider control
+    ///
+    /// # Returns
+    /// A tuple of (min, max) values if the control has one, otherwise panics.
+    pub fn slider_range(&self, name: &str) -> (f32, f32) {
+        self.get_original_config(name)
+            .and_then(|control| match control {
+                Control::Slider { min, max, .. } => Some((*min, *max)),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("Unable to find range for {}", name))
+    }
 }
 
 pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {

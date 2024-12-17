@@ -218,7 +218,7 @@ impl Animation {
             segment_progress,
         );
 
-        trace!("--- animation#lerp");
+        trace!("--- lerp");
         trace!("wrapped_frame: {}", wrapped_frame);
         trace!("total_beats: {}", total_beats);
         trace!("total_frames: {}", total_frames);
@@ -315,7 +315,7 @@ impl Animation {
             current_keyframe.value
         };
 
-        trace!("--- animation#ramp");
+        trace!("--- ramp");
         trace!("wrapped_frame: {}", wrapped_frame);
         trace!("total_beats: {}", total_beats);
         trace!("total_frames: {}", total_frames);
@@ -333,21 +333,6 @@ impl Animation {
         value
     }
 
-    /// Animates through random keyframes with stepped transitions and configurable ramping.
-    ///
-    /// This method generates random values for each keyframe within specified ranges and
-    /// animates between them using a configurable transition curve. The randomness is
-    /// deterministic within a single animation cycle, meaning the same random values
-    /// will be generated for consistent rendering.
-    ///
-    /// # Arguments
-    /// * `keyframes` - Vector of random keyframes defining value ranges and their durations
-    /// * `delay` - Initial delay before ramp starts in each keyframe (in beats)
-    /// * `ramp_time` - Duration of transition between keyframe values (in beats)
-    /// * `ramp` - Function to control the transition curve, mapping input from 0.0 to 1.0
-    ///
-    /// # Returns
-    /// A randomly generated f32 value that smoothly transitions between keyframe ranges
     pub fn r_ramp(
         &self,
         keyframes: Vec<KeyframeRandom>,
@@ -361,10 +346,12 @@ impl Animation {
 
         let total_beats: f32 = keyframes.iter().map(|kf| kf.duration).sum();
         let total_frames = self.beats_to_frames(total_beats);
+        let delay_frames = self.beats_to_frames(delay);
         let wrapped_frame = self.current_frame() % total_frames;
+        let current_cycle = (self.current_frame() / total_frames) as u64;
 
-        // No ramping at absolute start
-        if self.current_frame() <= self.beats_to_frames(ramp_time) {
+        // Handle initial case - first frame of first cycle
+        if self.current_frame() == 0.0 {
             return keyframes[0].generate_value(0);
         }
 
@@ -391,46 +378,47 @@ impl Animation {
 
         let frame_in_segment =
             wrapped_frame - self.beats_to_frames(segment_start_beats);
-        let time_in_segment = frame_in_segment / self.beats_to_frames(1.0);
 
-        // Get current and previous keyframes with consistent seeds
-        let cycle_number = (self.current_frame() / total_frames) as u64;
-        let segment_seed = cycle_number * keyframes.len() as u64
-            + current_segment_index as u64;
-
-        let current_keyframe = &keyframes[current_segment_index];
-        let current_value = current_keyframe.generate_value(segment_seed);
-
-        let previous_index = if current_segment_index == 0 {
-            keyframes.len() - 1
+        // Generate current value
+        let current_value = if current_segment_index == 0 {
+            keyframes[0].generate_value(current_cycle)
         } else {
-            current_segment_index - 1
+            keyframes[current_segment_index]
+                .generate_value(current_cycle * keyframes.len() as u64)
         };
-        let previous_value = keyframes[previous_index].generate_value(
-            if current_segment_index == 0 {
-                segment_seed - 1 + keyframes.len() as u64
-            } else {
-                segment_seed - 1
-            },
-        );
 
-        // Return previous value during delay period
-        if time_in_segment < delay {
+        // Generate previous value
+        let previous_value = if current_segment_index == 0 {
+            if current_cycle == 0 {
+                keyframes[0].generate_value(0)
+            } else {
+                keyframes[keyframes.len() - 1].generate_value(
+                    (current_cycle - 1) * keyframes.len() as u64,
+                )
+            }
+        } else {
+            keyframes[current_segment_index - 1]
+                .generate_value(current_cycle * keyframes.len() as u64)
+        };
+
+        // Handle delay period
+        if frame_in_segment < delay_frames {
             return previous_value;
         }
 
-        let adjusted_time = time_in_segment - delay;
-        let ramp_progress = adjusted_time / ramp_time;
+        // Calculate ramp progress after delay
+        let adjusted_frames = frame_in_segment - delay_frames;
+        let ramp_frames = self.beats_to_frames(ramp_time);
+        let ramp_progress = adjusted_frames / ramp_frames;
         let clamped_progress = ramp_progress.clamp(0.0, 1.0);
         let eased_progress = ramp(clamped_progress);
 
-        let value = if adjusted_time <= ramp_time {
+        // Return interpolated or final value
+        if adjusted_frames <= ramp_frames {
             lerp(previous_value, current_value, eased_progress)
         } else {
             current_value
-        };
-
-        value
+        }
     }
 }
 
@@ -675,14 +663,35 @@ mod tests {
         let first_value =
             a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
-        // Second cycle
+        // Move to frame 8 (start of next cycle, still previous value)
         init(8);
-        let second_value =
+        let previous_value =
             a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
+        // Values should be the same at start of cycles
+        assert_eq!(
+            first_value, previous_value,
+            "Should generate same value at start of cycle"
+        );
+
+        // Move to frame 9 (should be halfway through transition)
+        init(9);
+        let mid_value =
+            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+
+        // Move to frame 10 (should be at new value)
+        init(10);
+        let new_value =
+            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+
+        let expected_midpoint = (previous_value + new_value) / 2.0;
+        let tolerance = 0.001;
         assert!(
-            second_value != first_value,
-            "Should generate different value in next cycle"
+            (mid_value - expected_midpoint).abs() < tolerance,
+            "Value at frame 9 should be halfway between {} and {}. Got {}",
+            previous_value,
+            new_value,
+            mid_value
         );
     }
 
@@ -717,5 +726,55 @@ mod tests {
             min_expected,
             max_expected
         );
+    }
+
+    #[test]
+    #[serial]
+    fn test_r_ramp_consistent_interpolation() {
+        let a = create_instance();
+        let keyframes = vec![KFR::new((0.0, 1.0), 1.0)];
+        let ramp_frames = vec![1, 5, 9, 13, 17, 21, 25, 29, 33, 37];
+
+        let mut results = vec![];
+
+        for frame in 0..40 {
+            init(frame);
+            let value = a.r_ramp(keyframes.clone(), 0.0, 0.5, linear);
+            results.push((frame, value));
+        }
+
+        for frame in ramp_frames {
+            // Skip the first frame
+            if frame == 1 {
+                continue;
+            }
+
+            // Find results with safe error handling
+            let prev_result = results
+                .iter()
+                .find(|&&(f, _)| f == frame - 1)
+                .expect(&format!("No result for previous frame {}", frame - 1));
+            let curr_result = results
+                .iter()
+                .find(|&&(f, _)| f == frame)
+                .expect(&format!("No result for current frame {}", frame));
+            let next_result = results
+                .iter()
+                .find(|&&(f, _)| f == frame + 1)
+                .expect(&format!("No result for next frame {}", frame + 1));
+
+            let expected_midpoint = (prev_result.1 + next_result.1) / 2.0;
+
+            assert!(
+                (curr_result.1 - expected_midpoint).abs() < 0.001,
+                "Frame {}: Interpolation incorrect. \
+                Previous: {}, Current: {}, Next: {}, Expected Midpoint: {}",
+                frame,
+                prev_result.1,
+                curr_result.1,
+                next_result.1,
+                expected_midpoint
+            );
+        }
     }
 }

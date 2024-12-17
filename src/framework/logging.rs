@@ -24,7 +24,10 @@ pub fn init_logger() {
             .set_bold(true);
 
             buffer.set_color(&spec)?;
-            write!(buffer, "[{}]", record.level())?;
+
+            let module_path = record.module_path().unwrap_or("<unknown>");
+
+            write!(buffer, "[{}][{}]", record.level(), module_path)?;
 
             buffer.reset()?;
             writeln!(buffer, " {}", record.args())?;
