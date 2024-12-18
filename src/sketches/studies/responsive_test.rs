@@ -14,16 +14,11 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(150),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
     window_rect: WindowRect,
     grid: Vec<Vec2>,
     cell_size: f32,
-}
-
-impl SketchModel for Model {
-    fn window_rect(&mut self) -> Option<&mut WindowRect> {
-        Some(&mut self.window_rect)
-    }
 }
 
 pub fn init_model(window_rect: WindowRect) -> Model {

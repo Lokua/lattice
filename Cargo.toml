@@ -6,12 +6,14 @@ edition = "2021"
 
 [workspace]
 members = [
-    "scripts/image-markdown"
+    "scripts/image-markdown",
+    "derives"
 ]
 
 [dependencies]
 chrono = "0.4.38"
 cpal = "0.15.3"
+derives = { path = "./derives" }
 dirs = "5.0.1"
 env_logger = "0.11.5"
 lazy_static = "1.5.0"

@@ -769,6 +769,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "derives"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+]
+
+[[package]]
 name = "dirs"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1527,6 +1536,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "cpal",
+ "derives",
  "dirs",
  "env_logger",
  "lazy_static",
