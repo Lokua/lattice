@@ -88,7 +88,7 @@ impl SketchModel for Model {
     }
 }
 
-pub fn init_model() -> Model {
+pub fn init_model(_window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
@@ -196,7 +196,7 @@ pub fn init_model() -> Model {
     let cached_pattern = controls.string("pattern");
 
     Model {
-        grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2),
+        grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2).0,
         displacer_configs,
         animation,
         controls,

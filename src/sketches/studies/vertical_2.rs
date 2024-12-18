@@ -29,7 +29,7 @@ impl SketchModel for Model {
     }
 }
 
-pub fn init_model() -> Model {
+pub fn init_model(_window_rect: WindowRect) -> Model {
     let controls = Controls::new(vec![Control::slider(
         "alpha",
         0.25,

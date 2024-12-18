@@ -120,6 +120,17 @@ control to something.
 4. Now, pressing play in Ableton will also initiate recording in Lattice,
    likewise pressing Stop in Ableton will stop recording in Lattice.
 
+## Resources
+
+- https://inconvergent.net/generative/
+- http://www.complexification.net/
+- https://n-e-r-v-o-u-s.com/projects/albums/floraform-system/
+- https://www.andylomas.com/cellularFormImages.html
+- http://www.complexification.net/gallery/machines/sandstroke/
+- https://thebookofshaders.com/
+- https://github.com/jasonwebb/2d-space-colonization-experiments
+- https://paulbourke.net/geometry/
+
 [nannou-link]: https://github.com/nannou-org/nannou
 [p5-link]: https://github.com/Lokua/p5/tree/main
 [just-link]: https://github.com/casey/just

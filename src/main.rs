@@ -80,6 +80,7 @@ fn main() {
         "midi_test" => run_sketch!(midi_test),
         "noise" => run_sketch!(noise),
         "perlin_loop" => run_sketch!(perlin_loop),
+        "responsive_test" => run_sketch!(responsive_test),
         "template" => run_sketch!(template),
         "vertical" => run_sketch!(vertical),
         "vertical_2" => run_sketch!(vertical_2),
@@ -105,12 +106,11 @@ struct AppModel<S> {
 
 fn model<S: SketchModel + 'static>(
     app: &App,
-    init_sketch_model: fn() -> S,
+    init_sketch_model: fn(WindowRect) -> S,
     sketch_config: &'static SketchConfig,
 ) -> AppModel<S> {
     let w = sketch_config.w as u32;
     let h = sketch_config.h as u32;
-    let mut sketch_model = init_sketch_model();
 
     let main_window_id = app
         .new_window()
@@ -118,6 +118,13 @@ fn model<S: SketchModel + 'static>(
         .size(w, h)
         .build()
         .unwrap();
+
+    let window_rect = app
+        .window(main_window_id)
+        .expect("Unable to get window")
+        .rect();
+
+    let mut sketch_model = init_sketch_model(WindowRect::new(window_rect));
 
     let (gui_w, gui_h) = calculate_gui_dimensions(sketch_model.controls());
 
@@ -181,6 +188,12 @@ fn update<S: SketchModel>(
     update: Update,
     sketch_update_fn: fn(&App, &mut S, Update),
 ) {
+    model.sketch_model.set_window_rect(
+        app.window(model.main_window_id)
+            .expect("Unable to get window")
+            .rect(),
+    );
+
     frame_controller::wrapped_update(
         app,
         &mut model.sketch_model,
