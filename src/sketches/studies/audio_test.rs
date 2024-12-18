@@ -30,7 +30,7 @@ impl SketchModel for Model {
     }
 }
 
-pub fn init_model() -> Model {
+pub fn init_model(_window_rect: WindowRect) -> Model {
     let audio = Audio::new(SAMPLE_RATE, SKETCH_CONFIG.fps);
 
     let controls = Controls::new(vec![

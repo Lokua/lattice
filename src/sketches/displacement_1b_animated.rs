@@ -33,7 +33,7 @@ impl SketchModel for Model {
     }
 }
 
-pub fn init_model() -> Model {
+pub fn init_model(_window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let grid_w = w as f32 - 80.0;
@@ -80,7 +80,7 @@ pub fn init_model() -> Model {
     ];
 
     Model {
-        grid: create_grid(grid_w, grid_h, GRID_SIZE, vec2),
+        grid: create_grid(grid_w, grid_h, GRID_SIZE, vec2).0,
         displacer_configs,
         animation,
         controls,

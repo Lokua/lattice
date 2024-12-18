@@ -56,12 +56,12 @@ pub fn create_grid<F>(
     h: f32,
     divisions: usize,
     transform_xy: F,
-) -> Vec<Vec2>
+) -> (Vec<Vec2>, f32)
 where
     F: Fn(f32, f32) -> Vec2,
 {
     let mut grid = Vec::new();
-    let cell_size = f32::min(w, h) / divisions as f32;
+    let cell_size = (f32::min(w, h) / divisions as f32).floor();
     let cols = (w / cell_size).floor() as usize;
     let rows = (h / cell_size).floor() as usize;
 
@@ -79,7 +79,7 @@ where
         }
     }
 
-    grid
+    (grid, cell_size)
 }
 
 pub fn set_window_position(app: &App, window_id: window::Id, x: i32, y: i32) {
