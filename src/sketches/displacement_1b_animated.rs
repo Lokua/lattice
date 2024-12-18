@@ -13,7 +13,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(320),
+    gui_h: Some(400),
 };
 
 const GRID_SIZE: usize = 128;
@@ -27,7 +27,7 @@ pub struct Model {
     animation: Animation,
     controls: Controls,
     gradient: Gradient<LinSrgb>,
-    ellipses: Vec<(Vec2, f32, LinSrgb)>,
+    objects: Vec<(Vec2, f32, LinSrgb)>,
 }
 
 pub fn init_model(window_rect: WindowRect) -> Model {
@@ -39,11 +39,36 @@ pub fn init_model(window_rect: WindowRect) -> Model {
 
     let controls = Controls::new(vec![
         Control::checkbox("show_center", true),
+        Control::select(
+            "center_mode",
+            "attract",
+            string_vec!["attract", "influence"],
+        ),
         Control::checkbox("show_corner", false),
+        Control::select(
+            "corner_mode",
+            "attract",
+            string_vec!["attract", "influence"],
+        ),
+        Control::select(
+            "sort",
+            "luminance",
+            string_vec!["luminance", "radius"],
+        ),
+        Control::checkbox("stroke", false),
+        Control::slider_x(
+            "stroke_weight",
+            1.0,
+            (0.25, 3.0),
+            0.25,
+            |controls| !controls.bool("stroke"),
+        ),
         Control::slider("gradient_spread", 0.5, (0.0, 1.0), 0.0001),
+        Control::slider("background_alpha", 1.0, (0.000, 1.0), 0.001),
         Control::slider("alpha", 1.0, (0.001, 1.0), 0.001),
-        Control::slider("size_max", 2.5, (0.1, 10.0), 0.1),
+        Control::slider("size_max", 2.5, (0.1, 20.0), 0.1),
         Control::slider("scaling_power", 3.0, (0.5, 11.0), 0.25),
+        Control::slider("mag_mult", 1.0, (1.0, 500.0), 1.0),
     ]);
 
     let w4th = w as f32 / 4.0;
@@ -84,20 +109,33 @@ pub fn init_model(window_rect: WindowRect) -> Model {
             MAGENTA.into_lin_srgb(),
             GREEN.into_lin_srgb(),
         ]),
-        ellipses: Vec::with_capacity(GRID_SIZE * GRID_SIZE),
+        objects: Vec::with_capacity(GRID_SIZE * GRID_SIZE),
     }
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
+    let show_center = model.controls.bool("show_center");
+    let center_mode = model.controls.string("center_mode");
+    let show_corner = model.controls.bool("show_corner");
+    let corner_mode = model.controls.string("corner_mode");
+    let sort = model.controls.string("sort");
     let size_max = model.controls.float("size_max");
-    let strength = model.controls.float("displacer_strength");
     let gradient_spread = model.controls.float("gradient_spread");
     let scaling_power = model.controls.float("scaling_power");
-    let show_center = model.controls.bool("show_center");
-    let show_corner = model.controls.bool("show_corner");
 
-    let max_mag = model.displacer_configs.len() as f32 * strength;
+    let max_mag =
+        model.displacer_configs.len() as f32 * model.controls.float("mag_mult");
     let gradient = &model.gradient;
+
+    if model.window_rect.changed() {
+        (model.grid, _) = create_grid(
+            model.window_rect.w(),
+            model.window_rect.h(),
+            GRID_SIZE,
+            vec2,
+        );
+        model.window_rect.commit();
+    }
 
     let configs: Vec<&mut DisplacerConfig> = model
         .displacer_configs
@@ -142,14 +180,37 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         })
         .collect();
 
-    model.ellipses = model
+    model.objects = model
         .grid
         .par_iter()
         .map(|point| {
             let total_displacement =
-                configs.iter().fold(vec2(0.0, 0.0), |acc, config| {
-                    acc + config.displacer.attract(*point, scaling_power)
-                });
+                configs
+                    .iter()
+                    .fold(vec2(0.0, 0.0), |acc, config| match config.kind {
+                        DisplacerConfigKind::Center => {
+                            if center_mode == "attract" {
+                                acc + config
+                                    .displacer
+                                    .attract(*point, scaling_power)
+                            } else {
+                                acc + config
+                                    .displacer
+                                    .core_influence(*point, scaling_power)
+                            }
+                        }
+                        DisplacerConfigKind::Corner => {
+                            if corner_mode == "attract" {
+                                acc + config
+                                    .displacer
+                                    .attract(*point, scaling_power)
+                            } else {
+                                acc + config
+                                    .displacer
+                                    .core_influence(*point, scaling_power)
+                            }
+                        }
+                    });
 
             let displacement_magnitude = total_displacement.length();
 
@@ -172,9 +233,14 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         })
         .collect();
 
-    model.ellipses.sort_by(
-        |(_pos_a, _rad_a, color_a), (_pos_b, _rad_b, color_b)| {
-            luminance(color_a).partial_cmp(&luminance(color_b)).unwrap()
+    model.objects.sort_by(
+        |(_position_a, radius_a, color_a), (_position_b, radius_b, color_b)| {
+            match sort.as_str() {
+                "radius" => radius_a.partial_cmp(radius_b).unwrap(),
+                _ => {
+                    luminance(color_a).partial_cmp(&luminance(color_b)).unwrap()
+                }
+            }
         },
     );
 }
@@ -184,15 +250,27 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
 
     draw.rect()
         .w_h(model.window_rect.w(), model.window_rect.h())
-        .color(hsla(0.0, 0.0, 0.02, model.controls.float("alpha")));
+        .color(hsla(
+            0.0,
+            0.0,
+            0.02,
+            model.controls.float("background_alpha"),
+        ));
 
-    for (position, radius, color) in &model.ellipses {
-        draw.rect()
-            .no_fill()
-            .stroke(lin_srgb_to_lin_srgba(*color, 1.0))
-            .stroke_weight(0.5)
+    let alpha = model.controls.float("alpha");
+    let stroke = model.controls.bool("stroke");
+    let stroke_weight = model.controls.float("stroke_weight");
+
+    for (position, radius, color) in &model.objects {
+        let rect = draw
+            .rect()
+            .color(lin_srgb_to_lin_srgba(*color, alpha))
             .w_h(*radius, *radius)
             .xy(*position);
+
+        if stroke {
+            rect.stroke(BLACK).stroke_weight(stroke_weight);
+        };
     }
 
     draw.to_frame(app, &frame).unwrap();

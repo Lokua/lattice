@@ -46,6 +46,10 @@ impl Displacer {
     }
 
     pub fn influence(&self, grid_point: Vec2) -> Vec2 {
+        self.core_influence(grid_point, 2.0)
+    }
+
+    pub fn core_influence(&self, grid_point: Vec2, scaling_power: f32) -> Vec2 {
         // Ensure radius is never zero to avoid division by zero
         let radius = self.radius.max(f32::EPSILON);
 
@@ -73,7 +77,7 @@ impl Displacer {
         // Calculate force magnitude:
         // - Squared distance factor makes influence drop off quadratically
         // - Multiply by strength to control overall displacement amount
-        let force = self.strength * distance_factor.powi(2);
+        let force = self.strength * distance_factor.powf(scaling_power);
 
         // Convert polar coordinates (angle & force) to cartesian (x,y):
         let dx = angle.cos() * force;
