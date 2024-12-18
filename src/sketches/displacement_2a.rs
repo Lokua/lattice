@@ -23,6 +23,7 @@ const GRID_SIZE: usize = 128;
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
 
+#[derive(SketchComponents)]
 pub struct Model {
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
@@ -79,12 +80,6 @@ impl Model {
         } else {
             value
         }
-    }
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
     }
 }
 

@@ -7,7 +7,8 @@ pub fn sketch_components(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
 
-    // Get the fields if this is a struct
+    // Get the attributes and fields
+    let attrs = &ast.attrs;
     let fields = match &ast.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(fields),
@@ -16,34 +17,123 @@ pub fn sketch_components(input: TokenStream) -> TokenStream {
         _ => panic!("SketchComponents only works on structs with named fields"),
     };
 
-    let window_rect_impl = fields
-        .iter()
-        .find(|f| f.ident.as_ref().unwrap() == "window_rect")
-        .map(|_| {
-            quote! {
-                fn window_rect(&mut self) -> Option<&mut WindowRect> {
-                    Some(&mut self.window_rect)
+    // Parse struct-level attributes
+    let mut clear_color = None;
+    for attr in attrs {
+        if attr.path().is_ident("sketch") {
+            attr.parse_nested_meta(|meta| {
+                if meta.path.is_ident("clear_color") {
+                    if let Ok(value) = meta.value() {
+                        if let Ok(lit_str) = value.parse::<syn::LitStr>() {
+                            if let Some(color_format) =
+                                ColorFormat::from_str(&lit_str.value())
+                            {
+                                clear_color = Some(color_format);
+                            }
+                        }
+                    }
                 }
-            }
-        });
+                Ok(())
+            })
+            .unwrap_or_else(|_| panic!("failed to parse sketch attribute"));
+        }
+    }
 
-    let controls_impl = fields
+    // Generate implementations based on field attributes and presence
+    let window_rect_impl = if fields
         .iter()
-        .find(|f| f.ident.as_ref().unwrap() == "controls")
-        .map(|_| {
+        .any(|f| f.ident.as_ref().unwrap() == "window_rect")
+    {
+        Some(quote! {
+            fn window_rect(&mut self) -> Option<&mut WindowRect> {
+                Some(&mut self.window_rect)
+            }
+        })
+    } else {
+        None
+    };
+
+    let controls_impl = if fields
+        .iter()
+        .any(|f| f.ident.as_ref().unwrap() == "controls")
+    {
+        Some(quote! {
+            fn controls(&mut self) -> Option<&mut Controls> {
+                Some(&mut self.controls)
+            }
+        })
+    } else {
+        None
+    };
+
+    let clear_color_impl = clear_color.map(|color| match color {
+        ColorFormat::Rgba(components) => {
+            let [r, g, b, a] =
+                [components[0], components[1], components[2], components[3]];
             quote! {
-                fn controls(&mut self) -> Option<&mut Controls> {
-                    Some(&mut self.controls)
+                fn clear_color(&self) -> Rgba {
+                    Rgba::new(#r, #g, #b, #a)
                 }
             }
-        });
+        }
+        ColorFormat::Hsla(components) => {
+            let [h, s, l, a] =
+                [components[0], components[1], components[2], components[3]];
+            quote! {
+                fn clear_color(&self) -> Rgba {
+                    hsla(#h, #s, #l, #a).into()
+                }
+            }
+        }
+    });
 
     let gen = quote! {
         impl SketchModel for #name {
             #window_rect_impl
             #controls_impl
+            #clear_color_impl
         }
     };
 
     gen.into()
+}
+
+enum ColorFormat {
+    Rgba(Vec<f32>),
+    Hsla(Vec<f32>),
+}
+
+impl ColorFormat {
+    fn from_str(s: &str) -> Option<Self> {
+        let parts: Vec<&str> = s.split('(').collect();
+        if parts.len() != 2 {
+            return None;
+        }
+
+        let format = parts[0].trim();
+        let values = parts[1].trim_end_matches(')');
+        let numbers: Vec<f32> = values
+            .split(',')
+            .map(|s| s.trim().parse::<f32>())
+            .collect::<Result<_, _>>()
+            .ok()?;
+
+        match format {
+            "rgba" => {
+                if numbers.len() == 4 {
+                    Some(ColorFormat::Rgba(numbers))
+                } else {
+                    None
+                }
+            }
+            "hsla" => {
+                if numbers.len() == 4 {
+                    Some(ColorFormat::Hsla(numbers))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }

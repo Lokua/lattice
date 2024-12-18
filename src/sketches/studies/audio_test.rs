@@ -18,16 +18,11 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
 
+#[derive(SketchComponents)]
 pub struct Model {
     controls: Controls,
     audio: Audio,
     fft_bands: Vec<f32>,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {

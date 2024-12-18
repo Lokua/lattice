@@ -18,6 +18,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 const GRID_SIZE: usize = 256;
 
+#[derive(SketchComponents)]
 pub struct Model {
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
@@ -25,12 +26,6 @@ pub struct Model {
     controls: Controls,
     gradient: Gradient<LinSrgb>,
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {

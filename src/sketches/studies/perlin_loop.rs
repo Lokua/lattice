@@ -20,18 +20,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(300),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
     #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
     noise: Perlin,
     last_seed: u32,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {

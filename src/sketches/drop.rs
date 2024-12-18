@@ -15,18 +15,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 const MAX_DROPS: usize = 2500;
 
+#[derive(SketchComponents)]
 pub struct Model {
     animation: Animation,
     controls: Controls,
     max_drops: usize,
     drops: Vec<(Drop, Hsl)>,
     droppers: Vec<Dropper>,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 type DropFn = fn(&Dropper, Vec2, &mut Vec<(Drop, Hsl)>, usize, Hsl);

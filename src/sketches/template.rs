@@ -14,17 +14,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(150),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
     animation: Animation,
     controls: Controls,
     radius: f32,
     hue: f32,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {
