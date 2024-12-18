@@ -14,18 +14,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(500),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
-    #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
     lines: Vec<Vec<Point2>>,
     patterns: Vec<XModFn>,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {

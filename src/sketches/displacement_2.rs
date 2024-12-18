@@ -19,6 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 const GRID_SIZE: usize = 128;
 
+#[derive(SketchComponents)]
 pub struct Model {
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
@@ -68,12 +69,6 @@ impl Model {
         } else {
             value
         }
-    }
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
     }
 }
 

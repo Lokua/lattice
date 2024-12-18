@@ -16,14 +16,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(150),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
     animation: Animation,
     lerp: f32,
     ramp: f32,
     r_ramp: f32,
 }
-
-impl SketchModel for Model {}
 
 pub fn init_model(_window_rect: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);

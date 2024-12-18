@@ -19,22 +19,13 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(300),
 };
 
+#[derive(SketchComponents)]
+#[sketch(clear_color = "hsla(0.0, 0.0, 1.0, 1.0)")]
 pub struct Model {
-    #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
     noise: SuperSimplex,
     last_seed: u32,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        Some(&mut self.controls)
-    }
-
-    fn clear_color(&self) -> Rgba {
-        hsla(0.0, 0.0, 1.0, 1.0).into()
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {

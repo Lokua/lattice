@@ -13,14 +13,9 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(150),
 };
 
+#[derive(SketchComponents)]
 pub struct Model {
     midi: MidiControls,
-}
-
-impl SketchModel for Model {
-    fn controls(&mut self) -> Option<&mut Controls> {
-        None
-    }
 }
 
 pub fn init_model(_window_rect: WindowRect) -> Model {
