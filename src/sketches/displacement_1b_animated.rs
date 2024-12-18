@@ -16,10 +16,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(320),
 };
 
-const GRID_SIZE: usize = 256;
+const GRID_SIZE: usize = 128;
 
 #[derive(SketchComponents)]
+#[sketch(clear_color = "hsl(0.0, 0.0, 0.02, 0.5)")]
 pub struct Model {
+    window_rect: WindowRect,
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
     animation: Animation,
@@ -28,7 +30,7 @@ pub struct Model {
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let grid_w = w as f32 - 80.0;
@@ -39,13 +41,9 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
         Control::checkbox("show_center", true),
         Control::checkbox("show_corner", false),
         Control::slider("gradient_spread", 0.5, (0.0, 1.0), 0.0001),
-        Control::slider("size_min", 0.1, (0.1, 4.0), 0.1),
-        Control::slider("size_max", 2.5, (0.1, 4.0), 0.1),
+        Control::slider("alpha", 1.0, (0.001, 1.0), 0.001),
+        Control::slider("size_max", 2.5, (0.1, 10.0), 0.1),
         Control::slider("scaling_power", 3.0, (0.5, 11.0), 0.25),
-        Control::slider("displacer_radius", 210.0, (1.0, 500.0), 1.0),
-        Control::slider("displacer_strength", 95.0, (1.0, 500.0), 1.0),
-        Control::slider("corner_radius", 210.0, (1.0, 500.0), 1.0),
-        Control::slider("corner_strength", 95.0, (1.0, 500.0), 1.0),
     ]);
 
     let w4th = w as f32 / 4.0;
@@ -75,12 +73,14 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
     ];
 
     Model {
+        window_rect,
         grid: create_grid(grid_w, grid_h, GRID_SIZE, vec2).0,
         displacer_configs,
         animation,
         controls,
         gradient: Gradient::new(vec![
             CYAN.into_lin_srgb(),
+            ORANGE.into_lin_srgb(),
             MAGENTA.into_lin_srgb(),
             GREEN.into_lin_srgb(),
         ]),
@@ -89,7 +89,6 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
 }
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    let size_min = model.controls.float("size_min");
     let size_max = model.controls.float("size_max");
     let strength = model.controls.float("displacer_strength");
     let gradient_spread = model.controls.float("gradient_spread");
@@ -111,36 +110,28 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             config.update(&model.animation, &model.controls);
             match config.kind {
                 DisplacerConfigKind::Center => {
-                    let strength_range =
-                        model.controls.slider_range("displacer_strength");
                     config.displacer.set_strength(model.animation.r_ramp(
-                        vec![KFR::new(strength_range, 8.0)],
+                        vec![KFR::new((1.0, 500.0), 8.0)],
                         0.0,
                         4.0,
                         linear,
                     ));
-                    let radius_range =
-                        model.controls.slider_range("displacer_radius");
                     config.displacer.set_radius(model.animation.r_ramp(
-                        vec![KFR::new(radius_range, 12.0)],
+                        vec![KFR::new((1.0, 500.0), 12.0)],
                         1.0,
                         3.0,
                         linear,
                     ));
                 }
                 DisplacerConfigKind::Corner => {
-                    let strength_range =
-                        model.controls.slider_range("corner_strength");
                     config.displacer.set_strength(model.animation.r_ramp(
-                        vec![KFR::new(strength_range, 4.0)],
+                        vec![KFR::new((1.0, 500.0), 4.0)],
                         0.0,
                         4.0,
                         linear,
                     ));
-                    let radius_range =
-                        model.controls.slider_range("corner_radius");
                     config.displacer.set_radius(model.animation.r_ramp(
-                        vec![KFR::new(radius_range, 8.0)],
+                        vec![KFR::new((1.0, 500.0), 8.0)],
                         1.0,
                         3.0,
                         linear,
@@ -172,7 +163,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 displacement_magnitude,
                 0.0,
                 max_mag,
-                size_min,
+                0.1,
                 size_max,
                 ease_out,
             );
@@ -180,12 +171,20 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             (*point + total_displacement, radius, color)
         })
         .collect();
+
+    model.ellipses.sort_by(
+        |(_pos_a, _rad_a, color_a), (_pos_b, _rad_b, color_b)| {
+            luminance(color_a).partial_cmp(&luminance(color_b)).unwrap()
+        },
+    );
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
 
-    draw.background().color(hsl(0.0, 0.0, 0.02));
+    draw.rect()
+        .w_h(model.window_rect.w(), model.window_rect.h())
+        .color(hsla(0.0, 0.0, 0.02, model.controls.float("alpha")));
 
     for (position, radius, color) in &model.ellipses {
         draw.rect()

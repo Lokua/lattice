@@ -51,6 +51,11 @@ pub fn lin_srgb_to_lin_srgba(color: LinSrgb, alpha: f32) -> LinSrgba {
     LinSrgba::from_components((color.red, color.green, color.blue, alpha))
 }
 
+// Numbers from Rec. 709 color space standard
+pub fn luminance(color: &LinSrgb) -> f32 {
+    0.2126 * color.red + 0.7152 * color.green + 0.0722 * color.blue
+}
+
 pub fn create_grid<F>(
     w: f32,
     h: f32,
