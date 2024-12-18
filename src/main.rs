@@ -56,6 +56,17 @@ macro_rules! run_sketch {
                 sketches::$sketch_module::view,
             )
         })
+        .event(|app, model, event| {
+            if let Event::WindowEvent {
+                id: _,
+                simple: Some(event),
+            } = event
+            {
+                if let KeyPressed(key) = event {
+                    on_key_pressed(app, model, key);
+                }
+            }
+        })
         .run();
     }};
 }
@@ -102,6 +113,7 @@ struct AppModel<S> {
     recording_state: RecordingState,
     sketch_model: S,
     sketch_config: &'static SketchConfig,
+    gui_visible: Cell<bool>,
 }
 
 fn model<S: SketchModel + 'static>(
@@ -136,6 +148,7 @@ fn model<S: SketchModel + 'static>(
             sketch_config.gui_h.unwrap_or(gui_h),
         )
         .view(view_gui::<S>)
+        .resizable(false)
         .raw_event(|_app, model: &mut AppModel<S>, event| {
             model.egui.handle_raw_event(event);
         })
@@ -169,6 +182,7 @@ fn model<S: SketchModel + 'static>(
         recording_state: RecordingState::new(recording_dir.clone()),
         sketch_model,
         sketch_config,
+        gui_visible: Cell::new(true),
     }
 }
 
@@ -221,7 +235,7 @@ fn update<S: SketchModel>(
     MIDI_MESSAGE_RX.with(|cell| {
         if let Some(rx) = cell.borrow_mut().as_ref() {
             if let Ok(instruction) = rx.try_recv() {
-                handle_midi_instruction(
+                on_midi_instruction(
                     &mut model.recording_state,
                     model.sketch_config,
                     &model.session_id,
@@ -358,7 +372,22 @@ fn view_gui<S: SketchModel>(_app: &App, model: &AppModel<S>, frame: Frame) {
     model.egui.draw_to_frame(&frame).unwrap();
 }
 
-fn handle_midi_instruction(
+fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
+    if key == Key::C {
+        let window = app.window(model.gui_window_id).unwrap();
+        let is_visible = model.gui_visible.get();
+
+        if is_visible {
+            window.set_visible(false);
+            model.gui_visible.set(false);
+        } else {
+            window.set_visible(true);
+            model.gui_visible.set(true);
+        }
+    }
+}
+
+fn on_midi_instruction(
     recording_state: &mut RecordingState,
     sketch_config: &SketchConfig,
     session_id: &str,
