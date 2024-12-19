@@ -116,6 +116,7 @@ pub struct AudioProcessor {
 impl AudioProcessor {
     pub fn new(sample_rate: usize, frame_rate: f32) -> Self {
         let buffer_size = (sample_rate as f32 / frame_rate).ceil() as usize;
+        debug!("buffer_size: {}", buffer_size);
         let mut planner: FftPlanner<f32> = FftPlanner::new();
         let fft = planner.plan_fft_forward(buffer_size);
 
@@ -132,6 +133,14 @@ impl AudioProcessor {
 
         if self.buffer.len() > self.buffer_size {
             self.buffer.drain(0..(self.buffer.len() - self.buffer_size));
+        }
+        // Deal with race condition of sketch update happening and
+        // requesting data before the buffer is full.
+        // "Provided FFT buffer was too small. Expected len = 1600, got len = 1536"
+        else if self.buffer.len() < self.buffer_size {
+            while self.buffer.len() < self.buffer_size {
+                self.buffer.push(0.0);
+            }
         }
     }
 
@@ -454,7 +463,9 @@ pub fn init_audio(
                 // Do `data.iter().skip(1).step_by(2)` for right
                 let data: Vec<f32> =
                     source_data.iter().step_by(2).cloned().collect();
+
                 let mut audio_processor = shared_audio.lock().unwrap();
+
                 audio_processor.add_samples(&data);
             },
             move |err| error!("An error occured on steam: {}", err),
