@@ -13,6 +13,7 @@ members = [
 [dependencies]
 chrono = "0.4.38"
 cpal = "0.15.3"
+dark-light = "1.1.1"
 derives = { path = "./derives" }
 dirs = "5.0.1"
 env_logger = "0.11.5"

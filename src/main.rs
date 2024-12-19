@@ -1,17 +1,12 @@
 use nannou::prelude::*;
-use nannou_egui::egui;
-use nannou_egui::egui::Color32;
-use nannou_egui::egui::FontDefinitions;
-use nannou_egui::egui::FontFamily;
+use nannou_egui::egui::{self, FontDefinitions, FontFamily};
 use nannou_egui::Egui;
-use std::cell::Cell;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::env;
 use std::error::Error;
 use std::fs;
-use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
-use std::sync::Once;
+use std::sync::{mpsc, Once};
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -73,6 +68,7 @@ macro_rules! run_sketch {
 
 fn main() {
     init_logger();
+    init_theme();
 
     let args: Vec<String> = env::args().collect();
     let sketch_name = args.get(1).map(|s| s.as_str()).unwrap_or("template");
@@ -286,18 +282,14 @@ fn update_gui<S: SketchModel>(
     recording_state: &mut RecordingState,
     ctx: &egui::Context,
 ) {
-    let mut style = (*ctx.style()).clone();
-    style.visuals.button_frame = true;
-    style.visuals.widgets.inactive.bg_fill = Color32::from_gray(10);
-    style.visuals.widgets.inactive.weak_bg_fill = Color32::from_gray(10);
-    style.spacing.slider_width = 260.0;
-    ctx.set_style(style);
+    apply_theme(ctx);
+    let colors = ThemeColors::current();
     setup_monospaced_fonts(ctx);
 
     egui::CentralPanel::default()
         .frame(
             egui::Frame::default()
-                .fill(Color32::from_gray(3))
+                .fill(colors.bg_primary)
                 .inner_margin(egui::Margin::same(16.0)),
         )
         .show(ctx, |ui| {
@@ -652,24 +644,27 @@ fn draw_record_button(
 }
 
 fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
+    let colors = ThemeColors::current();
+
     egui::TopBottomPanel::bottom("alerts")
         .frame(
             egui::Frame::default()
-                .fill(Color32::from_gray(2))
+                .fill(colors.bg_secondary)
                 .outer_margin(egui::Margin::same(6.0))
                 .inner_margin(egui::Margin::same(4.0)),
         )
         .show_separator_line(false)
         .min_height(40.0)
         .show(ctx, |ui| {
-            ui.colored_label(Color32::from_gray(180), alert_text);
+            ui.colored_label(colors.text_secondary, alert_text);
         });
 }
 
 fn draw_avg_fps(ui: &mut egui::Ui) {
+    let colors = ThemeColors::current();
     let avg_fps = frame_controller::average_fps();
     ui.label("FPS:");
-    ui.colored_label(Color32::from_rgb(0, 255, 0), format!("{:.1}", avg_fps));
+    ui.colored_label(colors.text_data, format!("{:.1}", avg_fps));
 }
 
 fn draw_sketch_controls<S: SketchModel>(
