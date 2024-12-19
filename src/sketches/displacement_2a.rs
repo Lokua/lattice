@@ -15,13 +15,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(700),
+    gui_h: Some(840),
 };
 
 const DEBUG_QUADS: bool = false;
 const GRID_SIZE: usize = 128;
 const SAMPLE_RATE: usize = 48_000;
 const N_BANDS: usize = 8;
+const CIRCLE_RESOLUTION: f32 = 6.0;
 
 #[derive(SketchComponents)]
 pub struct Model {
@@ -31,7 +32,7 @@ pub struct Model {
     controls: Controls,
     cached_pattern: String,
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
-    gradient: Gradient<LinSrgb>,
+    palettes: Vec<Gradient<LinSrgb>>,
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
     audio: Audio,
     fft_bands: Vec<f32>,
@@ -93,10 +94,12 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
         Control::checkbox("audio_enabled", false),
         Control::slider("rise_rate", 0.96, (0.001, 1.0), 0.001),
         Control::slider("fall_rate", 0.9, (0.0, 1.0), 0.001),
+        Control::Separator {},
         Control::select("pattern", "cos,sin", generate_pattern_options()),
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
         Control::checkbox("clamp_circle_radii", false),
         Control::checkbox("animate_frequency", false),
+        Control::Separator {},
         Control::checkbox("quad_restraint", false),
         Control::slider("qr_lerp", 0.5, (0.0, 1.0), 0.0001),
         Control::slider("qr_divisor", 2.0, (0.5, 16.0), 0.125),
@@ -112,12 +115,23 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
             "Rectangle",
             string_vec!["Rectangle", "Circle", "Ripple", "Spiral"],
         ),
-        Control::checkbox("center", true),
         Control::checkbox("quad_1", false),
         Control::checkbox("quad_2", false),
         Control::checkbox("quad_3", false),
         Control::checkbox("quad_4", false),
+        Control::checkbox("quad_influence_or_attract", false),
+        Control::Separator {},
+        Control::checkbox("center", true),
+        Control::checkbox("center_influence_or_attract", false),
+        Control::Separator {},
+        Control::select(
+            "palette",
+            "lightcoral",
+            string_vec!["lightcoral", "lightgreen",],
+        ),
         Control::slider("gradient_spread", 0.99, (0.0, 1.0), 0.0001),
+        Control::checkbox("color_influence_or_attract", false),
+        Control::Separator {},
         Control::slider("circle_radius_min", 1.0, (0.1, 12.0), 0.1),
         Control::slider("circle_radius_max", 5.0, (0.1, 12.0), 0.1),
         Control::slider("displacer_radius", 0.001, (0.0001, 0.01), 0.0001),
@@ -125,6 +139,7 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
         Control::slider("weave_frequency", 0.03, (0.01, 0.2), 0.001),
         Control::slider("weave_scale", 0.05, (0.001, 0.1), 0.001),
         Control::slider("weave_amplitude", 0.001, (0.0001, 0.01), 0.0001),
+        Control::slider("scaling_power", 2.0, (0.25, 9.00), 0.25),
     ]);
 
     let mut displacer_configs = vec![
@@ -189,6 +204,10 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
 
     let pad = w as f32 * (1.0 / 3.0);
     let cached_pattern = controls.string("pattern");
+    let palettes = vec![
+        Gradient::new(vec![LIGHTCORAL.into_lin_srgb(), AZURE.into_lin_srgb()]),
+        Gradient::new(vec![LIGHTGREEN.into_lin_srgb(), AZURE.into_lin_srgb()]),
+    ];
 
     Model {
         grid: create_grid(w as f32 - pad, h as f32 - pad, GRID_SIZE, vec2).0,
@@ -197,15 +216,11 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
         controls,
         cached_pattern,
         cached_trig_fns: None,
-        gradient: Gradient::new(vec![
-            // LIGHTGREEN.into_lin_srgb(),
-            LIGHTCORAL.into_lin_srgb(),
-            AZURE.into_lin_srgb(),
-        ]),
         ellipses: Vec::with_capacity(GRID_SIZE),
         audio,
         fft_bands: Vec::new(),
         last_position_animation,
+        palettes,
     }
 }
 
@@ -248,6 +263,13 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
     let animation = &model.animation;
     let controls = &model.controls;
     let weave_frequency = model.weave_frequency();
+    let scaling_power = model.controls.float("scaling_power");
+    let quad_influence_or_attract =
+        model.controls.bool("quad_influence_or_attract");
+    let center_influence_or_attract =
+        model.controls.bool("center_influence_or_attract");
+    let color_influence_or_attract =
+        model.controls.bool("color_influence_or_attract");
 
     model.fft_bands = model.audio.bands(
         N_BANDS,
@@ -298,7 +320,8 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
         .collect();
 
     let max_mag = model.displacer_configs.len() as f32 * displacer_strength;
-    let gradient = &model.gradient;
+    let gradient =
+        find_palette_by_name(&controls.string("palette"), &model.palettes);
     let time = app.time;
 
     model.ellipses = model
@@ -325,7 +348,19 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
                         quad_contains = true;
                     }
                 }
-                let displacement = config.displacer.influence(*point);
+                let displacement = if quad_contains {
+                    if quad_influence_or_attract {
+                        config.displacer.attract(*point, scaling_power)
+                    } else {
+                        config.displacer.core_influence(*point, scaling_power)
+                    }
+                } else {
+                    if center_influence_or_attract {
+                        config.displacer.attract(*point, scaling_power)
+                    } else {
+                        config.displacer.core_influence(*point, scaling_power)
+                    }
+                };
                 let influence = displacement.length();
                 total_displacement += displacement;
                 total_influence += influence;
@@ -335,7 +370,11 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
             let inv_total = 1.0 / total_influence.max(1.0);
 
             for config in &enabled_displacer_configs {
-                let displacement = config.displacer.influence(*point);
+                let displacement = if color_influence_or_attract {
+                    config.displacer.attract(*point, scaling_power)
+                } else {
+                    config.displacer.core_influence(*point, scaling_power)
+                };
                 let influence = displacement.length();
                 let color_position = (influence / config.displacer.strength)
                     .powf(gradient_spread)
@@ -350,10 +389,6 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
             } else {
                 total_displacement.length()
             };
-
-            // let blended_color = gradient.get(
-            //     (magnitude / max_mag).powf(gradient_spread).clamp(0.0, 1.0),
-            // );
 
             let radius = map_range(
                 magnitude,
@@ -415,7 +450,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             .stroke(*color)
             .stroke_weight(0.5)
             .radius(*radius)
-            .resolution(12.0)
+            .resolution(CIRCLE_RESOLUTION)
             .xy(*position);
     }
 
@@ -510,25 +545,19 @@ fn generate_pattern_options() -> Vec<String> {
         "coth",
     ];
 
-    let options: Vec<String> = functions
+    functions
         .iter()
         .flat_map(|a| functions.iter().map(move |b| format!("{},{}", a, b)))
-        .collect();
-
-    // Start with custom patterns
-    let mut all_patterns = vec![
-        "Custo".into(),
-        "Sprial".into(),
-        "Ripple".into(),
-        "VortxFld".into(),
-        "VortxFld2".into(),
-        "FracRipl".into(),
-        "Quantum".into(),
-    ];
-
-    // Extend with the function combinations
-    all_patterns.extend(options);
-    all_patterns
+        .chain(string_vec![
+            "Custo",
+            "Sprial",
+            "Ripple",
+            "VortxFld",
+            "VortxFld2",
+            "FracRipl",
+            "Quantum",
+        ])
+        .collect()
 }
 
 fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
@@ -544,6 +573,17 @@ fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
     map.insert("csch", f32::csch as fn(f32) -> f32);
     map.insert("coth", f32::coth as fn(f32) -> f32);
     map
+}
+
+fn find_palette_by_name<'a>(
+    name: &str,
+    palettes: &'a Vec<Gradient<LinSrgb>>,
+) -> &'a Gradient<LinSrgb> {
+    match name {
+        "lightcoral" => &palettes[0],
+        "lightgreen" => &palettes[1],
+        _ => panic!("No palette named {}", name),
+    }
 }
 
 fn animation_fns(position_animations_kind: &str) -> Vec<AnimationFn<Vec2>> {
