@@ -225,25 +225,6 @@ pub fn init_model(_window_rect: WindowRect) -> Model {
 }
 
 pub fn update(app: &App, model: &mut Model, _update: Update) {
-    if model.cached_trig_fns == None
-        || (model.cached_pattern != model.controls.string("pattern"))
-    {
-        model.update_trig_fns();
-    }
-
-    if model.last_position_animation
-        != model.controls.string("position_animation")
-    {
-        debug!("position animation changed");
-        model.last_position_animation =
-            model.controls.string("position_animation");
-        let position_animations = animation_fns(&model.last_position_animation);
-        for i in 0..model.displacer_configs.len() {
-            model.displacer_configs[i].position_animation =
-                position_animations[i].clone();
-        }
-    }
-
     let audio_enabled = model.controls.bool("audio_enabled");
     let clamp_circle_radii = model.controls.bool("clamp_circle_radii");
     let quad_restraint = model.controls.bool("quad_restraint");
@@ -260,8 +241,6 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
     let pattern = model.controls.string("pattern");
     let circle_radius_min = model.controls.float("circle_radius_min");
     let circle_radius_max = model.controls.float("circle_radius_max");
-    let animation = &model.animation;
-    let controls = &model.controls;
     let weave_frequency = model.weave_frequency();
     let scaling_power = model.controls.float("scaling_power");
     let quad_influence_or_attract =
@@ -270,6 +249,24 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
         model.controls.bool("center_influence_or_attract");
     let color_influence_or_attract =
         model.controls.bool("color_influence_or_attract");
+
+    if model.cached_trig_fns == None
+        || (model.cached_pattern != model.controls.string("pattern"))
+    {
+        model.update_trig_fns();
+    }
+
+    if model.last_position_animation
+        != model.controls.string("position_animation")
+    {
+        model.last_position_animation =
+            model.controls.string("position_animation");
+        let position_animations = animation_fns(&model.last_position_animation);
+        for i in 0..model.displacer_configs.len() {
+            model.displacer_configs[i].position_animation =
+                position_animations[i].clone();
+        }
+    }
 
     model.fft_bands = model.audio.bands(
         N_BANDS,
@@ -281,8 +278,10 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
     );
 
     let cached_trig_fns = model.cached_trig_fns.clone();
-
+    let animation = &model.animation;
+    let controls = &model.controls;
     let band_for_freq = model.fft_bands[0];
+
     let distance_fn: CustomDistanceFn =
         Some(Arc::new(move |grid_point, position| {
             weave(
@@ -348,14 +347,14 @@ pub fn update(app: &App, model: &mut Model, _update: Update) {
                         quad_contains = true;
                     }
                 }
-                let displacement = if quad_contains {
-                    if quad_influence_or_attract {
+                let displacement = if config.kind == "center" {
+                    if center_influence_or_attract {
                         config.displacer.attract(*point, scaling_power)
                     } else {
                         config.displacer.core_influence(*point, scaling_power)
                     }
                 } else {
-                    if center_influence_or_attract {
+                    if quad_influence_or_attract {
                         config.displacer.attract(*point, scaling_power)
                     } else {
                         config.displacer.core_influence(*point, scaling_power)
@@ -719,58 +718,6 @@ fn animations_counter_clockwise() -> Vec<AnimationFn<Vec2>> {
             vec2(x, y)
         })),
     ]
-}
-
-fn _split_into_nonet(
-    ellipses: &[(Vec2, f32, LinSrgb)],
-) -> Vec<Vec<(Vec2, f32, LinSrgb)>> {
-    let (min_x, max_x, min_y, max_y) = ellipses.iter().fold(
-        (f32::MAX, f32::MIN, f32::MAX, f32::MIN),
-        |(min_x, max_x, min_y, max_y), (pos, _, _)| {
-            (
-                min_x.min(pos.x),
-                max_x.max(pos.x),
-                min_y.min(pos.y),
-                max_y.max(pos.y),
-            )
-        },
-    );
-
-    let width = max_x - min_x;
-    let height = max_y - min_y;
-    let section_width = width / 3.0;
-    let section_height = height / 3.0;
-    let mut sections = vec![Vec::new(); 9];
-
-    // For each point
-    for point in ellipses.iter() {
-        let (pos, radius, color) = point;
-        let col = ((pos.x - min_x) / section_width).floor() as usize;
-        let row = ((pos.y - min_y) / section_height).floor() as usize;
-        let section = row * 3 + col;
-
-        if section < 9 {
-            if DEBUG_QUADS {
-                let debug_color = match section {
-                    0 => RED.into_lin_srgb(),
-                    1 => GREEN.into_lin_srgb(),
-                    2 => BLUE.into_lin_srgb(),
-                    3 => YELLOW.into_lin_srgb(),
-                    4 => PURPLE.into_lin_srgb(),
-                    5 => CYAN.into_lin_srgb(),
-                    6 => ORANGE.into_lin_srgb(),
-                    7 => PINK.into_lin_srgb(),
-                    _ => WHITE.into_lin_srgb(),
-                };
-
-                sections[section].push((*pos, *radius, debug_color));
-            } else {
-                sections[section].push((*pos, *radius, *color));
-            }
-        }
-    }
-
-    sections
 }
 
 #[derive(Clone, Copy, PartialEq)]
