@@ -15,6 +15,7 @@ pub struct FrameController {
     accumulator: Duration,
     frame_count: AtomicU32,
     render_flag: bool,
+    force_render: bool,
     paused: bool,
     frame_intervals: Vec<Duration>,
     max_intervals: usize,
@@ -31,6 +32,7 @@ impl FrameController {
             accumulator: Duration::ZERO,
             frame_count: AtomicU32::new(0),
             render_flag: false,
+            force_render: false,
             paused: false,
             frame_intervals: Vec::new(),
             max_intervals: 90,
@@ -44,16 +46,24 @@ impl FrameController {
         self.last_frame_time = now;
         self.render_flag = false;
 
-        // Render frames for each interval the accumulator surpasses
-        while self.accumulator >= self.frame_duration {
-            self.accumulator -= self.frame_duration;
+        if self.force_render {
             self.frame_count.fetch_add(1, Ordering::Relaxed);
-            self.render_flag = true;
+            trace!("Forced frame increment");
+            return;
         }
 
-        // Adjust for small drifts (do we really need this?)
-        if self.accumulator < Duration::from_millis(1) {
-            self.accumulator = Duration::ZERO;
+        if !self.paused {
+            // Render frames for each interval the accumulator surpasses
+            while self.accumulator >= self.frame_duration {
+                self.accumulator -= self.frame_duration;
+                self.frame_count.fetch_add(1, Ordering::Relaxed);
+                self.render_flag = true;
+            }
+
+            // Adjust for small drifts (do we really need this?)
+            if self.accumulator < Duration::from_millis(1) {
+                self.accumulator = Duration::ZERO;
+            }
         }
 
         if self.render_flag {
@@ -78,7 +88,7 @@ impl FrameController {
     }
 
     pub fn should_render(&self) -> bool {
-        self.render_flag && !self.paused
+        self.force_render || (!self.paused && self.render_flag)
     }
 
     pub fn frame_count(&self) -> u32 {
@@ -192,4 +202,15 @@ pub fn set_paused(paused: bool) {
 
 pub fn average_fps() -> f32 {
     CONTROLLER.read().average_fps()
+}
+
+pub fn advance_single_frame() {
+    let mut controller = CONTROLLER.write();
+    if controller.paused {
+        controller.force_render = true;
+    }
+}
+
+pub fn clear_force_render() {
+    CONTROLLER.write().force_render = false;
 }

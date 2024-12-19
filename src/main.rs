@@ -1,19 +1,17 @@
 use nannou::prelude::*;
-use nannou_egui::{
-    self,
-    egui::{self, Color32, FontDefinitions, FontFamily},
-    Egui,
-};
-use std::{
-    cell::{Cell, RefCell},
-    env,
-    error::Error,
-    fs,
-    sync::{
-        mpsc::{self, Receiver},
-        Once,
-    },
-};
+use nannou_egui::egui;
+use nannou_egui::egui::Color32;
+use nannou_egui::egui::FontDefinitions;
+use nannou_egui::egui::FontFamily;
+use nannou_egui::Egui;
+use std::cell::Cell;
+use std::cell::RefCell;
+use std::env;
+use std::error::Error;
+use std::fs;
+use std::sync::mpsc;
+use std::sync::mpsc::Receiver;
+use std::sync::Once;
 use std::{path::PathBuf, str};
 
 use framework::prelude::*;
@@ -22,6 +20,8 @@ use runtime::prelude::*;
 pub mod framework;
 pub mod runtime;
 mod sketches;
+
+const GUI_WIDTH: u32 = 490;
 
 macro_rules! run_sketch {
     ($sketch_module:ident) => {{
@@ -202,6 +202,25 @@ fn update<S: SketchModel>(
     update: Update,
     sketch_update_fn: fn(&App, &mut S, Update),
 ) {
+    // GUI update must happen before frame_controller updates
+    // to avoid race conditions. For example pressing Adv. will
+    // set force_render=true, but if that happens at the end of update,
+    // the view function will set it back before wrapped_update
+    // could process it.
+    model.egui.set_elapsed_time(update.since_start);
+    let ctx = model.egui.begin_frame();
+    update_gui(
+        app,
+        model.main_window_id,
+        &mut model.session_id,
+        model.sketch_config,
+        &mut model.sketch_model,
+        &mut model.alert_text,
+        &mut model.clear_flag,
+        &mut model.recording_state,
+        &ctx,
+    );
+
     model.sketch_model.set_window_rect(
         app.window(model.main_window_id)
             .expect("Unable to get window")
@@ -253,20 +272,6 @@ fn update<S: SketchModel>(
             &mut model.alert_text,
         );
     }
-
-    model.egui.set_elapsed_time(update.since_start);
-    let ctx = model.egui.begin_frame();
-    update_gui(
-        app,
-        model.main_window_id,
-        &mut model.session_id,
-        model.sketch_config,
-        &mut model.sketch_model,
-        &mut model.alert_text,
-        &mut model.clear_flag,
-        &mut model.recording_state,
-        &ctx,
-    );
 }
 
 fn update_gui<S: SketchModel>(
@@ -310,6 +315,7 @@ fn update_gui<S: SketchModel>(
                 });
 
                 draw_pause_button(ui, alert_text);
+                draw_adv_button(ui);
                 draw_reset_button(ui, alert_text);
                 draw_clear_button(ui, clear_flag, alert_text);
                 draw_clear_cache_button(ui, sketch_config.name, alert_text);
@@ -349,22 +355,26 @@ fn view<S: SketchModel>(
         sketch_view_fn,
     );
 
-    if did_render && model.recording_state.is_recording {
-        let frame_count = model.recording_state.recorded_frames.get();
-        match app.window(model.main_window_id) {
-            Some(window) => match &model.recording_state.recording_dir {
-                Some(path) => {
-                    let filename = format!("frame-{:06}.png", frame_count);
-                    window.capture_frame(path.join(filename));
-                }
-                None => error!("Unable to capture frame {}", frame_count),
-            },
-            None => panic!("Unable to attain app.window handle"),
+    if did_render {
+        frame_controller::clear_force_render();
+
+        if model.recording_state.is_recording {
+            let frame_count = model.recording_state.recorded_frames.get();
+            match app.window(model.main_window_id) {
+                Some(window) => match &model.recording_state.recording_dir {
+                    Some(path) => {
+                        let filename = format!("frame-{:06}.png", frame_count);
+                        window.capture_frame(path.join(filename));
+                    }
+                    None => error!("Unable to capture frame {}", frame_count),
+                },
+                None => panic!("Unable to attain app.window handle"),
+            }
+            model
+                .recording_state
+                .recorded_frames
+                .set(model.recording_state.recorded_frames.get() + 1);
         }
-        model
-            .recording_state
-            .recorded_frames
-            .set(model.recording_state.recorded_frames.get() + 1);
     }
 }
 
@@ -519,12 +529,12 @@ fn calculate_gui_dimensions(controls: Option<&mut Controls>) -> (u32, u32) {
 
     let height = HEADER_HEIGHT + controls_height + MIN_FINAL_GAP + ALERT_HEIGHT;
 
-    (458, height)
+    (GUI_WIDTH, height)
 }
 
 fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {
     ui.add(egui::Button::new(if frame_controller::is_paused() {
-        "Resume"
+        " Play"
     } else {
         "Pause"
     }))
@@ -536,6 +546,14 @@ fn draw_pause_button(ui: &mut egui::Ui, alert_text: &mut String) {
         *alert_text =
             (if next_is_paused { "Paused" } else { "Resumed" }).into();
     });
+}
+
+fn draw_adv_button(ui: &mut egui::Ui) {
+    ui.add_enabled(frame_controller::is_paused(), egui::Button::new("Adv."))
+        .clicked()
+        .then(|| {
+            frame_controller::advance_single_frame();
+        });
 }
 
 fn draw_reset_button(ui: &mut egui::Ui, alert_text: &mut String) {

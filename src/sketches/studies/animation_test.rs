@@ -54,12 +54,6 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         1.0,
         linear,
     );
-
-    // debug!(
-    //     "frame_count: {}, model.r_ramp: {}",
-    //     frame_controller::frame_count(),
-    //     model.r_ramp
-    // );
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
