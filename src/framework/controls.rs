@@ -3,11 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-/// Any sketch using controls needs to implement this trait for the Model
-pub trait HasControls {
-    fn controls(&mut self) -> &mut Controls;
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ControlValue {
     Float(f32),
@@ -28,11 +23,6 @@ pub enum Control {
         #[serde(skip)]
         disabled: DisabledFn,
     },
-    Button {
-        name: String,
-        #[serde(skip)]
-        disabled: DisabledFn,
-    },
     Checkbox {
         name: String,
         value: bool,
@@ -46,26 +36,34 @@ pub enum Control {
         #[serde(skip)]
         disabled: DisabledFn,
     },
+    Button {
+        name: String,
+        #[serde(skip)]
+        disabled: DisabledFn,
+    },
+    Separator {},
 }
 
 impl Control {
     pub fn name(&self) -> &str {
         match self {
             Control::Slider { name, .. } => name,
-            Control::Button { name, .. } => name,
             Control::Checkbox { name, .. } => name,
             Control::Select { name, .. } => name,
+            Control::Button { name, .. } => name,
+            Control::Separator {} => "",
         }
     }
 
     pub fn value(&self) -> ControlValue {
         match self {
             Control::Slider { value, .. } => ControlValue::Float(*value),
-            Control::Button { .. } => ControlValue::Bool(false),
             Control::Checkbox { value, .. } => ControlValue::Bool(*value),
             Control::Select { value, .. } => {
                 ControlValue::String(value.clone())
             }
+            Control::Button { .. } => ControlValue::Bool(false),
+            Control::Separator { .. } => ControlValue::Bool(false),
         }
     }
 
@@ -133,6 +131,10 @@ impl Control {
         }
     }
 
+    pub fn separator() -> Control {
+        Control::Separator {}
+    }
+
     pub fn select_x<F>(
         name: &str,
         value: &str,
@@ -158,6 +160,7 @@ impl Control {
             | Control::Select { disabled, .. } => {
                 disabled.as_ref().map_or(false, |f| f(controls))
             }
+            _ => false,
         }
     }
 }
@@ -279,14 +282,6 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
                     any_changed = true;
                 }
             }
-            Control::Button { name, .. } => {
-                if ui
-                    .add_enabled(!is_disabled, egui::Button::new(name))
-                    .clicked()
-                {
-                    // Handle click
-                }
-            }
             Control::Checkbox { name, .. } => {
                 let mut value = controls.bool(name);
                 if ui
@@ -324,6 +319,17 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
                             }
                         }
                     });
+            }
+            Control::Button { name, .. } => {
+                if ui
+                    .add_enabled(!is_disabled, egui::Button::new(name))
+                    .clicked()
+                {
+                    // Handle click
+                }
+            }
+            Control::Separator {} => {
+                ui.separator();
             }
         }
     }
