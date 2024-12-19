@@ -4,8 +4,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "chromatic_abberation",
-    display_name: "Chromatic Abberation",
+    name: "z_sim",
+    display_name: "Z Axis Simulation",
     fps: 60.0,
     bpm: 134.0,
     w: 700,
@@ -14,30 +14,33 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(200),
 };
 
-const GRID_SIZE: usize = 8;
+const GRID_SIZE: usize = 32;
 
 #[derive(SketchComponents)]
 pub struct Model {
     window_rect: WindowRect,
     controls: Controls,
+    animation: Animation,
     grid: Vec<Vec2>,
     cell_size: f32,
 }
 
 pub fn init_model(window_rect: WindowRect) -> Model {
+    let animation = Animation::new(SKETCH_CONFIG.bpm);
+
     let (grid, cell_size) =
         create_grid(window_rect.w(), window_rect.h(), GRID_SIZE, vec2);
 
     let controls = Controls::new(vec![
-        Control::slider("x_offset", 1.0, (0.0, 20.0), 0.5),
-        Control::slider("y_offset", 1.0, (0.0, 20.0), 0.5),
         Control::slider("size_mult", 0.5, (0.0125, 2.0), 0.0125),
         Control::slider("alpha", 0.5, (0.0, 1.0), 0.001),
+        Control::slider("depth_influence", 1.0, (0.0, 5.0), 0.1),
     ]);
 
     Model {
         window_rect,
         controls,
+        animation,
         grid,
         cell_size,
     }
@@ -63,26 +66,53 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
         .w_h(model.window_rect.w(), model.window_rect.h())
         .hsla(0.0, 0.0, 1.0, 1.0);
 
+    let hw = model.window_rect.w() / 2.0;
+    let hh = model.window_rect.h() / 2.0;
     let cell_size = model.cell_size * model.controls.float("size_mult");
-    let x_offset = model.controls.float("x_offset");
-    let y_offset = model.controls.float("y_offset");
     let alpha = model.controls.float("alpha");
+    let depth_influence = model.controls.float("depth_influence");
+    let max_possible_dist = hw.max(hh);
+
+    let center = vec2(
+        model.animation.r_ramp(
+            vec![KFR::new((-hw, hw), 2.0)],
+            0.0,
+            1.0,
+            linear,
+        ),
+        model.animation.r_ramp(
+            vec![KFR::new((-hh, hh), 1.0)],
+            0.0,
+            0.5,
+            linear,
+        ),
+    );
 
     for point in model.grid.iter() {
-        draw.rect()
-            .xy(*point + vec2(x_offset, y_offset))
-            .w_h(cell_size, cell_size)
-            .color(rgba(255.0, 0.0, 0.0, alpha));
+        let dist_from_center = point.distance(center);
+        let depth = 1.0
+            - (dist_from_center / max_possible_dist).clamp(0.0, 1.0)
+                * depth_influence;
 
-        draw.rect()
-            .xy(*point - vec2(x_offset, y_offset))
-            .w_h(cell_size, cell_size)
-            .color(rgba(0.0, 255.0, 0.0, alpha));
+        // Modify size based on depth
+        // Further objects are smaller
+        let depth_adjusted_size = cell_size * (0.5 + depth);
+
+        // Modify color based on depth
+        // Further objects are darker
+        let color_intensity = 0.3 + (depth * 0.7);
+        let depth_color = rgba(
+            255.0 * color_intensity,
+            0.0,
+            0.0,
+            // Further objects more transparent
+            alpha * (0.3 + depth * 0.7),
+        );
 
         draw.rect()
             .xy(*point)
-            .w_h(cell_size, cell_size)
-            .color(rgba(0.0, 0.0, 255.0, alpha));
+            .w_h(depth_adjusted_size, depth_adjusted_size)
+            .color(depth_color);
     }
 
     draw.to_frame(app, &frame).unwrap();

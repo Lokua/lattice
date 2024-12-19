@@ -76,7 +76,7 @@ fn main() {
     match sketch_name {
         "animation_test" => run_sketch!(animation_test),
         "audio_test" => run_sketch!(audio_test),
-        "chromatic_abberation" => run_sketch!(chromatic_abberation),
+        "chromatic_aberration" => run_sketch!(chromatic_aberration),
         "displacement_1" => run_sketch!(displacement_1),
         "displacement_1a" => run_sketch!(displacement_1a),
         "displacement_1b" => run_sketch!(displacement_1b),
@@ -92,6 +92,7 @@ fn main() {
         "template" => run_sketch!(template),
         "vertical" => run_sketch!(vertical),
         "vertical_2" => run_sketch!(vertical_2),
+        "z_sim" => run_sketch!(z_sim),
         _ => {
             warn!("Sketch not found, running template");
             run_sketch!(template)
@@ -676,6 +677,10 @@ fn draw_sketch_controls<S: SketchModel>(
     if let Some(controls) = sketch_model.controls() {
         let any_changed = draw_controls(controls, ui);
         if any_changed {
+            if frame_controller::is_paused() {
+                frame_controller::advance_single_frame();
+            }
+
             match persist_controls(sketch_config.name, controls) {
                 Ok(path_buf) => {
                     *alert_text =
