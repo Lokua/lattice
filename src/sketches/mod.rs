@@ -11,6 +11,7 @@ pub mod template;
 pub mod studies;
 pub use self::studies::animation_test;
 pub use self::studies::audio_test;
+pub use self::studies::chromatic_abberation;
 pub use self::studies::midi_test;
 pub use self::studies::noise;
 pub use self::studies::perlin_loop;
