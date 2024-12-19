@@ -13,10 +13,11 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(460),
+    gui_h: Some(490),
 };
 
 const GRID_SIZE: usize = 128;
+const USE_TRIANGLES: bool = true;
 
 #[derive(SketchComponents)]
 #[sketch(clear_color = "hsl(0.0, 0.0, 0.02, 0.5)")]
@@ -27,7 +28,7 @@ pub struct Model {
     animation: Animation,
     controls: Controls,
     gradient: Gradient<LinSrgb>,
-    objects: Vec<(Vec2, f32, LinSrgb)>,
+    objects: Vec<(Vec2, f32, f32, LinSrgb)>,
 }
 
 pub fn init_model(window_rect: WindowRect) -> Model {
@@ -49,6 +50,7 @@ pub fn init_model(window_rect: WindowRect) -> Model {
         Control::checkbox("show_trbl", false),
         Control::select("trbl_mode", "attract", modes.clone()),
         Control::Separator {},
+        Control::checkbox("flip", false),
         Control::select(
             "sort",
             "luminance",
@@ -66,6 +68,7 @@ pub fn init_model(window_rect: WindowRect) -> Model {
         Control::slider("background_alpha", 1.0, (0.000, 1.0), 0.001),
         Control::slider("alpha", 1.0, (0.001, 1.0), 0.001),
         Control::slider("size_max", 2.5, (0.1, 20.0), 0.1),
+        Control::slider("t_scale", 1.0, (1.0, 200.0), 1.0),
         Control::slider("scaling_power", 3.0, (0.5, 11.0), 0.25),
         Control::slider("mag_mult", 1.0, (1.0, 500.0), 1.0),
     ]);
@@ -139,6 +142,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let size_max = model.controls.float("size_max");
     let gradient_spread = model.controls.float("gradient_spread");
     let scaling_power = model.controls.float("scaling_power");
+    let t_scale = model.controls.float("t_scale");
 
     let max_mag =
         model.displacer_configs.len() as f32 * model.controls.float("mag_mult");
@@ -232,6 +236,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 });
 
             let displacement_magnitude = total_displacement.length();
+            let triangle_height =
+                map_range(displacement_magnitude, 0.0, max_mag, 1.0, t_scale);
 
             let color = gradient.get(
                 1.0 - (displacement_magnitude / max_mag)
@@ -248,12 +254,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 ease_out,
             );
 
-            (*point + total_displacement, radius, color)
+            (*point + total_displacement, radius, triangle_height, color)
         })
         .collect();
 
     model.objects.sort_by(
-        |(_position_a, radius_a, color_a), (_position_b, radius_b, color_b)| {
+        |(_position_a, radius_a, _triangle_height_a, color_a),
+         (_position_b, radius_b, _triangle_height_b, color_b)| {
             match sort.as_str() {
                 "radius" => radius_a.partial_cmp(radius_b).unwrap(),
                 _ => {
@@ -279,16 +286,55 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     let alpha = model.controls.float("alpha");
     let stroke = model.controls.bool("stroke");
     let stroke_weight = model.controls.float("stroke_weight");
+    let flip = model.controls.bool("flip");
 
-    for (position, radius, color) in &model.objects {
-        let rect = draw
-            .rect()
-            .color(lin_srgb_to_lin_srgba(*color, alpha))
-            .w_h(*radius, *radius)
-            .xy(*position);
+    for (position, radius, triangle_height, color) in &model.objects {
+        if USE_TRIANGLES {
+            // Calculate outward direction from center to position
+            let outward_dir = if position.length_squared() == 0.0 {
+                vec2(1.0, 0.0)
+            } else {
+                (*position - vec2(0.0, 0.0)).normalize()
+            };
 
-        if stroke {
-            rect.stroke(BLACK).stroke_weight(stroke_weight);
+            let radius = radius.max(0.01);
+
+            // Triangle dimensions
+            let height = radius; // Distance from the center to the tip
+            let base_width = radius; // Width of the base
+
+            // Calculate vertices
+            let tip = *position
+                + outward_dir
+                    * height
+                    * *triangle_height
+                    * if flip { -1.0 } else { 1.0 };
+
+            // Perpendicular vector for the base
+            let perpendicular = vec2(-outward_dir.y, outward_dir.x);
+
+            let base_left = *position - perpendicular * (base_width / 2.0);
+            let base_right = *position + perpendicular * (base_width / 2.0);
+
+            draw.polygon()
+                .stroke(if stroke {
+                    hsla(0.0, 0.0, 0.0, 1.0)
+                } else {
+                    hsla(0.0, 0.0, 0.0, 0.0)
+                })
+                .stroke_weight(stroke_weight)
+                .points(vec![tip, base_left, base_right])
+                .color(lin_srgb_to_lin_srgba(*color, alpha));
+        } else {
+            let rect = draw
+                .rect()
+                .color(lin_srgb_to_lin_srgba(*color, alpha))
+                .w_h(*radius, *radius)
+                .xy(*position);
+
+            if stroke {
+                rect.stroke(BLACK).stroke_weight(stroke_weight);
+            }
         }
     }
 

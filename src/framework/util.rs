@@ -223,3 +223,12 @@ pub fn map_clamp(
     let clamped = eased.clamp(0.0, 1.0);
     out_min + (clamped * (out_max - out_min))
 }
+
+pub fn rotate_point(point: Vec2, center: Vec2, angle: f32) -> Vec2 {
+    let translated = point - center;
+    let rotated = vec2(
+        translated.x * angle.cos() - translated.y * angle.sin(),
+        translated.x * angle.sin() + translated.y * angle.cos(),
+    );
+    rotated + center
+}
