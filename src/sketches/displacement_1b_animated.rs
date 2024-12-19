@@ -13,7 +13,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(400),
+    gui_h: Some(460),
 };
 
 const GRID_SIZE: usize = 128;
@@ -37,19 +37,18 @@ pub fn init_model(window_rect: WindowRect) -> Model {
     let grid_h = h as f32 - 80.0;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
+    let modes = string_vec!["attract", "influence"];
+
     let controls = Controls::new(vec![
         Control::checkbox("show_center", true),
-        Control::select(
-            "center_mode",
-            "attract",
-            string_vec!["attract", "influence"],
-        ),
+        Control::select("center_mode", "attract", modes.clone()),
+        Control::Separator {},
         Control::checkbox("show_corner", false),
-        Control::select(
-            "corner_mode",
-            "attract",
-            string_vec!["attract", "influence"],
-        ),
+        Control::select("corner_mode", "attract", modes.clone()),
+        Control::Separator {},
+        Control::checkbox("show_trbl", false),
+        Control::select("trbl_mode", "attract", modes.clone()),
+        Control::Separator {},
         Control::select(
             "sort",
             "luminance",
@@ -95,6 +94,22 @@ pub fn init_model(window_rect: WindowRect) -> Model {
             DisplacerConfigKind::Corner,
             Displacer::new_with_position(vec2(-w4th, h4th)),
         ),
+        DisplacerConfig::new_no_anim(
+            DisplacerConfigKind::Trbl,
+            Displacer::new_with_position(vec2(0.0, h4th)),
+        ),
+        DisplacerConfig::new_no_anim(
+            DisplacerConfigKind::Trbl,
+            Displacer::new_with_position(vec2(w4th, 0.0)),
+        ),
+        DisplacerConfig::new_no_anim(
+            DisplacerConfigKind::Trbl,
+            Displacer::new_with_position(vec2(0.0, -h4th)),
+        ),
+        DisplacerConfig::new_no_anim(
+            DisplacerConfigKind::Trbl,
+            Displacer::new_with_position(vec2(-w4th, 0.0)),
+        ),
     ];
 
     Model {
@@ -118,6 +133,8 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let center_mode = model.controls.string("center_mode");
     let show_corner = model.controls.bool("show_corner");
     let corner_mode = model.controls.string("corner_mode");
+    let show_trbl = model.controls.bool("show_trbl");
+    let trbl_mode = model.controls.string("trbl_mode");
     let sort = model.controls.string("sort");
     let size_max = model.controls.float("size_max");
     let gradient_spread = model.controls.float("gradient_spread");
@@ -143,6 +160,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         .filter(|config| match config.kind {
             DisplacerConfigKind::Center => show_center,
             DisplacerConfigKind::Corner => show_corner,
+            DisplacerConfigKind::Trbl => show_trbl,
         })
         .map(|config| {
             config.update(&model.animation, &model.controls);
@@ -175,6 +193,20 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                         linear,
                     ));
                 }
+                DisplacerConfigKind::Trbl => {
+                    config.displacer.set_strength(model.animation.r_ramp(
+                        vec![KFR::new((1.0, 500.0), 16.0)],
+                        0.0,
+                        6.0,
+                        linear,
+                    ));
+                    config.displacer.set_radius(model.animation.r_ramp(
+                        vec![KFR::new((1.0, 500.0), 24.0)],
+                        2.0,
+                        18.0,
+                        linear,
+                    ));
+                }
             }
             config
         })
@@ -185,32 +217,19 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         .par_iter()
         .map(|point| {
             let total_displacement =
-                configs
-                    .iter()
-                    .fold(vec2(0.0, 0.0), |acc, config| match config.kind {
-                        DisplacerConfigKind::Center => {
-                            if center_mode == "attract" {
-                                acc + config
-                                    .displacer
-                                    .attract(*point, scaling_power)
-                            } else {
-                                acc + config
-                                    .displacer
-                                    .core_influence(*point, scaling_power)
-                            }
-                        }
-                        DisplacerConfigKind::Corner => {
-                            if corner_mode == "attract" {
-                                acc + config
-                                    .displacer
-                                    .attract(*point, scaling_power)
-                            } else {
-                                acc + config
-                                    .displacer
-                                    .core_influence(*point, scaling_power)
-                            }
-                        }
-                    });
+                configs.iter().fold(vec2(0.0, 0.0), |acc, config| {
+                    let mode = match config.kind {
+                        DisplacerConfigKind::Center => &center_mode,
+                        DisplacerConfigKind::Corner => &corner_mode,
+                        DisplacerConfigKind::Trbl => &trbl_mode,
+                    };
+
+                    acc + if mode == "attract" {
+                        config.displacer.attract(*point, scaling_power)
+                    } else {
+                        config.displacer.core_influence(*point, scaling_power)
+                    }
+                });
 
             let displacement_magnitude = total_displacement.length();
 
@@ -270,7 +289,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
 
         if stroke {
             rect.stroke(BLACK).stroke_weight(stroke_weight);
-        };
+        }
     }
 
     draw.to_frame(app, &frame).unwrap();
@@ -282,6 +301,7 @@ type AnimationFn<R> =
 enum DisplacerConfigKind {
     Center,
     Corner,
+    Trbl,
 }
 
 struct DisplacerConfig {
