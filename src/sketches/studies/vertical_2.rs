@@ -21,7 +21,7 @@ pub struct Model {
     noise: SimplexNoise,
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let controls = Controls::new(vec![Control::slider(
         "alpha",
         0.25,

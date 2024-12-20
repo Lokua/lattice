@@ -59,7 +59,7 @@ impl Dropper {
     }
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
     let controls = Controls::new(vec![
         Control::Slider {

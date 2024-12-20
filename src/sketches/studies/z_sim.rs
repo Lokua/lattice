@@ -25,7 +25,7 @@ pub struct Model {
     cell_size: f32,
 }
 
-pub fn init_model(window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let (grid, cell_size) =

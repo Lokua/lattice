@@ -109,7 +109,7 @@ impl DisplacerConfig {
     }
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
