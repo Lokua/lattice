@@ -13,7 +13,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(490),
+    gui_h: Some(650),
 };
 
 const GRID_SIZE: usize = 128;
@@ -42,35 +42,40 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
 
     let controls = Controls::new(vec![
         Control::checkbox("show_center", true),
+        Control::checkbox("center_use_grain", true),
         Control::select("center_mode", "attract", modes.clone()),
         Control::Separator {},
-        Control::checkbox("show_corner", false),
+        Control::checkbox("show_corner", true),
+        Control::checkbox("corner_use_grain", true),
         Control::select("corner_mode", "attract", modes.clone()),
         Control::Separator {},
-        Control::checkbox("show_trbl", false),
+        Control::checkbox("show_trbl", true),
+        Control::checkbox("trbl_use_grain", true),
         Control::select("trbl_mode", "attract", modes.clone()),
         Control::Separator {},
+        Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
         Control::checkbox("flip", false),
-        Control::select(
-            "sort",
-            "luminance",
-            string_vec!["luminance", "radius"],
-        ),
-        Control::checkbox("stroke", false),
+        Control::select("sort", "radius", string_vec!["luminance", "radius"]),
+        Control::checkbox("stroke", true),
         Control::slider_x(
             "stroke_weight",
-            1.0,
+            1.25,
             (0.25, 3.0),
             0.25,
             |controls| !controls.bool("stroke"),
         ),
-        Control::slider("gradient_spread", 0.5, (0.0, 1.0), 0.0001),
+        Control::Separator {},
+        Control::slider("gradient_spread", 1.0, (0.0, 1.0), 0.0001),
         Control::slider("background_alpha", 1.0, (0.000, 1.0), 0.001),
         Control::slider("alpha", 1.0, (0.001, 1.0), 0.001),
-        Control::slider("size_max", 2.5, (0.1, 20.0), 0.1),
+        Control::Separator {},
+        Control::slider("size_max", 7.3, (0.1, 20.0), 0.1),
         Control::slider("t_scale", 1.0, (1.0, 200.0), 1.0),
         Control::slider("scaling_power", 3.0, (0.5, 11.0), 0.25),
-        Control::slider("mag_mult", 1.0, (1.0, 500.0), 1.0),
+        Control::slider("mag_mult", 1.0, (1.0, 200.0), 1.0),
+        Control::Separator {},
+        Control::slider("grain_size", 101.0, (1.0, 200.0), 1.0),
+        Control::slider("angle_mult", 48.0, (1.0, 200.0), 1.0),
     ]);
 
     let w4th = w as f32 / 4.0;
@@ -133,16 +138,21 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
 
 pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let show_center = model.controls.bool("show_center");
+    let center_use_grain = model.controls.bool("center_use_grain");
     let center_mode = model.controls.string("center_mode");
     let show_corner = model.controls.bool("show_corner");
+    let corner_use_grain = model.controls.bool("corner_use_grain");
     let corner_mode = model.controls.string("corner_mode");
     let show_trbl = model.controls.bool("show_trbl");
+    let trbl_use_grain = model.controls.bool("trbl_use_grain");
     let trbl_mode = model.controls.string("trbl_mode");
     let sort = model.controls.string("sort");
     let size_max = model.controls.float("size_max");
     let gradient_spread = model.controls.float("gradient_spread");
     let scaling_power = model.controls.float("scaling_power");
     let t_scale = model.controls.float("t_scale");
+    let grain_size = model.controls.float("grain_size");
+    let angle_mult = model.controls.float("angle_mult");
 
     let max_mag =
         model.displacer_configs.len() as f32 * model.controls.float("mag_mult");
@@ -158,6 +168,18 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         model.window_rect.commit();
     }
 
+    let custom_distance_fn: CustomDistanceFn =
+        Some(Arc::new(move |grid_point, position| {
+            wood_grain(
+                grid_point.x,
+                grid_point.y,
+                position.x,
+                position.y,
+                grain_size,
+                angle_mult,
+            )
+        }));
+
     let configs: Vec<&mut DisplacerConfig> = model
         .displacer_configs
         .iter_mut()
@@ -170,6 +192,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             config.update(&model.animation, &model.controls);
             match config.kind {
                 DisplacerConfigKind::Center => {
+                    config.displacer.set_custom_distance_fn(
+                        if center_use_grain {
+                            custom_distance_fn.clone()
+                        } else {
+                            None
+                        },
+                    );
                     config.displacer.set_strength(model.animation.r_ramp(
                         vec![KFR::new((1.0, 500.0), 8.0)],
                         0.0,
@@ -184,6 +213,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     ));
                 }
                 DisplacerConfigKind::Corner => {
+                    config.displacer.set_custom_distance_fn(
+                        if corner_use_grain {
+                            custom_distance_fn.clone()
+                        } else {
+                            None
+                        },
+                    );
                     config.displacer.set_strength(model.animation.r_ramp(
                         vec![KFR::new((1.0, 500.0), 4.0)],
                         0.0,
@@ -198,6 +234,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     ));
                 }
                 DisplacerConfigKind::Trbl => {
+                    config.displacer.set_custom_distance_fn(
+                        if trbl_use_grain {
+                            custom_distance_fn.clone()
+                        } else {
+                            None
+                        },
+                    );
                     config.displacer.set_strength(model.animation.r_ramp(
                         vec![KFR::new((1.0, 500.0), 16.0)],
                         0.0,
@@ -245,6 +288,12 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                     .clamp(0.0, 1.0),
             );
 
+            assert!(
+                displacement_magnitude.is_finite(),
+                "displacement_magnitude is not finite: {:?}",
+                displacement_magnitude
+            );
+
             let radius = map_clamp(
                 displacement_magnitude,
                 0.0,
@@ -261,6 +310,16 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     model.objects.sort_by(
         |(_position_a, radius_a, _triangle_height_a, color_a),
          (_position_b, radius_b, _triangle_height_b, color_b)| {
+            assert!(
+                radius_a.is_finite(),
+                "radius_a is not finite: {:?}",
+                radius_a
+            );
+            assert!(
+                radius_b.is_finite(),
+                "radius_b is not finite: {:?}",
+                radius_b
+            );
             match sort.as_str() {
                 "radius" => radius_a.partial_cmp(radius_b).unwrap(),
                 _ => {
@@ -282,6 +341,8 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             0.02,
             model.controls.float("background_alpha"),
         ));
+
+    let scaled_draw = draw.scale(model.controls.float("scale"));
 
     let alpha = model.controls.float("alpha");
     let stroke = model.controls.bool("stroke");
@@ -316,7 +377,8 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
             let base_left = *position - perpendicular * (base_width / 2.0);
             let base_right = *position + perpendicular * (base_width / 2.0);
 
-            draw.polygon()
+            scaled_draw
+                .polygon()
                 .stroke(if stroke {
                     hsla(0.0, 0.0, 0.0, 1.0)
                 } else {
@@ -326,7 +388,7 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
                 .points(vec![tip, base_left, base_right])
                 .color(lin_srgb_to_lin_srgba(*color, alpha));
         } else {
-            let rect = draw
+            let rect = scaled_draw
                 .rect()
                 .color(lin_srgb_to_lin_srgba(*color, alpha))
                 .w_h(*radius, *radius)
