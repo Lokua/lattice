@@ -22,7 +22,7 @@ pub struct Model {
     patterns: Vec<XModFn>,
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let mode_options = [string_vec!["multi_lerp"], XMods::to_names()].concat();

@@ -31,7 +31,7 @@ pub struct Model {
     objects: Vec<(Vec2, f32, f32, LinSrgb)>,
 }
 
-pub fn init_model(window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
     let grid_w = w as f32 - 80.0;

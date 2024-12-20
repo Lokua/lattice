@@ -18,7 +18,7 @@ pub struct Model {
     midi: MidiControls,
 }
 
-pub fn init_model(_window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let midi = MidiControlBuilder::new()
         .control("a", (0, 1), 0.5)
         .control("b", (0, 2), 0.5)

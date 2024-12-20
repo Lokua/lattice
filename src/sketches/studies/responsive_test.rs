@@ -21,7 +21,7 @@ pub struct Model {
     cell_size: f32,
 }
 
-pub fn init_model(window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     let (grid, cell_size) =
         create_grid(window_rect.w(), window_rect.h(), 64, vec2);
 

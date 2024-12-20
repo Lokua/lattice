@@ -116,7 +116,7 @@ struct AppModel<S> {
 
 fn model<S: SketchModel + 'static>(
     app: &App,
-    init_sketch_model: fn(WindowRect) -> S,
+    init_sketch_model: fn(&App, WindowRect) -> S,
     sketch_config: &'static SketchConfig,
 ) -> AppModel<S> {
     let w = sketch_config.w as u32;
@@ -134,7 +134,7 @@ fn model<S: SketchModel + 'static>(
         .expect("Unable to get window")
         .rect();
 
-    let mut sketch_model = init_sketch_model(WindowRect::new(window_rect));
+    let mut sketch_model = init_sketch_model(app, WindowRect::new(window_rect));
 
     let (gui_w, gui_h) = calculate_gui_dimensions(sketch_model.controls());
 
