@@ -27,7 +27,7 @@ impl ThemeColors {
             // Also controls slider track, handle, number inputs
             button_bg: Color32::from_gray(200),
             button_active: Color32::from_gray(210),
-            accent: Color32::from_gray(240),
+            accent: Color32::from_rgb(20, 138, 242),
             text_data: Color32::from_rgb(0, 100, 0),
             shadow_color: Color32::from_black_alpha(32),
         }
@@ -41,7 +41,7 @@ impl ThemeColors {
             text_secondary: Color32::from_gray(180),
             button_bg: Color32::from_gray(10),
             button_active: Color32::from_gray(20),
-            accent: Color32::from_gray(20),
+            accent: Color32::from_rgb(20, 138, 242),
             text_data: Color32::from_rgb(0, 255, 0),
             shadow_color: Color32::from_black_alpha(128),
         }

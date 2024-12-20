@@ -10,7 +10,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(300),
+    gui_h: Some(340),
 };
 
 const MAX_DROPS: usize = 5000;
@@ -23,6 +23,7 @@ pub struct Model {
     max_drops: usize,
     drops: Vec<(Drop, Hsl)>,
     droppers: Vec<Dropper>,
+    palettes: Vec<(ColorFn, ColorFn, ColorFn)>,
 }
 
 pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
@@ -38,6 +39,11 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
         Control::slider("splatter_radius", 2.0, (1.0, 200.0), 1.0),
         Control::slider("drop_max_radius", 20.0, (1.0, 50.0), 1.0),
         Control::Separator {},
+        Control::select(
+            "palette",
+            "millenial",
+            string_vec!["millenial", "gen_x"],
+        ),
         Control::slider_norm("color_ratio", 0.5),
         Control::slider_norm("lightness_min", 0.0),
         Control::slider_norm("lightness_max", 1.0),
@@ -53,7 +59,6 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
             Dropper::drop_it,
             1.0,
             drop_max_radius,
-            color_1,
             Walker {
                 w,
                 h,
@@ -67,7 +72,6 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
             Dropper::drop_it,
             1.0,
             drop_max_radius,
-            color_2,
             Walker {
                 w,
                 h,
@@ -81,7 +85,6 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
             Dropper::drop_it,
             1.0,
             drop_max_radius,
-            color_3,
             Walker {
                 w,
                 h,
@@ -94,10 +97,22 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     Model {
         animation,
         controls,
+        window_rect,
         max_drops: MAX_DROPS,
         drops: Vec::new(),
         droppers,
-        window_rect,
+        palettes: vec![
+            (
+                |controls: &Controls| gen_color(controls, (0.38, 0.47)),
+                |controls: &Controls| gen_color(controls, (0.8, 0.9)),
+                |controls: &Controls| gen_color(controls, (0.6, 0.65)),
+            ),
+            (
+                |controls: &Controls| gen_color(controls, (0.0, 0.05)),
+                |controls: &Controls| gen_color(controls, (0.28, 0.33)),
+                |controls: &Controls| gen_color(controls, (0.63, 0.68)),
+            ),
+        ],
     }
 }
 
@@ -106,35 +121,48 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let drop_max_radius = model.controls.float("drop_max_radius");
     let splatter_radius = model.controls.float("splatter_radius");
     let n_drops = model.controls.float("n_drops");
+    let palette_name = model.controls.string("palette");
+    let palette = palette_by_name(&model.palettes, &palette_name);
 
-    model.droppers.iter_mut().for_each(|dropper| {
-        if model.animation.should_trigger(&mut dropper.trigger) {
-            dropper.walker.step_size = step_size;
-            dropper.walker.w = model.window_rect.w();
-            dropper.walker.h = model.window_rect.h();
+    model
+        .droppers
+        .iter_mut()
+        .enumerate()
+        .for_each(|(index, dropper)| {
+            if model.animation.should_trigger(&mut dropper.trigger) {
+                dropper.walker.step_size = step_size;
+                dropper.walker.w = model.window_rect.w();
+                dropper.walker.h = model.window_rect.h();
 
-            dropper.walker.step();
+                let color_fn = match index % 3 {
+                    0 => palette.0,
+                    1 => palette.1,
+                    2 => palette.2,
+                    _ => unreachable!(),
+                };
 
-            match dropper.kind.as_str() {
-                "center" => {
-                    dropper.min_radius = 0.1;
-                    dropper.max_radius = drop_max_radius;
+                dropper.walker.step();
+
+                match dropper.kind.as_str() {
+                    "center" => {
+                        dropper.min_radius = 0.1;
+                        dropper.max_radius = drop_max_radius;
+                    }
+                    _ => {}
                 }
-                _ => {}
-            }
 
-            for _ in 0..n_drops as i32 {
-                (dropper.drop_fn)(
-                    dropper,
-                    dropper.walker.to_vec2(),
-                    &mut model.drops,
-                    model.max_drops,
-                    (dropper.color_fn)(&model.controls),
-                    splatter_radius,
-                );
+                for _ in 0..n_drops as i32 {
+                    (dropper.drop_fn)(
+                        dropper,
+                        dropper.walker.to_vec2(),
+                        &mut model.drops,
+                        model.max_drops,
+                        (color_fn)(&model.controls),
+                        splatter_radius,
+                    );
+                }
             }
-        }
-    });
+        });
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
@@ -149,11 +177,17 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     }
 
     if model.controls.bool("debug_walker") {
-        for dropper in &model.droppers {
+        for (index, dropper) in model.droppers.iter().enumerate() {
             draw.ellipse()
-                .color(BLACK)
+                .color(match index {
+                    0 => RED,
+                    1 => GREEN,
+                    _ => BLUE,
+                })
+                .stroke(BLACK)
+                .stroke_weight(4.0)
                 .xy(dropper.walker.to_vec2())
-                .radius(10.0);
+                .radius(20.0);
         }
     }
 
@@ -169,7 +203,6 @@ struct Dropper {
     drop_fn: DropFn,
     min_radius: f32,
     max_radius: f32,
-    color_fn: ColorFn,
     walker: Walker,
 }
 
@@ -180,7 +213,6 @@ impl Dropper {
         drop_fn: DropFn,
         min_radius: f32,
         max_radius: f32,
-        color_fn: ColorFn,
         walker: Walker,
     ) -> Self {
         Self {
@@ -189,7 +221,6 @@ impl Dropper {
             drop_fn,
             min_radius,
             max_radius,
-            color_fn,
             walker,
         }
     }
@@ -284,16 +315,16 @@ impl Default for Walker {
     }
 }
 
-fn color_1(controls: &Controls) -> Hsl {
-    gen_color(controls, (0.38, 0.47))
-}
-
-fn color_2(controls: &Controls) -> Hsl {
-    gen_color(controls, (0.8, 0.9))
-}
-
-fn color_3(controls: &Controls) -> Hsl {
-    gen_color(controls, (0.6, 0.65))
+fn palette_by_name(
+    palettes: &Vec<(ColorFn, ColorFn, ColorFn)>,
+    name: &str,
+) -> (ColorFn, ColorFn, ColorFn) {
+    let index = match name {
+        "millenial" => 0,
+        "gen_x" => 1,
+        _ => 0,
+    };
+    palettes[index]
 }
 
 fn gen_color(controls: &Controls, hue_range: (f32, f32)) -> Hsl {

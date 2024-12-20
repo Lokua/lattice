@@ -90,7 +90,13 @@ impl Displacer {
         let radius = self.radius.max(f32::EPSILON);
 
         let distance_to_center = match &self.custom_distance_fn {
-            Some(f) => f(grid_point, self.position),
+            Some(f) => {
+                let dist = f(grid_point, self.position);
+                if dist.is_nan() || dist < 0.0 {
+                    return vec2(0.0, 0.0);
+                }
+                dist
+            }
             None => grid_point.distance(self.position),
         };
 
@@ -98,12 +104,19 @@ impl Displacer {
             return vec2(0.0, 0.0);
         }
 
-        let proximity = 1.0 - distance_to_center / (radius * 2.0);
+        let proximity =
+            1.0 - (distance_to_center / (radius * 2.0)).clamp(0.0, 1.0);
         let distance_factor = proximity.max(0.0);
 
         let force = self.strength
             * distance_factor
-            * (distance_to_center / radius).powf(scaling_power);
+            * (distance_to_center / radius)
+                .clamp(0.0, f32::MAX)
+                .powf(scaling_power);
+
+        if !force.is_finite() {
+            return vec2(0.0, 0.0);
+        }
 
         let angle = (grid_point.y - self.position.y)
             .atan2(grid_point.x - self.position.x);
