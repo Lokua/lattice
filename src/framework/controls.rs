@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum ControlValue {
     Float(f32),
     Bool(bool),
@@ -178,16 +178,22 @@ pub type ControlValues = HashMap<String, ControlValue>;
 pub struct Controls {
     controls: Vec<Control>,
     values: ControlValues,
+    #[serde(skip)]
+    changed: bool,
 }
 
 impl Controls {
     pub fn new(controls: Vec<Control>) -> Self {
-        let values = controls
+        let values: ControlValues = controls
             .iter()
             .map(|control| (control.name().to_string(), control.value()))
             .collect();
 
-        Self { controls, values }
+        Self {
+            controls,
+            values,
+            changed: true,
+        }
     }
 
     pub fn get_controls(&self) -> &Vec<Control> {
@@ -228,8 +234,21 @@ impl Controls {
         }
     }
 
+    pub fn changed(&self) -> bool {
+        self.changed
+    }
+
     pub fn update_value(&mut self, name: &str, value: ControlValue) {
-        self.values.insert(name.to_string(), value);
+        if let Some(old_value) = self.values.get(name) {
+            if *old_value != value {
+                self.changed = true;
+                self.values.insert(name.to_string(), value);
+            }
+        }
+    }
+
+    pub fn mark_unchanged(&mut self) {
+        self.changed = false;
     }
 
     /// Retrieves the original control configuration by name

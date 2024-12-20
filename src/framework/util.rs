@@ -232,3 +232,94 @@ pub fn rotate_point(point: Vec2, center: Vec2, angle: f32) -> Vec2 {
     );
     rotated + center
 }
+
+pub fn normal_random(std_dev: f32) -> f32 {
+    let u1: f32 = random();
+    let u2: f32 = random();
+
+    // Use the Box-Muller transform to create a normal distribution
+    let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * PI * u2).cos();
+    z0 * std_dev
+}
+
+// https://www.generativehut.com/post/how-to-make-generative-art-feel-natural
+pub fn chaikin(
+    points: Vec<Vec2>,
+    iterations: usize,
+    closed: bool,
+) -> Vec<Vec2> {
+    if iterations == 0 || points.len() < 2 {
+        return points;
+    }
+
+    let n = points.len();
+    let capacity = if closed { n * 2 } else { (n - 1) * 2 + 1 };
+    let mut smooth = Vec::with_capacity(capacity);
+
+    // For open curves, keep the first point
+    if !closed {
+        smooth.push(points[0]);
+    }
+
+    // Process points
+    let points_to_process = if closed { n } else { n - 1 };
+    for i in 0..points_to_process {
+        let current = points[i];
+        let next = if closed {
+            points[(i + 1) % n]
+        } else {
+            points[i + 1]
+        };
+
+        let q = pt2(
+            0.75 * current.x + 0.25 * next.x,
+            0.75 * current.y + 0.25 * next.y,
+        );
+
+        let r = pt2(
+            0.25 * current.x + 0.75 * next.x,
+            0.25 * current.y + 0.75 * next.y,
+        );
+
+        smooth.push(q);
+        smooth.push(r);
+    }
+
+    // For open curves, keep the last point
+    if !closed {
+        smooth.push(*points.last().unwrap());
+    }
+
+    if iterations == 1 {
+        smooth
+    } else {
+        chaikin(smooth, iterations - 1, closed)
+    }
+}
+
+/// Apply kernel smoothing
+pub fn average_neighbors(points: Vec<Vec2>, iterations: usize) -> Vec<Vec2> {
+    if iterations == 0 || points.len() < 3 {
+        return points;
+    }
+
+    let smoothed = points
+        .iter()
+        .enumerate()
+        .map(|(i, point)| {
+            if i == 0 || i == points.len() - 1 {
+                return *point;
+            }
+
+            let prev = points[i - 1];
+            let next = points[i + 1];
+            pt2(point.x, (point.y + prev.y + next.y) / 3.0)
+        })
+        .collect();
+
+    if iterations == 1 {
+        smoothed
+    } else {
+        average_neighbors(smoothed, iterations - 1)
+    }
+}

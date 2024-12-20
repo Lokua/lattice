@@ -11,5 +11,6 @@ pub use crate::framework::midi::*;
 pub use crate::framework::noise::*;
 pub use crate::framework::sketch::*;
 pub use crate::framework::util::*;
+pub use crate::framework::window_rect::*;
 pub use crate::string_vec;
 pub use derives::*;
