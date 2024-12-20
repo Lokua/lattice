@@ -13,7 +13,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(650),
+    gui_h: Some(735),
 };
 
 const GRID_SIZE: usize = 128;
@@ -55,7 +55,11 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
         Control::Separator {},
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
         Control::checkbox("flip", false),
-        Control::select("sort", "radius", string_vec!["luminance", "radius"]),
+        Control::select(
+            "sort",
+            "radius",
+            string_vec!["luminance", "radius", "radius_reversed"],
+        ),
         Control::checkbox("stroke", true),
         Control::slider_x(
             "stroke_weight",
@@ -65,6 +69,7 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
             |controls| !controls.bool("stroke"),
         ),
         Control::Separator {},
+        Control::checkbox("invert_colors", false),
         Control::slider("gradient_spread", 1.0, (0.0, 1.0), 0.0001),
         Control::slider("background_alpha", 1.0, (0.000, 1.0), 0.001),
         Control::slider("alpha", 1.0, (0.001, 1.0), 0.001),
@@ -76,6 +81,8 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
         Control::Separator {},
         Control::slider("grain_size", 101.0, (1.0, 200.0), 1.0),
         Control::slider("angle_mult", 48.0, (1.0, 200.0), 1.0),
+        Control::slider("distance_strength", 0.5, (0.001, 1.0), 0.001),
+        Control::slider("angle_frequency", 5.0, (5.0, 500.0), 5.0),
     ]);
 
     let w4th = w as f32 / 4.0;
@@ -148,11 +155,14 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     let trbl_mode = model.controls.string("trbl_mode");
     let sort = model.controls.string("sort");
     let size_max = model.controls.float("size_max");
+    let invert_colors = model.controls.bool("invert_colors");
     let gradient_spread = model.controls.float("gradient_spread");
     let scaling_power = model.controls.float("scaling_power");
     let t_scale = model.controls.float("t_scale");
     let grain_size = model.controls.float("grain_size");
     let angle_mult = model.controls.float("angle_mult");
+    let distance_strength = model.controls.float("distance_strength");
+    let angle_frequency = model.controls.float("angle_frequency");
 
     let max_mag =
         model.displacer_configs.len() as f32 * model.controls.float("mag_mult");
@@ -170,13 +180,16 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 
     let custom_distance_fn: CustomDistanceFn =
         Some(Arc::new(move |grid_point, position| {
-            wood_grain(
+            wood_grain_advanced(
                 grid_point.x,
                 grid_point.y,
                 position.x,
                 position.y,
                 grain_size,
                 angle_mult,
+                2.0,
+                distance_strength,
+                angle_frequency,
             )
         }));
 
@@ -282,11 +295,14 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             let triangle_height =
                 map_range(displacement_magnitude, 0.0, max_mag, 1.0, t_scale);
 
-            let color = gradient.get(
-                1.0 - (displacement_magnitude / max_mag)
-                    .powf(gradient_spread)
-                    .clamp(0.0, 1.0),
-            );
+            let normalized = (displacement_magnitude / max_mag)
+                .powf(gradient_spread)
+                .clamp(0.0, 1.0);
+            let color = gradient.get(if invert_colors {
+                normalized
+            } else {
+                1.0 - normalized
+            });
 
             assert!(
                 displacement_magnitude.is_finite(),
@@ -303,6 +319,11 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 ease_out,
             );
 
+            // // TODO (as another option):
+            // let color = gradient.get(
+            //     1.0 - map_clamp(radius, 0.1, size_max, 0.0, 1.0, ease_out),
+            // );
+
             (*point + total_displacement, radius, triangle_height, color)
         })
         .collect();
@@ -310,18 +331,9 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     model.objects.sort_by(
         |(_position_a, radius_a, _triangle_height_a, color_a),
          (_position_b, radius_b, _triangle_height_b, color_b)| {
-            assert!(
-                radius_a.is_finite(),
-                "radius_a is not finite: {:?}",
-                radius_a
-            );
-            assert!(
-                radius_b.is_finite(),
-                "radius_b is not finite: {:?}",
-                radius_b
-            );
             match sort.as_str() {
                 "radius" => radius_a.partial_cmp(radius_b).unwrap(),
+                "radius_reversed" => radius_b.partial_cmp(radius_a).unwrap(),
                 _ => {
                     luminance(color_a).partial_cmp(&luminance(color_b)).unwrap()
                 }
