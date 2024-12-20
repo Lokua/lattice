@@ -91,6 +91,17 @@ impl Control {
         }
     }
 
+    pub fn slider_norm(name: &str, value: f32) -> Control {
+        Control::Slider {
+            name: name.to_string(),
+            value,
+            min: 0.0,
+            max: 1.0,
+            step: 0.0001,
+            disabled: None,
+        }
+    }
+
     pub fn select(name: &str, value: &str, options: Vec<String>) -> Control {
         Control::Select {
             name: name.into(),
@@ -129,10 +140,6 @@ impl Control {
             value,
             disabled: Some(Box::new(disabled)),
         }
-    }
-
-    pub fn separator() -> Control {
-        Control::Separator {}
     }
 
     pub fn select_x<F>(
