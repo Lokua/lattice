@@ -1,5 +1,17 @@
 Files sorted from most to least recent
 
+## chromatic_aberration-e0q48.png
+
+<img src="images/chromatic_aberration-e0q48.png" alt="chromatic_aberration-e0q48.png">
+
+## chromatic_aberration-950o3.png
+
+<img src="images/chromatic_aberration-950o3.png" alt="chromatic_aberration-950o3.png">
+
+## chromatic_abberation-7381a.png
+
+<img src="images/chromatic_abberation-7381a.png" alt="chromatic_abberation-7381a.png">
+
 ## displacement_1b_animated-0z3jj.png
 
 <img src="images/displacement_1b_animated-0z3jj.png" alt="displacement_1b_animated-0z3jj.png">
