@@ -32,38 +32,3 @@ pub trait SketchModel {
         }
     }
 }
-
-pub struct WindowRect {
-    current: Rect,
-    last: Rect,
-}
-
-impl WindowRect {
-    pub fn new(initial: Rect) -> Self {
-        Self {
-            current: initial,
-            last: initial,
-        }
-    }
-
-    pub fn set_current(&mut self, rect: Rect) {
-        self.current = rect;
-    }
-
-    pub fn changed(&self) -> bool {
-        (self.current.w() != self.last.w())
-            || (self.current.h() != self.last.h())
-    }
-
-    pub fn commit(&mut self) {
-        self.last = self.current;
-    }
-
-    pub fn w(&self) -> f32 {
-        self.current.w()
-    }
-
-    pub fn h(&self) -> f32 {
-        self.current.h()
-    }
-}

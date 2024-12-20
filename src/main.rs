@@ -85,6 +85,7 @@ fn main() {
         "displacement_2a" => run_sketch!(displacement_2a),
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
+        "lines" => run_sketch!(lines),
         "midi_test" => run_sketch!(midi_test),
         "noise" => run_sketch!(noise),
         "perlin_loop" => run_sketch!(perlin_loop),

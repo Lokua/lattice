@@ -12,6 +12,7 @@ pub mod studies;
 pub use self::studies::animation_test;
 pub use self::studies::audio_test;
 pub use self::studies::chromatic_aberration;
+pub use self::studies::lines;
 pub use self::studies::midi_test;
 pub use self::studies::noise;
 pub use self::studies::perlin_loop;

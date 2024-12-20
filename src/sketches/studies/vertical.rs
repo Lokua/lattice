@@ -126,12 +126,12 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     model.lines = Vec::new();
     let step = w / n_lines as f32;
     let start_x = -(w / 2.0) + (step / 2.0);
+    let n_points = SKETCH_CONFIG.h as usize / 2;
 
     for i in 0..n_lines {
         let x = start_x + i as f32 * step;
         let mut points = Vec::new();
 
-        let n_points = SKETCH_CONFIG.h as usize / 2;
         for j in 0..n_points {
             let y = map_range(j, 0, n_points - 1, -h / 2.0, h / 2.0);
 

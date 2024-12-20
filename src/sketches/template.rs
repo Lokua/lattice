@@ -18,11 +18,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 pub struct Model {
     animation: Animation,
     controls: Controls,
+    window_rect: WindowRect,
     radius: f32,
     hue: f32,
 }
 
-pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![Control::slider(
@@ -35,6 +36,7 @@ pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     Model {
         animation,
         controls,
+        window_rect,
         radius: 0.0,
         hue: 0.0,
     }
@@ -58,16 +60,11 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
-    let window_rect = app
-        .window(frame.window_id())
-        .expect("Unable to get window")
-        .rect();
-
     let draw = app.draw();
 
     draw.rect()
         .x_y(0.0, 0.0)
-        .w_h(window_rect.w(), window_rect.h())
+        .w_h(model.window_rect.w(), model.window_rect.h())
         .hsla(0.0, 0.0, 0.02, 0.1);
 
     draw.ellipse()

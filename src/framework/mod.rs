@@ -12,3 +12,4 @@ pub mod noise;
 pub mod prelude;
 pub mod sketch;
 pub mod util;
+pub mod window_rect;
