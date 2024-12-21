@@ -233,7 +233,7 @@ pub fn rotate_point(point: Vec2, center: Vec2, angle: f32) -> Vec2 {
     rotated + center
 }
 
-pub fn normal_random(std_dev: f32) -> f32 {
+pub fn random_normal(std_dev: f32) -> f32 {
     let u1: f32 = random();
     let u2: f32 = random();
 

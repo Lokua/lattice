@@ -86,6 +86,7 @@ fn main() {
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
         "lines" => run_sketch!(lines),
+        "lines_texture" => run_sketch!(lines_texture),
         "midi_test" => run_sketch!(midi_test),
         "noise" => run_sketch!(noise),
         "perlin_loop" => run_sketch!(perlin_loop),

@@ -162,8 +162,8 @@ fn generate_slant_points(
 
     for i in 0..N_LINES {
         let base_y = i as f32 * wr.h_(SPACING);
-        let offset_start_y = normal_random(params.deviation);
-        let offset_end_y = normal_random(params.deviation);
+        let offset_start_y = random_normal(params.deviation);
+        let offset_end_y = random_normal(params.deviation);
         let start = vec2(start_x, base_y + offset_start_y);
         let end = vec2(end_x, base_y + offset_end_y);
         points.push((start, end));
@@ -187,7 +187,7 @@ fn generate_jerky_points(
 
         for j in 0..=params.n_points {
             let x = start_x + (j as f32 * segment_length);
-            let offset_start_y = normal_random(params.deviation);
+            let offset_start_y = random_normal(params.deviation);
             let y = base_y + offset_start_y;
             points.push(pt2(x, y));
         }
@@ -213,7 +213,7 @@ fn generate_points_using_chaikin_smoothing(
 
         for j in 0..=params.n_points {
             let x = start_x + (j as f32 * segment_length);
-            let offset_start_y = normal_random(params.deviation);
+            let offset_start_y = random_normal(params.deviation);
             let y = base_y + offset_start_y;
             points.push(pt2(x, y));
         }
@@ -240,7 +240,7 @@ fn generate_points_using_kernel_smoothing(
 
         for j in 0..=params.n_points {
             let x = start_x + (j as f32 * segment_length);
-            let offset_start_y = normal_random(params.deviation);
+            let offset_start_y = random_normal(params.deviation);
             let y = base_y + offset_start_y;
             points.push(pt2(x, y));
         }

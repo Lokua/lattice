@@ -18,12 +18,12 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 pub struct Model {
     animation: Animation,
     controls: Controls,
-    window_rect: WindowRect,
+    wr: WindowRect,
     radius: f32,
     hue: f32,
 }
 
-pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
+pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::new(vec![Control::slider(
@@ -36,16 +36,16 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     Model {
         animation,
         controls,
-        window_rect,
+        wr,
         radius: 0.0,
         hue: 0.0,
     }
 }
 
-pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    let radius_max = model.controls.float("radius");
+pub fn update(_app: &App, m: &mut Model, _update: Update) {
+    let radius_max = m.controls.float("radius");
 
-    model.radius = model.animation.lerp(
+    m.radius = m.animation.lerp(
         vec![
             KF::new(20.0, 2.0),
             KF::new(radius_max, 1.0),
@@ -56,20 +56,20 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         0.0,
     );
 
-    model.hue = model.animation.ping_pong_loop_progress(12.0)
+    m.hue = m.animation.ping_pong_loop_progress(12.0)
 }
 
-pub fn view(app: &App, model: &Model, frame: Frame) {
+pub fn view(app: &App, m: &Model, frame: Frame) {
     let draw = app.draw();
 
     draw.rect()
         .x_y(0.0, 0.0)
-        .w_h(model.window_rect.w(), model.window_rect.h())
+        .w_h(m.wr.w(), m.wr.h())
         .hsla(0.0, 0.0, 0.02, 0.1);
 
     draw.ellipse()
-        .color(hsl(model.hue, 0.5, 0.5))
-        .radius(model.radius)
+        .color(hsl(m.hue, 0.5, 0.5))
+        .radius(m.radius)
         .x_y(0.0, 0.0);
 
     draw.to_frame(app, &frame).unwrap();
