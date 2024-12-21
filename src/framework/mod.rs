@@ -10,6 +10,7 @@ pub mod logging;
 pub mod midi;
 pub mod noise;
 pub mod prelude;
+pub mod sand_line;
 pub mod sketch;
 pub mod util;
 pub mod window_rect;

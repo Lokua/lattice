@@ -9,6 +9,7 @@ pub use crate::framework::frame_controller;
 pub use crate::framework::logging::*;
 pub use crate::framework::midi::*;
 pub use crate::framework::noise::*;
+pub use crate::framework::sand_line;
 pub use crate::framework::sketch::*;
 pub use crate::framework::util::*;
 pub use crate::framework::window_rect::*;

@@ -1,0 +1,203 @@
+use nannou::prelude::*;
+
+use super::prelude::*;
+
+pub trait NoiseStrategy {
+    fn generate_noise(&self, n_points: usize, scale: f32) -> Vec<f32>;
+}
+
+pub trait PointDistributionStrategy {
+    fn distribute_points(
+        &self,
+        reference_points: &[Vec2],
+        noise_values: &[f32],
+        points_per_segment: usize,
+        angle_variation: f32,
+    ) -> Vec<Vec2>;
+}
+
+pub struct SandLine {
+    noise_strategy: Box<dyn NoiseStrategy>,
+    distribution_strategy: Box<dyn PointDistributionStrategy>,
+}
+impl SandLine {
+    pub fn new(
+        noise_strategy: Box<dyn NoiseStrategy>,
+        distribution_strategy: Box<dyn PointDistributionStrategy>,
+    ) -> Self {
+        Self {
+            noise_strategy,
+            distribution_strategy,
+        }
+    }
+
+    pub fn default() -> Self {
+        Self {
+            noise_strategy: Box::new(GaussianNoise),
+            distribution_strategy: Box::new(PerpendicularDistribution),
+        }
+    }
+
+    pub fn generate(
+        &self,
+        reference_points: &[Vec2],
+        noise_scale: f32,
+        points_per_segment: usize,
+        angle_variation: f32,
+        passes: usize,
+    ) -> Vec<Vec2> {
+        let mut points = Vec::new();
+
+        for _ in 0..passes {
+            let noise = self
+                .noise_strategy
+                .generate_noise(reference_points.len(), noise_scale);
+
+            let pass_points = self.distribution_strategy.distribute_points(
+                reference_points,
+                &noise,
+                points_per_segment,
+                angle_variation,
+            );
+
+            points.extend(pass_points);
+        }
+
+        points
+    }
+}
+
+pub struct GaussianNoise;
+impl NoiseStrategy for GaussianNoise {
+    fn generate_noise(&self, n_points: usize, scale: f32) -> Vec<f32> {
+        let mut noise = vec![0.0; n_points];
+        for n in noise.iter_mut() {
+            *n += random_normal(1.0) * scale;
+        }
+        noise
+    }
+}
+
+pub struct OctaveNoise {
+    /// Number of layers of noise to add together.
+    /// Higher values (like 4-8) create more detail in the noise.
+    /// Each octave adds finer detail but with decreasing influence.
+    octaves: u32,
+
+    /// How quickly each octave's influence decreases (between 0.0 and 1.0).
+    /// - Values closer to 0 mean later octaves contribute very little
+    /// - Values closer to 1 mean all octaves contribute more equally
+    /// Typical values are 0.5 to 0.8
+    persistence: f32,
+}
+impl OctaveNoise {
+    pub fn new(octaves: u32, persistence: f32) -> Self {
+        Self {
+            octaves,
+            persistence,
+        }
+    }
+}
+impl NoiseStrategy for OctaveNoise {
+    fn generate_noise(&self, n_points: usize, scale: f32) -> Vec<f32> {
+        let mut noise = vec![0.0; n_points];
+        for n in noise.iter_mut() {
+            let mut amplitude = scale;
+
+            for _ in 0..self.octaves {
+                *n += random_normal(1.0) * amplitude;
+                amplitude *= self.persistence;
+            }
+        }
+        noise
+    }
+}
+
+pub struct PerpendicularDistribution;
+impl PointDistributionStrategy for PerpendicularDistribution {
+    fn distribute_points(
+        &self,
+        reference_points: &[Vec2],
+        noise_values: &[f32],
+        points_per_segment: usize,
+        angle_variation: f32,
+    ) -> Vec<Vec2> {
+        let mut output_points = Vec::new();
+
+        for (index, point) in reference_points.iter().enumerate() {
+            if index < reference_points.len() - 1 {
+                let next_point = reference_points[index + 1];
+
+                for _ in 0..points_per_segment {
+                    let t = random::<f32>();
+                    let base_point = *point * (1.0 - t) + next_point * t;
+
+                    let base_angle = PI / 2.0;
+                    let angle = base_angle + random_normal(angle_variation);
+                    let noise_amount = noise_values[index] * (1.0 - t)
+                        + noise_values[index + 1] * t;
+                    let offset = vec2(
+                        noise_amount * angle.cos(),
+                        noise_amount * angle.sin(),
+                    );
+
+                    output_points.push(base_point + offset);
+                }
+            }
+        }
+
+        output_points
+    }
+}
+
+pub struct CurvedDistribution {
+    /// Controls how much the distribution curves away from perpendicular.
+    /// - 0.0: No curve (same as perpendicular)
+    /// - 1.0: Curves up to ±57 degrees from perpendicular
+    /// - PI/2 (≈1.57): Curves up to ±90 degrees
+    /// - Values above 2.0 create extreme curves
+    /// Recommended range: 0.0 to 1.0
+    curvature: f32,
+}
+impl CurvedDistribution {
+    pub fn new(curvature: f32) -> Self {
+        Self { curvature }
+    }
+}
+impl PointDistributionStrategy for CurvedDistribution {
+    fn distribute_points(
+        &self,
+        reference_points: &[Vec2],
+        noise_values: &[f32],
+        points_per_segment: usize,
+        angle_variation: f32,
+    ) -> Vec<Vec2> {
+        let mut output_points = Vec::new();
+
+        for (index, point) in reference_points.iter().enumerate() {
+            if index < reference_points.len() - 1 {
+                let next_point = reference_points[index + 1];
+
+                for i in 0..points_per_segment {
+                    let t = i as f32 / points_per_segment as f32;
+                    let base_point = *point * (1.0 - t) + next_point * t;
+
+                    // Add curved offset based on parameter
+                    let curve_factor = (t * PI).sin() * self.curvature;
+                    let base_angle = PI / 2.0 + curve_factor;
+                    let angle = base_angle + random_normal(angle_variation);
+                    let noise_amount = noise_values[index] * (1.0 - t)
+                        + noise_values[index + 1] * t;
+                    let offset = vec2(
+                        noise_amount * angle.cos(),
+                        noise_amount * angle.sin(),
+                    );
+
+                    output_points.push(base_point + offset);
+                }
+            }
+        }
+
+        output_points
+    }
+}
