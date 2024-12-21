@@ -28,7 +28,7 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let disable_octave =
         |controls: &Controls| controls.string("noise_strategy") != "Octave";
 
-    let controls = Controls::new(vec![
+    let controls = Controls::with_previous(vec![
         Control::select(
             "noise_strategy",
             "Gaussian",
@@ -85,10 +85,6 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
         let noise_strategy = m.controls.string("noise_strategy");
         let distribution_strategy = m.controls.string("distribution_strategy");
 
-        let ref_segments = m.controls.float("ref_segments");
-        let ref_deviation = m.controls.float("ref_deviation");
-        let ref_smooth = m.controls.float("ref_smooth");
-
         let noise_scale = m.controls.float("noise_scale");
         let noise_octaves = m.controls.float("noise_octaves");
         let noise_persistence = m.controls.float("noise_persistence");
@@ -98,17 +94,27 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
         let passes = m.controls.float("passes");
         let curvature = m.controls.float("curvature");
 
-        let pad = m.wr.w_(32.0);
-        let start = vec2(-m.wr.hw() + pad, 0.0);
-        let end = vec2(m.wr.hw() - pad, 0.0);
+        if m.controls.any_changed_in(&[
+            "ref_segments",
+            "ref_deviation",
+            "ref_smooth",
+        ]) {
+            let ref_segments = m.controls.float("ref_segments");
+            let ref_deviation = m.controls.float("ref_deviation");
+            let ref_smooth = m.controls.float("ref_smooth");
 
-        m.ref_line = reference_line(
-            start,
-            end,
-            ref_segments as usize,
-            ref_deviation,
-            ref_smooth as usize,
-        );
+            let pad = m.wr.w_(32.0);
+            let start = vec2(-m.wr.hw() + pad, 0.0);
+            let end = vec2(m.wr.hw() - pad, 0.0);
+
+            m.ref_line = reference_line(
+                start,
+                end,
+                ref_segments as usize,
+                ref_deviation,
+                ref_smooth as usize,
+            );
+        }
 
         let sand_line = sand_line::SandLine::new(
             match noise_strategy.as_str() {
