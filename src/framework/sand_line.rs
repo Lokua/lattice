@@ -129,13 +129,55 @@ impl PointDistributionStrategy for PerpendicularDistribution {
                 let next_point = reference_points[index + 1];
 
                 for _ in 0..points_per_segment {
+                    // Step 1: Get random point along line (t = random value between 0 and 1)
+                    //      next_point
+                    //      |
+                    //      |
+                    //      |
+                    //      |
+                    //      |  * (base_point = lerp(point, next_point, t))
+                    //      |
+                    //      |
+                    //      point
                     let t = random::<f32>();
-                    let base_point = *point * (1.0 - t) + next_point * t;
+                    let base_point = point.lerp(next_point, t);
 
+                    //      // Step 2: Calculate perpendicular angle (with random variation)
+                    //      next_point
+                    //      |          θ
+                    //      |       \ ↗
+                    //      |        \   θ = PI/2 + random_variation
+                    //      |         \
+                    //      |  * ------
+                    //      |
+                    //      |
+                    //      point
                     let base_angle = PI / 2.0;
                     let angle = base_angle + random_normal(angle_variation);
-                    let noise_amount = noise_values[index] * (1.0 - t)
-                        + noise_values[index + 1] * t;
+
+                    // Step 3: Calculate noise amount by interpolating between noise values
+                    //      next_point     noise_values[index + 1]
+                    //      |          ↓
+                    //      |       \  |  length = lerp(noise_values[index],
+                    //      |        \ |                noise_values[index + 1],
+                    //      |         \|                t)
+                    //      |  * ------
+                    //      |          |
+                    //      |          ↑
+                    //      point
+                    let noise_amount =
+                        lerp(noise_values[index], noise_values[index + 1], t);
+
+                    // Step 4: Final point placement using angle and noise amount
+                    //      next_point
+                    //      |      * (final point = base_point + offset)
+                    //      |     ↗    offset = vec2(noise_amount * cos(angle),
+                    //      |    /             noise_amount * sin(angle))
+                    //      |   /
+                    //      |  *
+                    //      |
+                    //      |
+                    //      point
                     let offset = vec2(
                         noise_amount * angle.cos(),
                         noise_amount * angle.sin(),

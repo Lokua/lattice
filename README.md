@@ -22,22 +22,19 @@ controls, and declarative frame-based animation.
 ## Features / TODO
 
 - [x] Export frame captures and generate MP4 videos for any sketch
-- [x] MIDI synchronization options:
-  - Restart frame counter when receiving MIDI start signal
-  - Queue frame/video recording to start when receiving MIDI Start message
-  - Send start signal to DAW when starting sketch
+- [x] Restart frame counter when receiving MIDI start signal
+- [x] Queue frame/video recording to start when receiving MIDI Start message
 - [x] Receive MIDI enable parameter automation via automation lanes (MIDI CC)
 - [x] Common controls system:
-  - Shared controls available to all sketches
-  - Declarative per-sketch control definitions
-  - Framework-agnostic design (currently using egui but another impl could be
-    swapped in without impacting sketches I think)
-- [x] BPM/musical timing based keyframe animations
-  - Support keyframe expressions like `animate([0.0, 1.0, 0.0], 1.5)` to animate
-    values over musical beats
+- [x] Shared controls available to all sketches (screenshot, pause, record,
+      etc.)
+- [x] Declarative per-sketch control definitions with frameword agnostic design
+- [x] BPM/musical timing based keyframe animations (times are expressed in
+      beats)
 - [x] Automatic store/recall of GUI control/parameters
 - [x] Audio reactivity. Basic peak, rms, and FFT available to use in sketches
       through a dead simple API
+- [ ] Multichannel audio
 
 ## Status
 
