@@ -180,6 +180,10 @@ pub struct Controls {
     values: ControlValues,
     #[serde(skip)]
     changed: bool,
+    #[serde(skip)]
+    save_previous: bool,
+    #[serde(skip)]
+    previous_values: ControlValues,
 }
 
 impl Controls {
@@ -193,6 +197,23 @@ impl Controls {
             controls,
             values,
             changed: true,
+            save_previous: false,
+            previous_values: ControlValues::new(),
+        }
+    }
+
+    pub fn with_previous(controls: Vec<Control>) -> Self {
+        let values: ControlValues = controls
+            .iter()
+            .map(|control| (control.name().to_string(), control.value()))
+            .collect();
+
+        Self {
+            controls,
+            values,
+            changed: true,
+            save_previous: true,
+            previous_values: ControlValues::new(),
         }
     }
 
@@ -202,6 +223,10 @@ impl Controls {
 
     pub fn values(&self) -> &ControlValues {
         &self.values
+    }
+
+    pub fn previous_values(&self) -> &ControlValues {
+        &self.previous_values
     }
 
     pub fn float(&self, name: &str) -> f32 {
@@ -238,6 +263,31 @@ impl Controls {
         self.changed
     }
 
+    pub fn any_changed_in(&self, names: &[&str]) -> bool {
+        if !self.save_previous {
+            panic!(
+                "Cannot check previous values when `save_previous` is false"
+            );
+        }
+
+        if self.previous_values.is_empty() {
+            return true;
+        }
+
+        for name in names {
+            self.check_contains_key(name);
+            if let Some(current) = self.values.get(*name) {
+                if let Some(previous) = self.previous_values.get(*name) {
+                    if current != previous {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
     pub fn update_value(&mut self, name: &str, value: ControlValue) {
         if let Some(old_value) = self.values.get(name) {
             if *old_value != value {
@@ -249,6 +299,9 @@ impl Controls {
 
     pub fn mark_unchanged(&mut self) {
         self.changed = false;
+        if self.save_previous {
+            self.previous_values = self.values.clone();
+        }
     }
 
     /// Retrieves the original control configuration by name
