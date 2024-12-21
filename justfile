@@ -28,5 +28,8 @@ test-trace-solo *ARGS:
 generate-markdown-index:
   cargo run -p image-markdown --release
 
+md:
+  just generate-markdown-index
+
 stats:
   sccache --show-stats
