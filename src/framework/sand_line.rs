@@ -222,17 +222,74 @@ impl PointDistributionStrategy for CurvedDistribution {
 
                 for i in 0..points_per_segment {
                     let t = i as f32 / points_per_segment as f32;
-                    let base_point = *point * (1.0 - t) + next_point * t;
+                    let base_point = point.lerp(next_point, t);
 
                     // Add curved offset based on parameter
                     let curve_factor = (t * PI).sin() * self.curvature;
                     let base_angle = PI / 2.0 + curve_factor;
                     let angle = base_angle + random_normal(angle_variation);
-                    let noise_amount = noise_values[index] * (1.0 - t)
-                        + noise_values[index + 1] * t;
+                    let noise_amount =
+                        lerp(noise_values[index], noise_values[index + 1], t);
                     let offset = vec2(
                         noise_amount * angle.cos(),
                         noise_amount * angle.sin(),
+                    );
+
+                    output_points.push(base_point + offset);
+                }
+            }
+        }
+
+        output_points
+    }
+}
+
+pub struct TrigFnDistribution {
+    curvature: f32,
+    trig_fn_a: fn(f32) -> f32,
+    trig_fn_b: fn(f32) -> f32,
+}
+impl TrigFnDistribution {
+    pub fn new(
+        curvature: f32,
+        trig_fn_a: fn(f32) -> f32,
+        trig_fn_b: fn(f32) -> f32,
+    ) -> Self {
+        Self {
+            curvature,
+            trig_fn_a,
+            trig_fn_b,
+        }
+    }
+}
+impl PointDistributionStrategy for TrigFnDistribution {
+    fn distribute_points(
+        &self,
+        reference_points: &[Vec2],
+        noise_values: &[f32],
+        points_per_segment: usize,
+        angle_variation: f32,
+    ) -> Vec<Vec2> {
+        let mut output_points = Vec::new();
+
+        for (index, point) in reference_points.iter().enumerate() {
+            if index < reference_points.len() - 1 {
+                let next_point = reference_points[index + 1];
+
+                for i in 0..points_per_segment {
+                    let t = i as f32 / points_per_segment as f32;
+                    let base_point = point.lerp(next_point, t);
+
+                    let curve_factor = (t * PI).sin() * self.curvature;
+                    let base_angle = PI / 2.0 + curve_factor;
+                    let angle = base_angle + random_normal(angle_variation);
+
+                    let noise_amount =
+                        lerp(noise_values[index], noise_values[index + 1], t);
+
+                    let offset = vec2(
+                        noise_amount * (self.trig_fn_a)(angle),
+                        noise_amount * (self.trig_fn_b)(angle),
                     );
 
                     output_points.push(base_point + offset);

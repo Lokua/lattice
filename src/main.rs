@@ -35,6 +35,7 @@ macro_rules! run_sketch {
                 &sketches::$sketch_module::SKETCH_CONFIG,
             )
         })
+        // .loop_mode(LoopMode::Wait)
         .update(|app, model, nannou_update| {
             update::<sketches::$sketch_module::Model>(
                 app,
@@ -91,6 +92,8 @@ fn main() {
         "perlin_loop" => run_sketch!(perlin_loop),
         "responsive_test" => run_sketch!(responsive_test),
         "sand_line" => run_sketch!(sand_line),
+        "sand_lines" => run_sketch!(sand_lines),
+        "sand_lines_2" => run_sketch!(sand_lines_2),
         "template" => run_sketch!(template),
         "vertical" => run_sketch!(vertical),
         "vertical_2" => run_sketch!(vertical_2),

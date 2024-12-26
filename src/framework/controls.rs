@@ -75,6 +75,32 @@ impl Control {
         }
     }
 
+    pub fn select(name: &str, value: &str, options: Vec<String>) -> Control {
+        Control::Select {
+            name: name.into(),
+            value: value.into(),
+            options,
+            disabled: None,
+        }
+    }
+
+    pub fn select_x<F>(
+        name: &str,
+        value: &str,
+        options: Vec<String>,
+        disabled: F,
+    ) -> Control
+    where
+        F: Fn(&Controls) -> bool + 'static,
+    {
+        Control::Select {
+            name: name.into(),
+            value: value.into(),
+            options,
+            disabled: Some(Box::new(disabled)),
+        }
+    }
+
     pub fn slider(
         name: &str,
         value: f32,
@@ -98,15 +124,6 @@ impl Control {
             min: 0.0,
             max: 1.0,
             step: 0.0001,
-            disabled: None,
-        }
-    }
-
-    pub fn select(name: &str, value: &str, options: Vec<String>) -> Control {
-        Control::Select {
-            name: name.into(),
-            value: value.into(),
-            options,
             disabled: None,
         }
     }
@@ -138,23 +155,6 @@ impl Control {
         Control::Checkbox {
             name: name.to_string(),
             value,
-            disabled: Some(Box::new(disabled)),
-        }
-    }
-
-    pub fn select_x<F>(
-        name: &str,
-        value: &str,
-        options: Vec<String>,
-        disabled: F,
-    ) -> Control
-    where
-        F: Fn(&Controls) -> bool + 'static,
-    {
-        Control::Select {
-            name: name.into(),
-            value: value.into(),
-            options,
             disabled: Some(Box::new(disabled)),
         }
     }
@@ -304,24 +304,10 @@ impl Controls {
         }
     }
 
-    /// Retrieves the original control configuration by name
-    ///
-    /// # Arguments
-    /// * `name` - The name of the control to retrieve
-    ///
-    /// # Returns
-    /// An Option containing a reference to the Control if found, None otherwise
     pub fn get_original_config(&self, name: &str) -> Option<&Control> {
         self.controls.iter().find(|control| control.name() == name)
     }
 
-    /// Helper method to get min and max values for a slider control
-    ///
-    /// # Arguments
-    /// * `name` - The name of the slider control
-    ///
-    /// # Returns
-    /// A tuple of (min, max) values if the control has one, otherwise panics.
     pub fn slider_range(&self, name: &str) -> (f32, f32) {
         self.get_original_config(name)
             .and_then(|control| match control {
@@ -377,26 +363,32 @@ pub fn draw_controls(controls: &mut Controls, ui: &mut egui::Ui) -> bool {
             Control::Select { name, options, .. } => {
                 let mut value = controls.string(name);
                 let name_clone = name.clone();
-                egui::ComboBox::from_label(name)
-                    .selected_text(&value)
-                    .show_ui(ui, |ui| {
+
+                // Create a disabled frame that wraps the entire ComboBox
+                egui::Frame::none()
+                    .multiply_with_opacity(if is_disabled { 0.4 } else { 1.0 })
+                    .show(ui, |ui| {
                         ui.set_enabled(!is_disabled);
-                        for option in options {
-                            if ui
-                                .selectable_value(
-                                    &mut value,
-                                    option.clone(),
-                                    option,
-                                )
-                                .changed()
-                            {
-                                updates.push((
-                                    name_clone.clone(),
-                                    ControlValue::String(value.clone()),
-                                ));
-                                any_changed = true;
-                            }
-                        }
+                        egui::ComboBox::from_label(name)
+                            .selected_text(&value)
+                            .show_ui(ui, |ui| {
+                                for option in options {
+                                    if ui
+                                        .selectable_value(
+                                            &mut value,
+                                            option.clone(),
+                                            option,
+                                        )
+                                        .changed()
+                                    {
+                                        updates.push((
+                                            name_clone.clone(),
+                                            ControlValue::String(value.clone()),
+                                        ));
+                                        any_changed = true;
+                                    }
+                                }
+                            });
                     });
             }
             Control::Button { name, .. } => {

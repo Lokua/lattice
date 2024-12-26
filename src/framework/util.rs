@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+
 use geom::Ellipse;
 use nannou::color::{LinSrgb, Srgb};
 use nannou::{
     prelude::*,
     rand::{thread_rng, Rng},
 };
+
+use super::prelude::*;
 
 pub const PHI_F32: f32 = 1.618033988749894_f32;
 pub const TWO_PI: f32 = PI * 2.0;
@@ -157,6 +161,36 @@ impl TrigonometricExt for f32 {
     }
 }
 
+pub fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
+    let mut map = HashMap::new();
+    map.insert("cos", f32::cos as fn(f32) -> f32);
+    map.insert("sin", f32::sin as fn(f32) -> f32);
+    map.insert("tan", f32::tan as fn(f32) -> f32);
+    map.insert("tanh", f32::tanh as fn(f32) -> f32);
+    map.insert("sec", f32::sec as fn(f32) -> f32);
+    map.insert("csc", f32::csc as fn(f32) -> f32);
+    map.insert("cot", f32::cot as fn(f32) -> f32);
+    map.insert("sech", f32::sech as fn(f32) -> f32);
+    map.insert("csch", f32::csch as fn(f32) -> f32);
+    map.insert("coth", f32::coth as fn(f32) -> f32);
+    map
+}
+
+fn _trig_pattern_to_fns(
+    pattern: &str,
+) -> Option<(fn(f32) -> f32, fn(f32) -> f32)> {
+    let lookup = trig_fn_lookup();
+    let parts: Vec<&str> = pattern.split(',').collect();
+
+    match (lookup.get(parts[0]), lookup.get(parts[1])) {
+        (Some(&f_a), Some(&f_b)) => Some((f_a, f_b)),
+        _ => {
+            error!("Unknown function(s) in pattern: {}", pattern);
+            None
+        }
+    }
+}
+
 pub fn lerp(start: f32, end: f32, t: f32) -> f32 {
     start + (end - start) * t
 }
@@ -222,6 +256,34 @@ pub fn map_clamp(
     let eased = ease(normalized);
     let clamped = eased.clamp(0.0, 1.0);
     out_min + (clamped * (out_max - out_min))
+}
+
+/// triangle_map(0.0, 0.0, 1.0, 0.0, 100.0)); // 0
+/// triangle_map(0.25, 0.0, 1.0, 0.0, 100.0)); // 50
+/// triangle_map(0.5, 0.0, 1.0, 0.0, 100.0)); // 100
+/// triangle_map(0.75, 0.0, 1.0, 0.0, 100.0)); // 50
+/// triangle_map(1.0, 0.0, 1.0, 0.0, 100.0)); // 0
+pub fn triangle_map(
+    n: f32,
+    in_min: f32,
+    in_max: f32,
+    out_min: f32,
+    out_max: f32,
+) -> f32 {
+    // Normalize input to [0, 1]
+    let normalized = (n - in_min) / (in_max - in_min);
+
+    // Create triangle wave (no need for modulo since we're handling one cycle)
+    let triangle = if normalized <= 0.5 {
+        // Rising part: 0.0 -> 1.0
+        normalized * 2.0
+    } else {
+        // Falling part: 1.0 -> 0.0
+        2.0 * (1.0 - normalized)
+    };
+
+    // Map to output range
+    triangle * (out_max - out_min) + out_min
 }
 
 pub fn rotate_point(point: Vec2, center: Vec2, angle: f32) -> Vec2 {
@@ -321,5 +383,41 @@ pub fn average_neighbors(points: Vec<Vec2>, iterations: usize) -> Vec<Vec2> {
         smoothed
     } else {
         average_neighbors(smoothed, iterations - 1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn approx_eq(a: f32, b: f32) -> bool {
+        (a - b).abs() < 0.001
+    }
+
+    #[test]
+    fn test_triangle_map() {
+        // Test the key points specified in the original examples
+        assert!(approx_eq(triangle_map(0.0, 0.0, 1.0, 0.0, 100.0), 0.0));
+        assert!(approx_eq(triangle_map(0.25, 0.0, 1.0, 0.0, 100.0), 50.0));
+        assert!(approx_eq(triangle_map(0.5, 0.0, 1.0, 0.0, 100.0), 100.0));
+        assert!(approx_eq(triangle_map(0.75, 0.0, 1.0, 0.0, 100.0), 50.0));
+        assert!(approx_eq(triangle_map(1.0, 0.0, 1.0, 0.0, 100.0), 0.0));
+
+        // Test with different input/output ranges
+        assert!(approx_eq(triangle_map(5.0, 0.0, 10.0, 0.0, 1.0), 1.0));
+
+        // Test negative ranges
+        assert!(approx_eq(
+            triangle_map(-1.0, -1.0, 1.0, -100.0, 100.0),
+            -100.0
+        ));
+        assert!(approx_eq(
+            triangle_map(0.0, -1.0, 1.0, -100.0, 100.0),
+            100.0
+        ));
+        assert!(approx_eq(
+            triangle_map(1.0, -1.0, 1.0, -100.0, 100.0),
+            -100.0
+        ));
     }
 }
