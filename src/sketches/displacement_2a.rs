@@ -2,7 +2,6 @@ use geom::Ellipse;
 use nannou::color::{Gradient, Mix};
 use nannou::prelude::*;
 use rayon::prelude::*;
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::framework::prelude::*;
@@ -557,21 +556,6 @@ fn generate_pattern_options() -> Vec<String> {
             "Quantum",
         ])
         .collect()
-}
-
-fn trig_fn_lookup() -> HashMap<&'static str, fn(f32) -> f32> {
-    let mut map = HashMap::new();
-    map.insert("cos", f32::cos as fn(f32) -> f32);
-    map.insert("sin", f32::sin as fn(f32) -> f32);
-    map.insert("tan", f32::tan as fn(f32) -> f32);
-    map.insert("tanh", f32::tanh as fn(f32) -> f32);
-    map.insert("sec", f32::sec as fn(f32) -> f32);
-    map.insert("csc", f32::csc as fn(f32) -> f32);
-    map.insert("cot", f32::cot as fn(f32) -> f32);
-    map.insert("sech", f32::sech as fn(f32) -> f32);
-    map.insert("csch", f32::csch as fn(f32) -> f32);
-    map.insert("coth", f32::coth as fn(f32) -> f32);
-    map
 }
 
 fn find_palette_by_name<'a>(

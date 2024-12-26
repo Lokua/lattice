@@ -6,6 +6,8 @@ pub mod displacement_2;
 pub mod displacement_2a;
 pub mod drop;
 pub mod drop_walk;
+pub mod sand_lines;
+pub mod sand_lines_2;
 pub mod template;
 
 pub mod studies;

@@ -6,8 +6,8 @@ use crate::framework::prelude::*;
 // https://github.com/inconvergent/sand-spline/blob/master/main-hlines.py
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "sand_line",
-    display_name: "Sand Line",
+    name: "sand_lines",
+    display_name: "Sand Lines",
     fps: 60.0,
     bpm: 134.0,
     w: 700,
@@ -16,12 +16,16 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_h: Some(520),
 };
 
+const N_LINES: usize = 64;
+
+type Line = Vec<Vec2>;
+
 #[derive(SketchComponents)]
 pub struct Model {
     controls: Controls,
     wr: WindowRect,
-    ref_line: Vec<Vec2>,
-    sand_line: Vec<Vec2>,
+    ref_lines: Vec<Line>,
+    sand_lines: Vec<Line>,
 }
 
 pub fn init_model(_app: &App, wr: WindowRect) -> Model {
@@ -70,7 +74,7 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
         Control::slider("angle_variation", 0.5, (0.0, TWO_PI), 0.001),
         Control::slider("points_per_segment", 64.0, (2.0, 256.0), 1.0),
         Control::slider("passes", 50.0, (1.0, 256.0), 1.0),
-        Control::slider_x("curvature", 0.5, (0.0, 2.0), 0.0001, |controls| {
+        Control::slider_x("curvature", 0.5, (0.0, 100.0), 0.0001, |controls| {
             controls.string("distribution_strategy") != "Curved"
                 && controls.string("distribution_strategy") != "TrigFn"
         }),
@@ -87,8 +91,8 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     Model {
         controls,
         wr,
-        ref_line: vec![],
-        sand_line: vec![],
+        ref_lines: vec![],
+        sand_lines: vec![],
     }
 }
 
@@ -98,6 +102,7 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
         let distribution_strategy = m.controls.string("distribution_strategy");
 
         let noise_scale = m.controls.float("noise_scale");
+        let (ns_min, _ns_max) = m.controls.slider_range("noise_scale");
         let noise_octaves = m.controls.float("noise_octaves");
         let noise_persistence = m.controls.float("noise_persistence");
 
@@ -117,17 +122,21 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
             let ref_deviation = m.controls.float("ref_deviation");
             let ref_smooth = m.controls.float("ref_smooth");
 
-            let pad = m.wr.w_(32.0);
+            let pad = m.wr.w_(18.0);
             let start = vec2(-m.wr.hw() + pad, 0.0);
             let end = vec2(m.wr.hw() - pad, 0.0);
 
-            m.ref_line = reference_line(
-                start,
-                end,
-                ref_segments as usize,
-                ref_deviation,
-                ref_smooth as usize,
-            );
+            m.ref_lines = (0..N_LINES)
+                .map(|_i| {
+                    reference_line(
+                        start,
+                        end,
+                        ref_segments as usize,
+                        ref_deviation,
+                        ref_smooth as usize,
+                    )
+                })
+                .collect::<Vec<Line>>();
         }
 
         let sand_line = sand_line::SandLine::new(
@@ -151,13 +160,19 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
             },
         );
 
-        m.sand_line = sand_line.generate(
-            &m.ref_line,
-            noise_scale,
-            points_per_segment as usize,
-            angle_variation,
-            passes as usize,
-        );
+        let (min, max) = safe_range(ns_min, noise_scale);
+
+        m.sand_lines = (0..N_LINES)
+            .map(|i| {
+                sand_line.generate(
+                    &m.ref_lines[i],
+                    map_range(i as f32, 0.0, N_LINES as f32, min, max),
+                    points_per_segment as usize,
+                    angle_variation,
+                    passes as usize,
+                )
+            })
+            .collect::<Vec<Line>>();
 
         m.controls.mark_unchanged();
     }
@@ -175,20 +190,29 @@ pub fn view(app: &App, m: &Model, frame: Frame) {
     let show_ref_line = m.controls.bool("show_ref_line");
     let show_sand_line = m.controls.bool("show_sand_line");
 
-    if show_sand_line {
-        for point in &m.sand_line {
-            draw.rect()
-                .xy(*point)
-                .w_h(1.0, 1.0)
-                .color(hsla(0.0, 0.0, 0.0, alpha));
-        }
-    }
+    let pad = m.wr.h_(48.0);
+    let space = (m.wr.h() - (pad * 2.0)) / (N_LINES as f32 - 1.0);
+    let y_off = m.wr.hh() - pad;
 
-    if show_ref_line {
-        draw.polyline()
-            .weight(2.0)
-            .points(m.ref_line.iter().cloned())
-            .color(rgba(0.33, 0.45, 0.9, 1.0));
+    for i in 0..N_LINES {
+        let y = y_off - (space * i as f32);
+        let draw = draw.translate(vec3(0.0, y, 0.0));
+
+        if show_ref_line {
+            draw.polyline()
+                .weight(2.0)
+                .points(m.ref_lines[i].iter().cloned())
+                .color(rgba(0.33, 0.45, 0.9, 1.0));
+        }
+
+        if show_sand_line {
+            for point in &m.sand_lines[i] {
+                draw.rect()
+                    .xy(*point)
+                    .w_h(1.0, 1.0)
+                    .color(hsla(0.0, 0.0, 0.0, alpha));
+            }
+        }
     }
 
     draw.to_frame(app, &frame).unwrap();
