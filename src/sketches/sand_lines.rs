@@ -8,12 +8,13 @@ use crate::framework::prelude::*;
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "sand_lines",
     display_name: "Sand Lines",
+    play_mode: PlayMode::ManualAdvance,
     fps: 60.0,
     bpm: 134.0,
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(520),
+    gui_h: Some(620),
 };
 
 const N_LINES: usize = 64;
@@ -31,6 +32,11 @@ pub struct Model {
 pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let disable_octave =
         |controls: &Controls| controls.string("noise_strategy") != "Octave";
+
+    let disable_curve = |controls: &Controls| {
+        controls.string("distribution_strategy") != "Curved"
+            && controls.string("distribution_strategy") != "TrigFn"
+    };
 
     let trig_fns = string_vec![
         "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
@@ -51,10 +57,21 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
         Control::checkbox("show_ref_line", false),
         Control::checkbox("show_sand_line", true),
         Control::Separator {},
-        Control::slider("ref_segments", 16.0, (2.0, 64.0), 1.0),
+        Control::slider("ref_segments", 16.0, (2.0, 32.0), 1.0),
         Control::slider("ref_deviation", 10.0, (1.0, 100.0), 1.0),
         Control::slider("ref_smooth", 2.0, (0.0, 10.0), 1.0),
         Control::Separator {},
+        Control::select(
+            "noise_map_mode",
+            "linear",
+            string_vec![
+                "linear",
+                "reversed",
+                "triangle",
+                "triangle_reversed",
+                "none"
+            ],
+        ),
         Control::slider("noise_scale", 8.0, (0.25, 32.0), 0.25),
         Control::slider_x(
             "noise_octaves",
@@ -71,19 +88,48 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
             disable_octave,
         ),
         Control::Separator {},
-        Control::slider("angle_variation", 0.5, (0.0, TWO_PI), 0.001),
-        Control::slider("points_per_segment", 64.0, (2.0, 256.0), 1.0),
-        Control::slider("passes", 50.0, (1.0, 256.0), 1.0),
-        Control::slider_x("curvature", 0.5, (0.0, 100.0), 0.0001, |controls| {
-            controls.string("distribution_strategy") != "Curved"
-                && controls.string("distribution_strategy") != "TrigFn"
-        }),
         Control::select_x("trig_fn_a", "cos", trig_fns.clone(), |controls| {
             controls.string("distribution_strategy") != "TrigFn"
         }),
         Control::select_x("trig_fn_b", "sin", trig_fns, |controls| {
             controls.string("distribution_strategy") != "TrigFn"
         }),
+        Control::select(
+            "angle_map_mode",
+            "none",
+            string_vec![
+                "linear",
+                "reversed",
+                "triangle",
+                "triangle_reversed",
+                "none"
+            ],
+        ),
+        Control::slider("angle_variation", 0.5, (0.0, TWO_PI), 0.001),
+        Control::slider("points_per_segment", 64.0, (2.0, 128.0), 1.0),
+        Control::slider("passes", 50.0, (1.0, 128.0), 1.0),
+        Control::select_x(
+            "curve_map_mode",
+            "none",
+            string_vec![
+                "linear",
+                "reversed",
+                "triangle",
+                "triangle_reversed",
+                "none"
+            ],
+            disable_curve,
+        ),
+        Control::slider_x(
+            "curvature",
+            0.5,
+            (0.0, 100.0),
+            0.0001,
+            disable_curve,
+        ),
+        Control::slider_x("curve_mult", 1.0, (1.0, 10.0), 1.0, disable_curve),
+        Control::checkbox("curve_wtf", false),
+        Control::slider_x("curve_exp", 1.0, (0.1, 11.0), 0.1, disable_curve),
         Control::Separator {},
         Control::slider_norm("alpha", 0.5),
     ]);
@@ -101,15 +147,25 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
         let noise_strategy = m.controls.string("noise_strategy");
         let distribution_strategy = m.controls.string("distribution_strategy");
 
+        let noise_map_mode = m.controls.string("noise_map_mode");
         let noise_scale = m.controls.float("noise_scale");
         let (ns_min, _ns_max) = m.controls.slider_range("noise_scale");
         let noise_octaves = m.controls.float("noise_octaves");
         let noise_persistence = m.controls.float("noise_persistence");
 
+        let angle_map_mode = m.controls.string("angle_map_mode");
+        let (angle_min, _angle_max) =
+            m.controls.slider_range("angle_variation");
         let angle_variation = m.controls.float("angle_variation");
         let points_per_segment = m.controls.float("points_per_segment");
         let passes = m.controls.float("passes");
+        let curve_map_mode = m.controls.string("curve_map_mode");
+        let (curve_min, _curve_max) = m.controls.slider_range("curvature");
         let curvature = m.controls.float("curvature");
+        let curve_mult = m.controls.float("curve_mult");
+        let curve_wtf = m.controls.bool("curve_wtf");
+        let curve_exp = m.controls.float("curve_exp");
+        let curvature = curvature * curve_mult;
         let trig_fn_a = m.controls.string("trig_fn_a");
         let trig_fn_b = m.controls.string("trig_fn_b");
 
@@ -139,36 +195,131 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
                 .collect::<Vec<Line>>();
         }
 
-        let sand_line = sand_line::SandLine::new(
-            match noise_strategy.as_str() {
-                "Octave" => Box::new(sand_line::OctaveNoise::new(
-                    noise_octaves as u32,
-                    noise_persistence,
-                )),
-                _ => Box::new(sand_line::GaussianNoise {}),
-            },
-            match distribution_strategy.as_str() {
-                "Curved" => {
-                    Box::new(sand_line::CurvedDistribution::new(curvature))
-                }
-                "TrigFn" => Box::new(sand_line::TrigFnDistribution::new(
-                    curvature,
-                    *trig_fn_lookup().get(trig_fn_a.as_str()).unwrap(),
-                    *trig_fn_lookup().get(trig_fn_b.as_str()).unwrap(),
-                )),
-                _ => Box::new(sand_line::PerpendicularDistribution),
-            },
-        );
-
-        let (min, max) = safe_range(ns_min, noise_scale);
+        let (ns_min, ns_max) = safe_range(ns_min, noise_scale);
+        let (angle_min, angle_max) = safe_range(angle_min, angle_variation);
+        let (curve_min, curve_max) = safe_range(curve_min, curvature);
 
         m.sand_lines = (0..N_LINES)
             .map(|i| {
+                let index = i;
+                let i = index as f32;
+                let curve_i = exponential(
+                    if curve_wtf { i / N_LINES as f32 } else { i },
+                    curve_exp,
+                );
+
+                let ns = match noise_map_mode.as_str() {
+                    "linear" => {
+                        map_range(i, 0.0, N_LINES as f32, ns_min, ns_max)
+                    }
+                    "reversed" => {
+                        map_range(i, 0.0, N_LINES as f32, ns_max, ns_min)
+                    }
+                    "triangle" => triangle_map(
+                        i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        ns_min,
+                        ns_max,
+                    ),
+                    "triangle_reversed" => triangle_map(
+                        i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        ns_max,
+                        ns_min,
+                    ),
+                    _ => noise_scale,
+                };
+
+                let angle_v = match angle_map_mode.as_str() {
+                    "linear" => {
+                        map_range(i, 0.0, N_LINES as f32, angle_min, angle_max)
+                    }
+                    "reversed" => {
+                        map_range(i, 0.0, N_LINES as f32, angle_max, angle_min)
+                    }
+                    "triangle" => triangle_map(
+                        i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        angle_min,
+                        angle_max,
+                    ),
+                    "triangle_reversed" => triangle_map(
+                        i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        angle_max,
+                        angle_min,
+                    ),
+                    _ => angle_variation,
+                };
+
+                let curve = match curve_map_mode.as_str() {
+                    "linear" => map_range(
+                        curve_i,
+                        0.0,
+                        N_LINES as f32,
+                        curve_min,
+                        curve_max,
+                    ),
+                    "reversed" => map_range(
+                        curve_i,
+                        0.0,
+                        N_LINES as f32,
+                        curve_max,
+                        curve_min,
+                    ),
+                    "triangle" => triangle_map(
+                        curve_i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        curve_min,
+                        curve_max,
+                    ),
+                    "triangle_reversed" => triangle_map(
+                        curve_i,
+                        0.0,
+                        N_LINES as f32 - 1.0,
+                        curve_max,
+                        curve_min,
+                    ),
+                    _ => curvature,
+                };
+
+                let sand_line = sand_line::SandLine::new(
+                    match noise_strategy.as_str() {
+                        "Octave" => Box::new(sand_line::OctaveNoise::new(
+                            noise_octaves as u32,
+                            noise_persistence,
+                        )),
+                        _ => Box::new(sand_line::GaussianNoise {}),
+                    },
+                    match distribution_strategy.as_str() {
+                        "Curved" => {
+                            Box::new(sand_line::CurvedDistribution::new(curve))
+                        }
+                        "TrigFn" => {
+                            Box::new(sand_line::TrigFnDistribution::new(
+                                curve,
+                                *trig_fn_lookup()
+                                    .get(trig_fn_a.as_str())
+                                    .unwrap(),
+                                *trig_fn_lookup()
+                                    .get(trig_fn_b.as_str())
+                                    .unwrap(),
+                            ))
+                        }
+                        _ => Box::new(sand_line::PerpendicularDistribution),
+                    },
+                );
+
                 sand_line.generate(
-                    &m.ref_lines[i],
-                    map_range(i as f32, 0.0, N_LINES as f32, min, max),
+                    &m.ref_lines[index],
+                    ns,
                     points_per_segment as usize,
-                    angle_variation,
+                    angle_v,
                     passes as usize,
                 )
             })

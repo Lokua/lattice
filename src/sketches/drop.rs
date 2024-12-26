@@ -11,6 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     h: 700,
     gui_w: None,
     gui_h: Some(400),
+    play_mode: PlayMode::Loop,
 };
 
 const MAX_DROPS: usize = 2500;

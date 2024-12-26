@@ -15,6 +15,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     h: 1000,
     gui_w: None,
     gui_h: Some(840),
+    play_mode: PlayMode::Loop,
 };
 
 const DEBUG_QUADS: bool = false;
