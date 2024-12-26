@@ -35,6 +35,7 @@ macro_rules! run_sketch {
                 &sketches::$sketch_module::SKETCH_CONFIG,
             )
         })
+        // Doesn't seem to work :(
         // .loop_mode(LoopMode::Wait)
         .update(|app, model, nannou_update| {
             update::<sketches::$sketch_module::Model>(
@@ -174,6 +175,10 @@ fn model<S: SketchModel + 'static>(
 
     let session_id = generate_session_id();
     let recording_dir = frames_dir(&session_id, sketch_config.name);
+
+    if sketch_config.play_mode != PlayMode::Loop {
+        frame_controller::set_paused(true);
+    }
 
     AppModel {
         main_window_id,
@@ -382,17 +387,23 @@ fn view_gui<S: SketchModel>(_app: &App, model: &AppModel<S>, frame: Frame) {
 }
 
 fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
-    if key == Key::C {
-        let window = app.window(model.gui_window_id).unwrap();
-        let is_visible = model.gui_visible.get();
-
-        if is_visible {
-            window.set_visible(false);
-            model.gui_visible.set(false);
-        } else {
-            window.set_visible(true);
-            model.gui_visible.set(true);
+    match key {
+        Key::A => {
+            frame_controller::advance_single_frame();
         }
+        Key::C => {
+            let window = app.window(model.gui_window_id).unwrap();
+            let is_visible = model.gui_visible.get();
+
+            if is_visible {
+                window.set_visible(false);
+                model.gui_visible.set(false);
+            } else {
+                window.set_visible(true);
+                model.gui_visible.set(true);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -682,7 +693,9 @@ fn draw_sketch_controls<S: SketchModel>(
     if let Some(controls) = sketch_model.controls() {
         let any_changed = draw_controls(controls, ui);
         if any_changed {
-            if frame_controller::is_paused() {
+            if frame_controller::is_paused()
+                && sketch_config.play_mode != PlayMode::ManualAdvance
+            {
                 frame_controller::advance_single_frame();
             }
 

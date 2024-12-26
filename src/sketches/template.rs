@@ -12,6 +12,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     h: 700,
     gui_w: None,
     gui_h: Some(150),
+    play_mode: PlayMode::Loop,
 };
 
 #[derive(SketchComponents)]

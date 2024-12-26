@@ -13,6 +13,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     h: 700,
     gui_w: None,
     gui_h: Some(230),
+    play_mode: PlayMode::Loop,
 };
 
 const N_LINES: i32 = 4;

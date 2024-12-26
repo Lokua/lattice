@@ -14,6 +14,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     h: 1000,
     gui_w: None,
     gui_h: Some(220),
+    play_mode: PlayMode::Loop,
 };
 
 const GRID_SIZE: usize = 128;

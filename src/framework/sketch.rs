@@ -11,6 +11,18 @@ pub struct SketchConfig {
     pub h: i32,
     pub gui_w: Option<u32>,
     pub gui_h: Option<u32>,
+    pub play_mode: PlayMode,
+}
+
+#[derive(PartialEq)]
+pub enum PlayMode {
+    // normal
+    Loop,
+    // Sketch starts in paused state,
+    // auto advanced when controls are changed
+    Advance,
+    // Same as advance, but only advances if Adv. is pressed
+    ManualAdvance,
 }
 
 pub trait SketchModel {
