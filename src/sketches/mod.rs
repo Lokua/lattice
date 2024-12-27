@@ -21,4 +21,5 @@ pub use self::studies::responsive_test;
 pub use self::studies::sand_line;
 pub use self::studies::vertical;
 pub use self::studies::vertical_2;
+pub use self::studies::wgpu_test;
 pub use self::studies::z_sim;
