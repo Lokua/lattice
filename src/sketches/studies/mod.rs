@@ -9,5 +9,6 @@ pub mod responsive_test;
 pub mod sand_line;
 pub mod vertical;
 pub mod vertical_2;
+pub mod wgpu_compute_test;
 pub mod wgpu_test;
 pub mod z_sim;

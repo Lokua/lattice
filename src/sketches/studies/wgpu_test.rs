@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(150),
+    gui_h: Some(180),
 };
 
 // #[repr(C)] tells Rust to lay out the struct's memory the same way C would
@@ -61,13 +61,14 @@ const VERTICES: &[Vertex] = &[
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
     time: f32,
-    mix_factor: f32,
+    mix: f32,
+    grid_mult: f32,
 }
 
 #[derive(SketchComponents)]
 pub struct Model {
+    animation: Animation,
     controls: Controls,
-    #[allow(dead_code)]
     wr: WindowRect,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
@@ -97,7 +98,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     // Create params buffer and bind group
     let params = ShaderParams {
         time: 0.0,
-        mix_factor: 0.5,
+        mix: 0.5,
+        grid_mult: 1.0,
     };
 
     // Create time uniform buffer and bind group
@@ -156,14 +158,16 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         .sample_count(sample_count)
         .build(device);
 
-    let controls = Controls::with_previous(vec![Control::slider(
-        "mix",
-        0.5,
-        (0.0, 1.0),
-        0.01,
-    )]);
+    let controls = Controls::with_previous(vec![
+        Control::slider("mix", 0.5, (0.0, 1.0), 0.01),
+        Control::slider("grid_mult", 5.0, (0.5, 32.0), 1.0),
+        Control::checkbox("draw_nannou_rect", false),
+    ]);
+
+    let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     Model {
+        animation,
         controls,
         wr,
         render_pipeline,
@@ -175,8 +179,9 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
     let params = ShaderParams {
-        time: app.time,
-        mix_factor: m.controls.float("mix"),
+        time: m.animation.ping_pong(2.0),
+        mix: m.controls.float("mix"),
+        grid_mult: m.controls.float("grid_mult"),
     };
 
     app.main_window().queue().write_buffer(
@@ -186,18 +191,37 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     );
 }
 
-pub fn view(_app: &App, m: &Model, frame: Frame) {
-    let mut encoder = frame.command_encoder();
-    let mut render_pass = wgpu::RenderPassBuilder::new()
-        .color_attachment(frame.texture_view(), |color| color)
-        .begin(&mut encoder);
+pub fn view(app: &App, m: &Model, frame: Frame) {
+    // Scope is needed only if we are mixing nannou drawing commands as well;
+    // this is so `frame` is not borrowed twice
+    {
+        let mut encoder = frame.command_encoder();
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            // LoadOp is needed if we are mixing shader + regular nannou draw commands
+            // Otherwise `|color| color` can be used
+            .color_attachment(frame.texture_view(), |color| {
+                color.load_op(wgpu::LoadOp::Load)
+            })
+            .begin(&mut encoder);
 
-    render_pass.set_pipeline(&m.render_pipeline);
-    render_pass.set_bind_group(0, &m.params_bind_group, &[]);
-    render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
+        render_pass.set_pipeline(&m.render_pipeline);
+        render_pass.set_bind_group(0, &m.params_bind_group, &[]);
+        render_pass.set_vertex_buffer(0, m.vertex_buffer.slice(..));
 
-    // This is drawing our VERTICES const.
-    // 0..6 says "use 6 vertices" (our two triangles)
-    // 0..1 says "draw one instance"
-    render_pass.draw(0..6, 0..1);
+        // This is drawing our VERTICES const.
+        // 0..6 says "use 6 vertices" (our two triangles)
+        // 0..1 says "draw one instance"
+        render_pass.draw(0..6, 0..1);
+    }
+
+    if m.controls.bool("draw_nannou_rect") {
+        let draw = app.draw();
+
+        draw.rect()
+            .x_y(0.0, 0.0)
+            .w_h(m.wr.w_(8.0), m.wr.h_(8.0))
+            .color(BLACK);
+
+        draw.to_frame(app, &frame).unwrap();
+    }
 }

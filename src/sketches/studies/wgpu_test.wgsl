@@ -17,7 +17,8 @@ struct VertexOutput {
 // Must match the struct's memory layout exactly
 struct Params {
     time: f32,
-    mix_factor: f32,
+    mix: f32,
+    grid_mult: f32,
 }
 
 // Makes our parameters available to the shader 
@@ -70,24 +71,25 @@ fn vs_main(vert: VertexInput) -> VertexOutput {
 fn fs_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
     let circle = circle_pattern(uv);
     let grid = grid_pattern(uv);
-    let final_color = mix(circle, grid, params.mix_factor);
+    let final_color = mix(circle, grid, params.mix);
     return vec4<f32>(final_color, 1.0);
 }
 
 // Simple circle that radiates from center
 fn circle_pattern(uv: vec2<f32>) -> vec3<f32> {
-    let center = vec2<f32>(0.5, 0.5);
+    // `vecNf is alias for vecN<f32>
+    let center = vec2f(0.5, 0.5);
 
     // Distance from center (0 at center, ~0.7 at corners)
     let dist = length(uv - center); 
 
-    let color_value = sin(params.time) * 0.5 + 0.5;
-    return vec3<f32>(dist, color_value, color_value);         
+    let color_value = params.time;
+    return vec3<f32>(dist, color_value, color_value);
 }
 
 // Simple grid
 fn grid_pattern(uv: vec2<f32>) -> vec3<f32> {
-    let grid_size = 5.0;
+    let grid_size = params.grid_mult;
 
     // Multiply UV to get more grid cells
     let pos = uv * grid_size;        
@@ -101,6 +103,6 @@ fn grid_pattern(uv: vec2<f32>) -> vec3<f32> {
         fract(pos.y),                
         
         // Blue channel always 0
-        0.0                        
+        1.0                        
     );
 }
