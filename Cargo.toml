@@ -16,6 +16,7 @@ members = [
 ]
 
 [dependencies]
+bytemuck = "1.21.0"
 chrono = "0.4.38"
 cpal = "0.15.3"
 dark-light = "1.1.1"
