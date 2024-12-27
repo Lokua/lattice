@@ -11,10 +11,10 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     play_mode: PlayMode::ManualAdvance,
     fps: 60.0,
     bpm: 134.0,
-    w: 700,
-    h: 700,
+    w: 1000,
+    h: 1000,
     gui_w: None,
-    gui_h: Some(620),
+    gui_h: Some(770),
 };
 
 const N_LINES: usize = 64;
@@ -56,7 +56,21 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
         ),
         Control::checkbox("show_ref_line", false),
         Control::checkbox("show_sand_line", true),
+        Control::checkbox("chasm_mode", false),
         Control::Separator {},
+        Control::select(
+            "wave_type",
+            "sine",
+            string_vec!["sine", "triangle", "square", "saw"],
+        ),
+        Control::slider("wave_freq", 1.0, (0.25, 50.0), 0.25),
+        Control::slider("wave_amp", 1.0, (0.0, 1.0), 0.01),
+        Control::slider("wave_phase", 0.0, (0.0, TWO_PI), 0.1),
+        Control::slider_x("wave_drift", 0.0, (0.0, 1.0), 0.001, |controls| {
+            !controls.bool("chasm_mode")
+        }),
+        Control::Separator {},
+        Control::slider("pad", 18.0, (1.0, 32.0), 1.0),
         Control::slider("ref_segments", 16.0, (2.0, 32.0), 1.0),
         Control::slider("ref_deviation", 10.0, (1.0, 100.0), 1.0),
         Control::slider("ref_smooth", 2.0, (0.0, 10.0), 1.0),
@@ -146,6 +160,12 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
     if m.controls.changed() {
         let noise_strategy = m.controls.string("noise_strategy");
         let distribution_strategy = m.controls.string("distribution_strategy");
+        let chasm_mode = m.controls.bool("chasm_mode");
+        let wave_type = m.controls.string("wave_type");
+        let wave_freq = m.controls.float("wave_freq");
+        let wave_amp = m.controls.float("wave_amp");
+        let wave_phase = m.controls.float("wave_phase");
+        let wave_drift = m.controls.float("wave_drift");
 
         let noise_map_mode = m.controls.string("noise_map_mode");
         let noise_scale = m.controls.float("noise_scale");
@@ -170,6 +190,13 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
         let trig_fn_b = m.controls.string("trig_fn_b");
 
         if m.controls.any_changed_in(&[
+            "chasm_mode",
+            "wave_type",
+            "wave_freq",
+            "wave_amp",
+            "wave_phase",
+            "wave_drift",
+            "pad",
             "ref_segments",
             "ref_deviation",
             "ref_smooth",
@@ -177,20 +204,95 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
             let ref_segments = m.controls.float("ref_segments");
             let ref_deviation = m.controls.float("ref_deviation");
             let ref_smooth = m.controls.float("ref_smooth");
-
-            let pad = m.wr.w_(18.0);
-            let start = vec2(-m.wr.hw() + pad, 0.0);
-            let end = vec2(m.wr.hw() - pad, 0.0);
+            let pad = m.wr.w_(m.controls.float("pad"));
 
             m.ref_lines = (0..N_LINES)
-                .map(|_i| {
-                    reference_line(
-                        start,
-                        end,
-                        ref_segments as usize,
-                        ref_deviation,
-                        ref_smooth as usize,
-                    )
+                .map(|i| {
+                    let t = i as f32 / (N_LINES - 1) as f32;
+
+                    let base_scale = match wave_type.as_str() {
+                        "sine" => {
+                            let angle = t * TWO_PI * wave_freq;
+                            let shifted_angle = angle + wave_phase;
+                            let raw_sine = shifted_angle.sin();
+                            let normalized_sine = raw_sine * 0.5 + 0.5;
+                            normalized_sine
+                        }
+                        "triangle" => {
+                            let angle = (t * wave_freq + wave_phase) % 1.0;
+                            if angle < 0.5 {
+                                angle * 2.0
+                            } else {
+                                2.0 - (angle * 2.0)
+                            }
+                        }
+                        "square" => {
+                            let angle = (t * TWO_PI * wave_freq) + wave_phase;
+                            if (angle % TWO_PI) < PI {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        "saw" => (t * wave_freq + wave_phase) % 1.0,
+                        _ => 0.5,
+                    };
+
+                    if chasm_mode {
+                        let scale = lerp(1.0, base_scale, wave_amp);
+                        let gap_size = scale * m.wr.hw();
+
+                        let full_start = vec2(-m.wr.hw() + pad, 0.0);
+                        let full_end = vec2(m.wr.hw() - pad, 0.0);
+
+                        let offset =
+                            ((t * TWO_PI * (wave_freq * PHI_F32) * 0.5)
+                                + wave_phase)
+                                .sin()
+                                * wave_drift;
+
+                        let left_gap_point =
+                            vec2(-gap_size / 2.0 + (offset * m.wr.hw()), 0.0);
+                        let right_gap_point =
+                            vec2(gap_size / 2.0 + (offset * m.wr.hw()), 0.0);
+
+                        let left_segment = reference_line(
+                            full_start,
+                            left_gap_point,
+                            ref_segments as usize / 2,
+                            ref_deviation,
+                            ref_smooth as usize,
+                        );
+
+                        let right_segment = reference_line(
+                            right_gap_point,
+                            full_end,
+                            ref_segments as usize / 2,
+                            ref_deviation,
+                            ref_smooth as usize,
+                        );
+
+                        [left_segment, right_segment].concat()
+                    } else {
+                        let scale = lerp(1.0, base_scale, wave_amp);
+
+                        let start = vec2(
+                            -m.wr.hw() + pad + (1.0 - scale) * m.wr.hw(),
+                            0.0,
+                        );
+                        let end = vec2(
+                            m.wr.hw() - pad - (1.0 - scale) * m.wr.hw(),
+                            0.0,
+                        );
+
+                        reference_line(
+                            start,
+                            end,
+                            ref_segments as usize,
+                            ref_deviation,
+                            ref_smooth as usize,
+                        )
+                    }
                 })
                 .collect::<Vec<Line>>();
         }
