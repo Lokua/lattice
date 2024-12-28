@@ -44,7 +44,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("points_per_segment", 100.0, (10.0, 500.0), 10.0),
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
-        Control::slider("point_size", 0.001, (0.0001, 0.1), 0.0001),
+        Control::slider("point_size", 0.001, (0.0005, 0.02), 0.0001),
     ]);
 
     let window = app.main_window();
@@ -191,6 +191,6 @@ pub fn view(_app: &App, m: &Model, frame: Frame) {
 
         render_pass.set_pipeline(&m.render_pipeline);
         render_pass.set_bind_group(0, &m.params_bind_group, &[]);
-        render_pass.draw(0..(4 * m.n_points), 0..1);
+        render_pass.draw(0..(6 * m.n_points), 0..1);
     }
 }
