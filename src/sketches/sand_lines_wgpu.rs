@@ -22,7 +22,7 @@ struct ShaderParams {
     ref_points: [f32; 4],
     // [points_per_segment, noise_scale, angle_variation, n_lines]
     settings: [f32; 4],
-    // [point_size, ...unused]
+    // [point_size, passes, n_points, ...unused]
     settings2: [f32; 4],
 }
 
@@ -41,10 +41,11 @@ pub struct Model {
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
+        Control::slider("passes", 3.0, (1.0, 10.0), 1.0),
         Control::slider("points_per_segment", 100.0, (10.0, 500.0), 10.0),
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
-        Control::slider("point_size", 0.001, (0.0005, 0.02), 0.0001),
+        Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
     ]);
 
     let window = app.main_window();
@@ -70,13 +71,13 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let n_points = N_LINES * 1 * points_per_segment;
 
     let params = ShaderParams {
-        ref_points: [-1.0, 0.0, 1.0, 0.0],
+        ref_points: [0.0; 4],
         settings: [points_per_segment as f32, 0.1, 0.2, N_LINES as f32],
         settings2: [
             controls.float("point_size"),
+            controls.float("passes"),
+            n_points as f32,
             // ...padding
-            0.0,
-            0.0,
             0.0,
         ],
     };
@@ -162,9 +163,9 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             ],
             settings2: [
                 m.controls.float("point_size"),
+                m.controls.float("passes"),
+                m.n_points as f32,
                 // ...padding
-                0.0,
-                0.0,
                 0.0,
             ],
         };
@@ -191,6 +192,11 @@ pub fn view(_app: &App, m: &Model, frame: Frame) {
 
         render_pass.set_pipeline(&m.render_pipeline);
         render_pass.set_bind_group(0, &m.params_bind_group, &[]);
-        render_pass.draw(0..(6 * m.n_points), 0..1);
+
+        // 6 = 2 triangles = 1 quad
+        let verts_per_point = 6;
+        let passes = m.controls.float("passes") as u32;
+        let n_points = passes * verts_per_point * m.n_points;
+        render_pass.draw(0..n_points, 0..1);
     }
 }
