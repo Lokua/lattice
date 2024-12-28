@@ -18,16 +18,20 @@ struct VertexOutput {
 }
 
 @vertex
-fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOutput {
+fn vs_main(@builtin(vertex_index) vert_index: u32) -> VertexOutput {
     let points_per_segment = params.settings.x;
     let noise_scale = params.settings.y;
     let angle_variation = params.settings.z;
     let n_lines = params.settings.w;
     let point_size = params.settings2.x;
+    let pass_count = params.settings2.y;
+    let n_points = params.settings2.z;
+
 
     // 6u = 6 vertices per triangle = 2 triangles = 1 quad
-    let point_index = v_idx / 6u;
-    let corner_index = v_idx % 6u;
+    let pass_index = floor(f32(vert_index) / (6.0 * n_points));
+    let point_index  = (vert_index / 6u) % u32(n_points);
+    let corner_index = vert_index % 6u;
 
     // First figure out which line this vertex belongs to
     let line_idx = floor(f32(point_index) / points_per_segment);
@@ -49,9 +53,11 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOutput {
     
     let base_pos = mix(ref_a, ref_b, t);
 
-    let base_angle = PI * 0.5;
-    let angle = base_angle + random_normal(point_index + 1u, angle_variation);
-    let noise = random_normal(point_index, 1.0) * noise_scale;
+    let angle_seed = 100000u * u32(pass_index) + point_index;
+    let angle = random_normal(angle_seed, angle_variation);
+
+    let noise_seed = 100000u * u32(pass_index) + point_index + 1u;
+    let noise = random_normal(noise_seed, 1.0) * noise_scale;
 
     let rotated_dir = vec2f(
         perp_dir.x * cos(angle) - perp_dir.y * sin(angle),

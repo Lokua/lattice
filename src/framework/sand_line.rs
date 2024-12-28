@@ -152,6 +152,9 @@ impl PointDistributionStrategy for PerpendicularDistribution {
                     //      |
                     //      |
                     //      point
+                    //
+                    // NOTE: this is perpendicular to the x-axis, not the actual line direction
+                    // should probably fix that?
                     let base_angle = PI / 2.0;
                     let angle = base_angle + random_normal(angle_variation);
 
