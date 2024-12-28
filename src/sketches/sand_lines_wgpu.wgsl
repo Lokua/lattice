@@ -1,3 +1,5 @@
+const PI: f32 = 3.14159265359;
+
 struct Params {
     // [ax, ay, bx, by]
     ref_points: vec4f,   
@@ -23,8 +25,9 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOutput {
     let n_lines = params.settings.w;
     let point_size = params.settings2.x;
 
-    let point_index = v_idx / 4u;
-    let corner_index = v_idx % 4u;
+    // 6u = 6 vertices per triangle = 2 triangles = 1 quad
+    let point_index = v_idx / 6u;
+    let corner_index = v_idx % 6u;
 
     // First figure out which line this vertex belongs to
     let line_idx = floor(f32(point_index) / points_per_segment);
@@ -46,8 +49,9 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOutput {
     
     let base_pos = mix(ref_a, ref_b, t);
 
-    let noise = random_normal(point_index, 0.0, 1.0) * noise_scale;
-    let angle = rand_pcg(point_index + 1u) * angle_variation;
+    let base_angle = PI * 0.5;
+    let angle = base_angle + random_normal(point_index + 1u, angle_variation);
+    let noise = random_normal(point_index, 1.0) * noise_scale;
 
     let rotated_dir = vec2f(
         perp_dir.x * cos(angle) - perp_dir.y * sin(angle),
@@ -69,11 +73,14 @@ fn fs_main(@location(0) point_color: vec4f) -> @location(0) vec4f {
 }
 
 fn get_corner_offset(index: u32, point_size: f32) -> vec2f {
+    let s = point_size;
     switch (index) {
-        case 0u: { return vec2f(-point_size, -point_size); }
-        case 1u: { return vec2f( point_size, -point_size); }
-        case 2u: { return vec2f(-point_size,  point_size); }
-        case 3u: { return vec2f( point_size,  point_size); }
+        case 0u: { return vec2f(-s, -s); } // bottom-left
+        case 1u: { return vec2f(-s,  s); } // top-left
+        case 2u: { return vec2f( s,  s); } // top-right
+        case 3u: { return vec2f(-s, -s); } // bottom-left
+        case 4u: { return vec2f( s,  s); } // top-right
+        case 5u: { return vec2f( s, -s); } // bottom-right
         default: { return vec2f(0.0, 0.0); }
     }
 }
@@ -85,12 +92,12 @@ fn rand_pcg(seed: u32) -> f32 {
     return f32(result) / 4294967295.0;
 }
 
-fn random_normal(seed: u32, mean: f32, stddev: f32) -> f32 {
+fn random_normal(seed: u32, std_dev: f32) -> f32 {
     let u1 = rand_pcg(seed);
     let u2 = rand_pcg(seed + 1u);
     
     let mag = sqrt(-2.0 * log(u1));
-    let z0 = mag * cos(6.28318530718 * u2);
+    let z0 = mag * cos(2.0 * PI * u2);
     
-    return mean + stddev * z0;
+    return std_dev * z0;
 }
