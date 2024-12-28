@@ -22,6 +22,8 @@ struct ShaderParams {
     ref_points: [f32; 4],
     // [points_per_segment, noise_scale, angle_variation, n_lines]
     settings: [f32; 4],
+    // [point_size, ...unused]
+    settings2: [f32; 4],
 }
 
 #[derive(SketchComponents)]
@@ -40,8 +42,9 @@ pub struct Model {
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
         Control::slider("points_per_segment", 100.0, (10.0, 500.0), 10.0),
-        Control::slider("noise_scale", 0.1, (0.0, 0.5), 0.01),
+        Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
+        Control::slider("point_size", 0.001, (0.0001, 0.1), 0.0001),
     ]);
 
     let window = app.main_window();
@@ -62,13 +65,20 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     });
 
     // Initial parameters
-    let points_per_segment = 100;
+    let points_per_segment = controls.float("points_per_segment") as u32;
     // lines * segments_per_line * points_per_segment
     let n_points = N_LINES * 1 * points_per_segment;
 
     let params = ShaderParams {
         ref_points: [-1.0, 0.0, 1.0, 0.0],
         settings: [points_per_segment as f32, 0.1, 0.2, N_LINES as f32],
+        settings2: [
+            controls.float("point_size"),
+            // ...padding
+            0.0,
+            0.0,
+            0.0,
+        ],
     };
 
     let params_buffer =
@@ -122,7 +132,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         .fragment_shader(&shader_module)
         .fragment_entry_point("fs_main")
         .color_format(format)
-        .primitive_topology(wgpu::PrimitiveTopology::PointList)
+        .primitive_topology(wgpu::PrimitiveTopology::TriangleList)
         .sample_count(sample_count)
         .build(device);
 
@@ -150,6 +160,13 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
                 m.controls.float("angle_variation"),
                 N_LINES as f32,
             ],
+            settings2: [
+                m.controls.float("point_size"),
+                // ...padding
+                0.0,
+                0.0,
+                0.0,
+            ],
         };
 
         app.main_window().queue().write_buffer(
@@ -174,6 +191,6 @@ pub fn view(_app: &App, m: &Model, frame: Frame) {
 
         render_pass.set_pipeline(&m.render_pipeline);
         render_pass.set_bind_group(0, &m.params_bind_group, &[]);
-        render_pass.draw(0..m.n_points, 0..1);
+        render_pass.draw(0..(4 * m.n_points), 0..1);
     }
 }
