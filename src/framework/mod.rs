@@ -6,6 +6,7 @@ pub mod distance;
 pub mod drop;
 pub mod easing;
 pub mod frame_controller;
+pub mod gpu;
 pub mod logging;
 pub mod midi;
 pub mod noise;

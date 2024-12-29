@@ -53,13 +53,13 @@ fn vs_main(vert: VertexInput) -> VertexOutput {
     //      (-1,-1)     (1,-1)
     //
     // Becomes:
-    //      (-1,1)      (1,1)
+    //      (0,1)       (1,1)
     //         ┌─────────┐
     //         │         │
     //         │         │
     //         │         │
     //         └─────────┘
-    //      (-1,-1)     (1,-1)
+    //      (0,0)       (1,0)
     out.uv = vert.position * 0.5 + 0.5;
     return out;
 }
