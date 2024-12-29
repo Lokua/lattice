@@ -78,6 +78,7 @@ fn main() {
     match sketch_name {
         "animation_test" => run_sketch!(animation_test),
         "audio_test" => run_sketch!(audio_test),
+        "bos" => run_sketch!(bos),
         "chromatic_aberration" => run_sketch!(chromatic_aberration),
         "displacement_1" => run_sketch!(displacement_1),
         "displacement_1a" => run_sketch!(displacement_1a),

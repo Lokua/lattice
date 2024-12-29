@@ -124,7 +124,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     let r_range = m.controls.slider_range("radius");
     let s_range = m.controls.slider_range("strength");
 
-    let gen_anim = |dur: f32, delay: f32| {
+    let gen_anim = |dur: f32, delay: f32, anim_scaling: bool| {
         [
             // radius
             a.r_ramp(&[kfr(r_range, dur)], delay, dur * 0.5, linear),
@@ -136,16 +136,20 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
                 linear,
             ),
             // scaling_power
-            m.controls.float("scaling_power"),
+            if anim_scaling {
+                m.controls.float("scaling_power")
+            } else {
+                (a.ping_pong(8.0) + 1.0) * 4.0
+            },
             // offset
             a.r_ramp(&[kfr((0.0, 1.0), 16.0)], 0.0, 8.0, linear),
         ]
     };
 
-    let corner = gen_anim(16.0, 0.0);
+    let corner = gen_anim(16.0, 0.0, false);
 
     let params = ShaderParams {
-        d_0: gen_anim(32.0, 0.0),
+        d_0: gen_anim(32.0, 0.0, true),
         d_1: corner,
         d_2: corner,
         d_3: corner,
