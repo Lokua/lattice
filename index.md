@@ -1,5 +1,21 @@
 Files sorted from most to least recent
 
+## wgpu_displacement-b6d6k.png
+
+<img src="images/wgpu_displacement-b6d6k.png" alt="wgpu_displacement-b6d6k.png">
+
+## wgpu_displacement-d0x5k.png
+
+<img src="images/wgpu_displacement-d0x5k.png" alt="wgpu_displacement-d0x5k.png">
+
+## wgpu_displacement-42xf2.png
+
+<img src="images/wgpu_displacement-42xf2.png" alt="wgpu_displacement-42xf2.png">
+
+## wgpu_learn-but2b.png
+
+<img src="images/wgpu_learn-but2b.png" alt="wgpu_learn-but2b.png">
+
 ## sand_lines_points-ujhn4.png
 
 <img src="images/sand_lines_points-ujhn4.png" alt="sand_lines_points-ujhn4.png">

@@ -10,6 +10,5 @@ pub mod sand_line;
 pub mod vertical;
 pub mod vertical_2;
 pub mod wgpu_compute_test;
-pub mod wgpu_learn;
 pub mod wgpu_test;
 pub mod z_sim;
