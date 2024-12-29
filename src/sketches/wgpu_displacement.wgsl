@@ -8,10 +8,16 @@ struct VertexOutput {
 };
 
 struct Params {
-    a: f32,
+    radius: f32,
+    strength: f32,
+    scaling_power: f32,
+    mix: f32,
+    r: f32,
+    g: f32,
     b: f32,
-    c: f32,
-    d: f32,
+    ring_strength: f32,
+    angular_variation: f32,
+    threshold: f32,
 }
 
 @group(0) @binding(0)
@@ -42,35 +48,36 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let angle = atan2(total_displacement.y, total_displacement.x);
     
     // Create bands/rings based on displacement
-    let rings = sin(disp_length * 20.0) * 0.5 + 0.5;
+    let rings = sin(disp_length * params.ring_strength) * 0.5 + 0.5;
     
     // Add angular variation
-    let angular_pattern = sin(angle * 4.0) * 0.5 + 0.5;
+    let angular_pattern = sin(angle * params.angular_variation) * 0.5 + 0.5;
     
     // Create threshold effects
-    let threshold = step(0.7, rings * angular_pattern);
+    let threshold = step(params.threshold, rings * angular_pattern);
     
     // Mix different effects based on params.d
-    let pattern = mix(rings * angular_pattern, threshold, params.d);
+    let pattern = mix(rings * angular_pattern, threshold, params.mix);
     
     // Create black regions where influence is very low
     if (max_influence < 0.01) {
         return vec4f(0.0, 0.0, 0.0, 1.0);
     }
     
-    return vec4f(0.0, 0.0, pattern, 1.0);
+    return vec4f(
+        pattern * params.r, 
+        pattern * params.g, 
+        pattern * params.b, 
+        1.0
+    );
 }
 
 fn displace(point: vec2f, displacer_pos: vec2f) -> vec2f {
-    let radius = params.a;
-    let strength = params.b * 2.0;
-    let scaling_power = params.c * 4.0;
-    
     let distance_from_displacer = distance(displacer_pos, point);
-    let proximity = 1.0 - distance_from_displacer / (radius * 2.0);
+    let proximity = 1.0 - distance_from_displacer / (params.radius * 2.0);
     let distance_factor = max(proximity, 0.0);
     let angle = atan2(point.y - displacer_pos.y, point.x - displacer_pos.x);
-    let force = strength * pow(distance_factor, scaling_power);
+    let force = params.strength * pow(distance_factor, params.scaling_power);
     
     return vec2f(
         cos(angle) * force,

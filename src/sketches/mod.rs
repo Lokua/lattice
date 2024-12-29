@@ -9,6 +9,7 @@ pub mod drop_walk;
 pub mod sand_lines;
 pub mod sand_lines_wgpu;
 pub mod template;
+pub mod wgpu_displacement;
 
 pub mod studies;
 pub use self::studies::animation_test;
@@ -23,6 +24,5 @@ pub use self::studies::sand_line;
 pub use self::studies::vertical;
 pub use self::studies::vertical_2;
 pub use self::studies::wgpu_compute_test;
-pub use self::studies::wgpu_learn;
 pub use self::studies::wgpu_test;
 pub use self::studies::z_sim;
