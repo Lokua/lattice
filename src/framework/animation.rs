@@ -25,6 +25,10 @@ pub fn kf(value: f32, duration: f32) -> KF {
     KF::new(value, duration)
 }
 
+pub fn kf_seq(kfs: &[(f32, f32)]) -> Vec<KF> {
+    kfs.iter().map(|kf| KF::new(kf.0, kf.1)).collect()
+}
+
 #[derive(Clone, Debug)]
 pub struct KeyframeRandom {
     pub range: (f32, f32),
@@ -160,6 +164,15 @@ impl Animation {
         }
 
         should_trigger
+    }
+
+    /// Convenience version of #lerp that uses array of tuples instead of Keyframe ctor
+    /// and also provides an ending Keyframe that mirrors the first Keyframe value
+    /// for continuous wrapping.
+    pub fn lrp(&self, kfs: &[(f32, f32)], delay: f32) -> f32 {
+        let mut kfs: Vec<KF> = kfs.iter().map(|k| kf(k.0, k.1)).collect();
+        kfs.push(kf(kfs[0].value, KF::END));
+        self.lerp(kfs, delay)
     }
 
     /// Animates through keyframes with continuous linear interpolation.
