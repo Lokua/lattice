@@ -12,7 +12,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(360),
+    gui_h: Some(400),
 };
 
 #[derive(SketchComponents)]
@@ -28,6 +28,7 @@ pub struct Model {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
+    // displacer "instance" params
     // center, top-right, bottom-right, bottom-left, top-left
     // [radius, strength, scale, offset]
     d_0: [f32; 4],
@@ -35,8 +36,6 @@ struct ShaderParams {
     d_2: [f32; 4],
     d_3: [f32; 4],
     d_4: [f32; 4],
-
-    // displacer "instance" params
     radius: f32,
     strength: f32,
     scaling_power: f32,
@@ -47,11 +46,15 @@ struct ShaderParams {
     b: f32,
     offset: f32,
     ring_strength: f32,
+    ring_harmonics: u32,
+    ring_harm_amt: f32,
     angular_variation: f32,
     threshold: f32,
     mix: f32,
+    time: f32,
 
-    _pad: f32,
+    resolution: [f32; 2],
+    _padding: [u32; 4],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -62,7 +65,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
         Control::slider_x("radius", 0.5, (0.0, 10.0), 0.01, disable),
         Control::slider_x("strength", 0.5, (0.0, 5.0), 0.001, disable),
-        Control::slider_x("scaling_power", 1.0, (0.01, 10.0), 0.01, disable),
+        Control::slider("scaling_power", 1.0, (0.01, 20.0), 0.01),
         Control::Separator {},
         Control::slider_norm("r", 0.5),
         Control::slider_norm("g", 0.0),
@@ -70,6 +73,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::Separator {},
         Control::slider_x("offset", 0.2, (0.0, 1.0), 0.0001, disable),
         Control::slider("ring_strength", 20.0, (1.0, 100.0), 0.01),
+        Control::slider("ring_harmonics", 1.0, (1.0, 10.0), 1.0),
+        Control::slider("ring_harm_amt", 1.0, (1.0, 100.0), 1.0),
         Control::slider("angular_variation", 4.0, (1.0, 45.0), 1.0),
         Control::slider_norm("threshold", 0.5),
         Control::slider_norm("mix", 0.5),
@@ -89,10 +94,14 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         b: 0.0,
         offset: 0.0,
         ring_strength: 0.0,
+        ring_harmonics: 0,
+        ring_harm_amt: 0.0,
         angular_variation: 0.0,
         threshold: 0.0,
         mix: 0.0,
-        _pad: 0.0,
+        time: app.time,
+        resolution: wr.resolution(),
+        _padding: [0; 4],
     };
 
     let size = std::mem::size_of::<ShaderParams>();
@@ -114,52 +123,55 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
 
     let r_range = m.controls.slider_range("radius");
     let s_range = m.controls.slider_range("strength");
-    let p_range = m.controls.slider_range("scaling_power");
 
     let gen_anim = |dur: f32, delay: f32| {
         [
-            // [radius, strength, scale, unused]
-            a.r_ramp(vec![kfr(r_range, dur)], delay, dur * 0.5, linear),
+            // radius
+            a.r_ramp(&[kfr(r_range, dur)], delay, dur * 0.5, linear),
+            // strength
             a.r_ramp(
-                vec![kfr(s_range, dur * 1.5)],
+                &[kfr(s_range, dur * 1.5)],
                 delay + 1.0,
                 dur * 0.75,
                 linear,
             ),
-            a.r_ramp(vec![kfr(p_range, dur * 2.0)], delay + 2.0, dur, linear),
-            a.r_ramp(vec![kfr((0.0, 1.0), 4.0)], 0.0, 3.0, linear),
+            // scaling_power
+            m.controls.float("scaling_power"),
+            // offset
+            a.r_ramp(&[kfr((0.0, 1.0), 16.0)], 0.0, 8.0, linear),
         ]
     };
 
-    let corner = gen_anim(48.0, 0.0);
+    let corner = gen_anim(16.0, 0.0);
 
     let params = ShaderParams {
-        d_0: gen_anim(16.0, 0.0),
+        d_0: gen_anim(32.0, 0.0),
         d_1: corner,
         d_2: corner,
         d_3: corner,
         d_4: corner,
-
         radius: m.controls.float("radius"),
         strength: m.controls.float("strength"),
         scaling_power: m.controls.float("scaling_power"),
         r: m.controls.float("r"),
         g: m.controls.float("g"),
         b: m.controls.float("b"),
-
         offset: a.ping_pong(64.0),
-
         ring_strength: m.controls.float("ring_strength"),
+        ring_harmonics: m.controls.float("ring_harmonics") as u32,
+        ring_harm_amt: m.controls.float("ring_harm_amt"),
         angular_variation: m.controls.float("angular_variation"),
         threshold: m.controls.float("threshold"),
         mix: m.controls.float("mix"),
-
-        _pad: 0.0,
+        time: app.time,
+        resolution: m.wr.resolution(),
+        _padding: [0; 4],
     };
 
     m.gpu.update_params(app, &params);
 }
 
 pub fn view(_app: &App, m: &Model, frame: Frame) {
+    frame.clear(BLACK);
     m.gpu.render(&frame);
 }

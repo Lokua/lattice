@@ -49,12 +49,10 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         linear,
     );
 
-    model.r_ramp = model.animation.r_ramp(
-        vec![KFR::new((0.0, 1.0), 4.0)],
-        0.0,
-        1.0,
-        linear,
-    );
+    model.r_ramp =
+        model
+            .animation
+            .r_ramp(&[KFR::new((0.0, 1.0), 4.0)], 0.0, 1.0, linear);
 }
 
 pub fn view(app: &App, model: &Model, frame: Frame) {

@@ -49,7 +49,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
         Control::slider("radius", 0.5, (0.0, 10.0), 0.01),
         Control::slider("strength", 0.5, (0.0, 5.0), 0.001),
-        Control::slider("scaling_power", 1.0, (0.01, 10.0), 0.01),
+        Control::slider("scaling_power", 1.0, (0.01, 20.0), 0.01),
         Control::Separator {},
         Control::slider_norm("r", 0.5),
         Control::slider_norm("g", 0.0),
@@ -88,9 +88,33 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
+    let strength = m.controls.float("strength");
+    let strength_range = m.controls.slider_range("strength");
+    let strength_swing = 0.2;
+
     let params = ShaderParams {
         radius: m.controls.float("radius"),
-        strength: m.controls.float("strength"),
+        strength: m.animation.lrp(
+            &[
+                (
+                    clamp(
+                        strength - strength_swing,
+                        strength_range.0,
+                        strength_range.1,
+                    ),
+                    1.0,
+                ),
+                (
+                    clamp(
+                        strength + strength_swing,
+                        strength_range.0,
+                        strength_range.1,
+                    ),
+                    1.0,
+                ),
+            ],
+            0.0,
+        ),
         scaling_power: m.controls.float("scaling_power"),
         r: m.controls.float("r"),
         g: m.controls.float("g"),
