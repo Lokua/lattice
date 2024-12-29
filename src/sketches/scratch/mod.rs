@@ -1,5 +1,6 @@
 pub mod animation_test;
 pub mod audio_test;
+pub mod bos;
 pub mod chromatic_aberration;
 pub mod lines;
 pub mod midi_test;
