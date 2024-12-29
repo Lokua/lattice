@@ -10,6 +10,7 @@ pub mod sand_lines;
 pub mod sand_lines_wgpu;
 pub mod template;
 pub mod wgpu_displacement;
+pub mod wgpu_displacement_2;
 
 pub mod studies;
 pub use self::studies::animation_test;

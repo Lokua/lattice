@@ -100,6 +100,7 @@ fn main() {
         "vertical_2" => run_sketch!(vertical_2),
         "wgpu_compute_test" => run_sketch!(wgpu_compute_test),
         "wgpu_displacement" => run_sketch!(wgpu_displacement),
+        "wgpu_displacement_2" => run_sketch!(wgpu_displacement_2),
         "wgpu_test" => run_sketch!(wgpu_test),
         "z_sim" => run_sketch!(z_sim),
         _ => {

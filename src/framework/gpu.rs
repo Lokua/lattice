@@ -1,6 +1,8 @@
 use nannou::prelude::*;
 use wgpu::util::DeviceExt;
 
+use super::prelude::*;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
@@ -63,6 +65,9 @@ impl GpuState {
                 usage: wgpu::BufferUsages::UNIFORM
                     | wgpu::BufferUsages::COPY_DST,
             });
+
+        let size = std::mem::size_of::<P>();
+        info!("ShaderParams size: {} bytes", size);
 
         let params_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
