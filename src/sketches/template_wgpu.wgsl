@@ -8,6 +8,7 @@ struct VertexOutput {
 };
 
 struct Params {
+    resolution: vec2f,
     mode: u32,
     radius: f32,
 }
@@ -25,8 +26,15 @@ fn vs_main(vert: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-    let center = vec2f(0.5);
-    let dist = distance(uv, center);
+    let aspect = params.resolution.x / params.resolution.y;
+    
+    // Center the coordinates (now -0.5 to 0.5)
+    var centered = uv - 0.5;
+    
+    // Correct the x coordinate for aspect ratio
+    centered.x *= aspect;
+    
+    let dist = length(centered);
 
     if (params.mode == 0u) {
         return vec4f(smoothstep(0.0, params.radius, dist));

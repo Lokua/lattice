@@ -20,17 +20,19 @@ pub struct Model {
     #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
+    wr: WindowRect,
     gpu: gpu::GpuState,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
+    resolution: [f32; 2],
     mode: u32,
     radius: f32,
 }
 
-pub fn init_model(app: &App, _wr: WindowRect) -> Model {
+pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::with_previous(vec![
@@ -39,6 +41,7 @@ pub fn init_model(app: &App, _wr: WindowRect) -> Model {
     ]);
 
     let params = ShaderParams {
+        resolution: wr.resolution(),
         mode: 0,
         radius: 0.0,
     };
@@ -49,12 +52,14 @@ pub fn init_model(app: &App, _wr: WindowRect) -> Model {
     Model {
         animation,
         controls,
+        wr,
         gpu,
     }
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
     let params = ShaderParams {
+        resolution: m.wr.resolution(),
         mode: match m.controls.string("mode").as_str() {
             "smooth" => 0,
             "step" => 1,

@@ -40,17 +40,27 @@ pub fn sketch_components(input: TokenStream) -> TokenStream {
     }
 
     // Generate implementations based on field attributes and presence
-    let window_rect_impl = if fields
-        .iter()
-        .any(|f| f.ident.as_ref().unwrap() == "window_rect")
-    {
-        Some(quote! {
-            fn window_rect(&mut self) -> Option<&mut WindowRect> {
-                Some(&mut self.window_rect)
-            }
-        })
-    } else {
-        None
+    let window_rect_impl = {
+        let has_window_rect = fields
+            .iter()
+            .any(|f| f.ident.as_ref().unwrap() == "window_rect");
+        let has_wr = fields.iter().any(|f| f.ident.as_ref().unwrap() == "wr");
+
+        if has_window_rect {
+            Some(quote! {
+                fn window_rect(&mut self) -> Option<&mut WindowRect> {
+                    Some(&mut self.window_rect)
+                }
+            })
+        } else if has_wr {
+            Some(quote! {
+                fn window_rect(&mut self) -> Option<&mut WindowRect> {
+                    Some(&mut self.wr)
+                }
+            })
+        } else {
+            None
+        }
     };
 
     let controls_impl = if fields

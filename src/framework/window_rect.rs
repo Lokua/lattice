@@ -54,6 +54,14 @@ impl WindowRect {
         self.current.w() / division
     }
 
+    pub fn aspect_ratio(&self) -> f32 {
+        self.w() / self.h()
+    }
+
+    pub fn resolution(&self) -> [f32; 2] {
+        [self.w(), self.h()]
+    }
+
     // Methods delegated to self.current
     pub fn top(&self) -> f32 {
         self.current.top()

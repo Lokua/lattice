@@ -348,7 +348,7 @@ impl Animation {
 
     pub fn r_ramp(
         &self,
-        keyframes: Vec<KeyframeRandom>,
+        keyframes: &[KeyframeRandom],
         delay: f32,
         ramp_time: f32,
         ramp: fn(f32) -> f32,
@@ -646,7 +646,7 @@ mod tests {
         let a = create_instance();
 
         let previous_value = a.r_ramp(
-            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            &[KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
             0.5, // 0.5 beat delay
             0.5,
             |x| x,
@@ -655,7 +655,7 @@ mod tests {
         // Move just past keyframe boundary but still within delay period
         init(9);
         let delayed_value = a.r_ramp(
-            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            &[KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
             0.5,
             0.5,
             |x| x,
@@ -674,12 +674,12 @@ mod tests {
         let a = create_instance();
 
         let first_value =
-            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+            a.r_ramp(&[KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
         // Move to frame 8 (start of next cycle, still previous value)
         init(8);
         let previous_value =
-            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+            a.r_ramp(&[KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
         // Values should be the same at start of cycles
         assert_eq!(
@@ -689,13 +689,11 @@ mod tests {
 
         // Move to frame 9 (should be halfway through transition)
         init(9);
-        let mid_value =
-            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+        let mid_value = a.r_ramp(&[KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
         // Move to frame 10 (should be at new value)
         init(10);
-        let new_value =
-            a.r_ramp(vec![KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
+        let new_value = a.r_ramp(&[KFR::new((0.0, 1.0), 2.0)], 0.0, 0.5, |x| x);
 
         let expected_midpoint = (previous_value + new_value) / 2.0;
         let tolerance = 0.001;
@@ -718,7 +716,7 @@ mod tests {
         let a = create_instance();
 
         let value = a.r_ramp(
-            vec![KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
+            &[KFR::new((0.0, 1.0), 2.0), KFR::new((2.0, 3.0), 2.0)],
             0.5, // 0.5 beats delay
             1.0, // 1.0 beats ramp time
             |x| x,
@@ -752,7 +750,7 @@ mod tests {
 
         for frame in 0..40 {
             init(frame);
-            let value = a.r_ramp(keyframes.clone(), 0.0, 0.5, linear);
+            let value = a.r_ramp(&keyframes, 0.0, 0.5, linear);
             results.push((frame, value));
         }
 

@@ -27,11 +27,13 @@ struct Params {
     b: f32,
     offset: f32,
     ring_strength: f32,
+    ring_harmonics: u32,
+    ring_harm_amt: f32,
     angular_variation: f32,
     threshold: f32,
     mix: f32,
-
-    _pad: f32,
+    time: f32,
+    resolution: vec2f,
 }
 
 @group(0) @binding(0)
@@ -62,8 +64,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let disp_length = length(total_displacement);
     let angle = atan2(total_displacement.y, total_displacement.x);
 
-    let rings = sin(disp_length * params.ring_strength) * 
-        sin(disp_length * params.ring_strength * 0.5) * 0.5 + 0.5;
+    var rings = 1.0;
+    for (var i = 1u; i <= params.ring_harmonics; i++) {
+        rings *= sin(disp_length * params.ring_strength * f32(i)) * (1.0 / f32(i));
+    }
+    rings = (rings * params.ring_harm_amt) * 0.5 + 0.5; 
     
     // Add angular variation
     let angular_pattern = sin(angle * params.angular_variation) * 0.5 + 0.5;
@@ -79,8 +84,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
         return vec4f(0.0, 0.0, 0.0, 1.0);
     }
 
-    // Make colors shift based on angle
-    let hue_shift = (sin(angle * 2.0) + sin(angle * 3.0)) * 0.25 + 0.5;
+    let hue_shift = (sin((angle + params.time * 0.3) * 2.0) + 
+        sin((angle + params.time * 0.62) * 3.0)) * 0.25 + 0.5;
 
     return vec4f(
         pattern * params.r * hue_shift,
@@ -95,18 +100,23 @@ fn displace(
     displacer_pos: vec2f, 
     displacer_params: vec4f
 ) -> vec2f {
+    let aspect = params.resolution.x / params.resolution.y;
+
+    let pt = vec2f(point.x * aspect, point.y);
+    let pos = vec2f(displacer_pos.x * aspect, displacer_pos.y);
+
     let radius = displacer_params.x;
     let strength = displacer_params.y;
     let scaling_power = displacer_params.z;
     
-    let distance_from_displacer = distance(displacer_pos, point);
+    let distance_from_displacer = distance(pos, pt);
     let proximity = 1.0 - distance_from_displacer / (radius * 2.0);
     let distance_factor = max(proximity, 0.0);
-    let angle = atan2(point.y - displacer_pos.y, point.x - displacer_pos.x);
+    let angle = atan2(pt.y - pos.y, pt.x - pos.x);
     let force = strength * pow(distance_factor, scaling_power);
 
     return vec2f(
-        cos(angle) * force,
+        cos(angle) * force / aspect,
         sin(angle) * force
     );
 }

@@ -214,13 +214,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                         },
                     );
                     config.displacer.set_strength(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 8.0)],
+                        &[kfr((1.0, 500.0), 8.0)],
                         0.0,
                         4.0,
                         linear,
                     ));
                     config.displacer.set_radius(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 12.0)],
+                        &[kfr((1.0, 500.0), 12.0)],
                         1.0,
                         3.0,
                         linear,
@@ -235,13 +235,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                         },
                     );
                     config.displacer.set_strength(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 4.0)],
+                        &[kfr((1.0, 500.0), 4.0)],
                         0.0,
                         4.0,
                         linear,
                     ));
                     config.displacer.set_radius(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 8.0)],
+                        &[kfr((1.0, 500.0), 8.0)],
                         1.0,
                         3.0,
                         linear,
@@ -256,13 +256,13 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                         },
                     );
                     config.displacer.set_strength(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 16.0)],
+                        &[kfr((1.0, 500.0), 16.0)],
                         0.0,
                         6.0,
                         linear,
                     ));
                     config.displacer.set_radius(model.animation.r_ramp(
-                        vec![KFR::new((1.0, 500.0), 24.0)],
+                        &[kfr((1.0, 500.0), 24.0)],
                         2.0,
                         18.0,
                         linear,
