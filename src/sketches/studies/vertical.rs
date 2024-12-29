@@ -30,7 +30,7 @@ pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
 
     let controls = Controls::new(vec![
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
-        Control::select("mode", "per_line", mode_options),
+        Control::select("mode", "per_line", &mode_options),
         Control::slider("n_lines", 64.0, (16.0, 256.0), 2.0),
         Control::slider("amplitude", 20.0, (0.0, 300.0), 1.0),
         Control::slider("frequency", 0.1, (0.0, 0.1), 0.00001),
