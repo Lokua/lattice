@@ -4,8 +4,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "wgpu_displacement",
-    display_name: "WGPU Displacement",
+    name: "wgpu_displacement_2",
+    display_name: "WGPU Displacement 2",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
@@ -28,10 +28,19 @@ pub struct Model {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
+    // center, top-right, bottom-right, bottom-left, top-left
+    // [radius, strength, scale, offset]
+    d_0: [f32; 4],
+    d_1: [f32; 4],
+    d_2: [f32; 4],
+    d_3: [f32; 4],
+    d_4: [f32; 4],
+
     // displacer "instance" params
     radius: f32,
     strength: f32,
     scaling_power: f32,
+
     // "global" params
     r: f32,
     g: f32,
@@ -41,21 +50,25 @@ struct ShaderParams {
     angular_variation: f32,
     threshold: f32,
     mix: f32,
+
+    _pad: f32,
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
+    let disable = |_controls: &Controls| true;
+
     let controls = Controls::with_previous(vec![
-        Control::slider("radius", 0.5, (0.0, 10.0), 0.01),
-        Control::slider("strength", 0.5, (0.0, 5.0), 0.001),
-        Control::slider("scaling_power", 1.0, (0.01, 10.0), 0.01),
+        Control::slider_x("radius", 0.5, (0.0, 10.0), 0.01, disable),
+        Control::slider_x("strength", 0.5, (0.0, 5.0), 0.001, disable),
+        Control::slider_x("scaling_power", 1.0, (0.01, 10.0), 0.01, disable),
         Control::Separator {},
         Control::slider_norm("r", 0.5),
         Control::slider_norm("g", 0.0),
         Control::slider_norm("b", 1.0),
         Control::Separator {},
-        Control::slider_norm("offset", 0.2),
+        Control::slider_x("offset", 0.2, (0.0, 1.0), 0.0001, disable),
         Control::slider("ring_strength", 20.0, (1.0, 100.0), 0.01),
         Control::slider("angular_variation", 4.0, (1.0, 45.0), 1.0),
         Control::slider_norm("threshold", 0.5),
@@ -63,6 +76,11 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     ]);
 
     let params = ShaderParams {
+        d_0: [0.0; 4],
+        d_1: [0.0; 4],
+        d_2: [0.0; 4],
+        d_3: [0.0; 4],
+        d_4: [0.0; 4],
         radius: 0.0,
         strength: 0.0,
         scaling_power: 0.0,
@@ -74,9 +92,13 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         angular_variation: 0.0,
         threshold: 0.0,
         mix: 0.0,
+        _pad: 0.0,
     };
 
-    let shader = wgpu::include_wgsl!("./wgpu_displacement.wgsl");
+    let size = std::mem::size_of::<ShaderParams>();
+    println!("ShaderParams size: {} bytes", size);
+
+    let shader = wgpu::include_wgsl!("./wgpu_displacement_2.wgsl");
     let gpu = GpuState::new(app, shader, &params);
 
     Model {
@@ -88,18 +110,51 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
+    let a = &m.animation;
+
+    let r_range = m.controls.slider_range("radius");
+    let s_range = m.controls.slider_range("strength");
+    let p_range = m.controls.slider_range("scaling_power");
+
+    let gen_anim = |dur: f32, delay: f32| {
+        [
+            // [radius, strength, scale, unused]
+            a.r_ramp(vec![kfr(r_range, dur)], delay, dur * 0.5, linear),
+            a.r_ramp(
+                vec![kfr(s_range, dur * 1.5)],
+                delay + 1.0,
+                dur * 0.75,
+                linear,
+            ),
+            a.r_ramp(vec![kfr(p_range, dur * 2.0)], delay + 2.0, dur, linear),
+            a.r_ramp(vec![kfr((0.0, 1.0), 4.0)], 0.0, 3.0, linear),
+        ]
+    };
+
+    let corner = gen_anim(48.0, 0.0);
+
     let params = ShaderParams {
+        d_0: gen_anim(16.0, 0.0),
+        d_1: corner,
+        d_2: corner,
+        d_3: corner,
+        d_4: corner,
+
         radius: m.controls.float("radius"),
         strength: m.controls.float("strength"),
         scaling_power: m.controls.float("scaling_power"),
         r: m.controls.float("r"),
         g: m.controls.float("g"),
         b: m.controls.float("b"),
-        offset: m.controls.float("offset"),
+
+        offset: a.ping_pong(64.0),
+
         ring_strength: m.controls.float("ring_strength"),
         angular_variation: m.controls.float("angular_variation"),
         threshold: m.controls.float("threshold"),
         mix: m.controls.float("mix"),
+
+        _pad: 0.0,
     };
 
     m.gpu.update_params(app, &params);
