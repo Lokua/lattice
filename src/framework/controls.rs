@@ -75,28 +75,32 @@ impl Control {
         }
     }
 
-    pub fn select(name: &str, value: &str, options: Vec<String>) -> Control {
+    pub fn select<S>(name: &str, value: &str, options: &[S]) -> Control
+    where
+        S: AsRef<str>,
+    {
         Control::Select {
             name: name.into(),
             value: value.into(),
-            options,
+            options: options.iter().map(|s| s.as_ref().to_string()).collect(),
             disabled: None,
         }
     }
 
-    pub fn select_x<F>(
+    pub fn select_x<S, F>(
         name: &str,
         value: &str,
-        options: Vec<String>,
+        options: &[S],
         disabled: F,
     ) -> Control
     where
+        S: AsRef<str>,
         F: Fn(&Controls) -> bool + 'static,
     {
         Control::Select {
             name: name.into(),
             value: value.into(),
-            options,
+            options: options.iter().map(|s| s.as_ref().to_string()).collect(),
             disabled: Some(Box::new(disabled)),
         }
     }

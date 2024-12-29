@@ -9,6 +9,7 @@ pub mod drop_walk;
 pub mod sand_lines;
 pub mod sand_lines_wgpu;
 pub mod template;
+pub mod template_wgpu;
 pub mod wgpu_displacement;
 pub mod wgpu_displacement_2;
 

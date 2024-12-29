@@ -39,27 +39,27 @@ pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
     let grid_h = h as f32 - 80.0;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
-    let modes = string_vec!["attract", "influence"];
+    let modes = ["attract", "influence"];
 
     let controls = Controls::new(vec![
         Control::checkbox("show_center", true),
         Control::checkbox("center_use_grain", true),
-        Control::select("center_mode", "attract", modes.clone()),
+        Control::select("center_mode", "attract", &modes),
         Control::Separator {},
         Control::checkbox("show_corner", true),
         Control::checkbox("corner_use_grain", true),
-        Control::select("corner_mode", "attract", modes.clone()),
+        Control::select("corner_mode", "attract", &modes),
         Control::Separator {},
         Control::checkbox("show_trbl", true),
         Control::checkbox("trbl_use_grain", true),
-        Control::select("trbl_mode", "attract", modes.clone()),
+        Control::select("trbl_mode", "attract", &modes),
         Control::Separator {},
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
         Control::checkbox("flip", false),
         Control::select(
             "sort",
             "radius",
-            string_vec!["luminance", "radius", "radius_reversed"],
+            &["luminance", "radius", "radius_reversed"],
         ),
         Control::checkbox("stroke", true),
         Control::slider_x(

@@ -96,6 +96,7 @@ fn main() {
         "sand_lines" => run_sketch!(sand_lines),
         "sand_lines_wgpu" => run_sketch!(sand_lines_wgpu),
         "template" => run_sketch!(template),
+        "template_wgpu" => run_sketch!(template_wgpu),
         "vertical" => run_sketch!(vertical),
         "vertical_2" => run_sketch!(vertical_2),
         "wgpu_compute_test" => run_sketch!(wgpu_compute_test),

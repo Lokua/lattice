@@ -29,21 +29,17 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let disable_octave =
         |controls: &Controls| controls.string("noise_strategy") != "Octave";
 
-    let trig_fns = string_vec![
+    let trig_fns = [
         "cos", "sin", "tan", "tanh", "sec", "csc", "cot", "sech", "csch",
         "coth",
     ];
 
     let controls = Controls::with_previous(vec![
-        Control::select(
-            "noise_strategy",
-            "Gaussian",
-            string_vec!["Gaussian", "Octave"],
-        ),
+        Control::select("noise_strategy", "Gaussian", &["Gaussian", "Octave"]),
         Control::select(
             "distribution_strategy",
             "Perpendicular",
-            string_vec!["Perpendicular", "Curved", "TrigFn"],
+            &["Perpendicular", "Curved", "TrigFn"],
         ),
         Control::checkbox("show_ref_line", false),
         Control::checkbox("show_sand_line", true),
@@ -75,10 +71,10 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
             controls.string("distribution_strategy") != "Curved"
                 && controls.string("distribution_strategy") != "TrigFn"
         }),
-        Control::select_x("trig_fn_a", "cos", trig_fns.clone(), |controls| {
+        Control::select_x("trig_fn_a", "cos", &trig_fns, |controls| {
             controls.string("distribution_strategy") != "TrigFn"
         }),
-        Control::select_x("trig_fn_b", "sin", trig_fns, |controls| {
+        Control::select_x("trig_fn_b", "sin", &trig_fns, |controls| {
             controls.string("distribution_strategy") != "TrigFn"
         }),
         Control::Separator {},
