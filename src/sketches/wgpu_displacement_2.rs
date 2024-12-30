@@ -12,7 +12,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(420),
+    gui_h: Some(440),
 };
 
 #[derive(SketchComponents)]
@@ -25,11 +25,12 @@ pub struct Model {
     gpu: gpu::GpuState,
 }
 
-const PAD_BYTES: usize = 2;
-
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
+    // 4 since 2 gives alignment problems for some unknown reason
+    resolution: [f32; 4],
+
     // displacer "instance" params
     // center, top-right, bottom-right, bottom-left, top-left
     // [radius, strength, scale, offset]
@@ -42,26 +43,19 @@ struct ShaderParams {
     radius: f32,
     strength: f32,
     scaling_power: f32,
-    _pad1: f32,
-
-    // "global" params
     r: f32,
     g: f32,
     b: f32,
     offset: f32,
-
     ring_strength: f32,
     ring_harmonics: f32,
     ring_harm_amt: f32,
     angular_variation: f32,
-
+    lerp: f32,
     frequency: f32,
     threshold: f32,
     mix: f32,
     time: f32,
-
-    resolution: [f32; 2],
-    _padding: [u32; PAD_BYTES],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -84,11 +78,13 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("ring_harm_amt", 1.0, (1.0, 100.0), 1.0),
         Control::slider("angular_variation", 4.0, (1.0, 45.0), 1.0),
         Control::slider("frequency", 0.5, (0.5, 100.0), 0.5),
+        Control::slider_norm("lerp", 0.0),
         Control::slider_norm("threshold", 0.5),
         Control::slider_norm("mix", 0.5),
     ]);
 
     let params = ShaderParams {
+        resolution: [0.0; 4],
         d_0: [0.0; 4],
         d_1: [0.0; 4],
         d_2: [0.0; 4],
@@ -97,7 +93,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         radius: 0.0,
         strength: 0.0,
         scaling_power: 0.0,
-        _pad1: 0.0,
         r: 0.0,
         g: 0.0,
         b: 0.0,
@@ -107,11 +102,10 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         ring_harm_amt: 0.0,
         angular_variation: 0.0,
         frequency: 0.0,
+        lerp: 0.0,
         threshold: 0.0,
         mix: 0.0,
         time: app.time,
-        resolution: wr.resolution(),
-        _padding: [0; PAD_BYTES],
     };
 
     let shader = wgpu::include_wgsl!("./wgpu_displacement_2.wgsl");
@@ -156,6 +150,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     let corner = gen_anim(16.0, 0.0, false);
 
     let params = ShaderParams {
+        resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         d_0: gen_anim(32.0, 0.0, true),
         d_1: corner,
         d_2: corner,
@@ -164,7 +159,6 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         radius: m.controls.float("radius"),
         strength: m.controls.float("strength"),
         scaling_power: m.controls.float("scaling_power"),
-        _pad1: 0.0,
         r: m.controls.float("r"),
         g: m.controls.float("g"),
         b: m.controls.float("b"),
@@ -174,11 +168,10 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ring_harm_amt: m.controls.float("ring_harm_amt"),
         angular_variation: m.controls.float("angular_variation"),
         frequency: m.controls.float("frequency"),
+        lerp: m.controls.float("lerp"),
         threshold: m.controls.float("threshold"),
         mix: m.controls.float("mix"),
         time: app.time,
-        resolution: m.wr.resolution(),
-        _padding: [0; PAD_BYTES],
     };
 
     m.gpu.update_params(app, &params);
