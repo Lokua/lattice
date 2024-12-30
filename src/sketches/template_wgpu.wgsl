@@ -36,7 +36,7 @@ fn vs_main(vert: VertexInput) -> VertexOutput {
 @fragment
 // Using NDC over UV because I find UV unintuitive.
 // Perhaps I'll regret this?
-fn fs_main(@location(0) pos: vec2f) -> @location(0) vec4f {
+fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     let aspect = params.resolution.x / params.resolution.y;
     
     // Center the coordinates (move 0.0 to center instead of corner)
@@ -49,7 +49,7 @@ fn fs_main(@location(0) pos: vec2f) -> @location(0) vec4f {
     // points will pass our radius check, preserving the circle's symmetry
     // centered.x *= aspect;
 
-    var p = pos;
+    var p = position;
     p.x *= aspect;
     
     let d = length(p);

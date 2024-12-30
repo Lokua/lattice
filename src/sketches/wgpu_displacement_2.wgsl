@@ -4,10 +4,12 @@ struct VertexInput {
 
 struct VertexOutput {
     @builtin(position) position: vec4f,
-    @location(0) uv: vec2f,
+    @location(0) pos: vec2f,
 };
 
 struct Params {
+    resolution: vec4f,
+
     // center, top-right, bottom-right, bottom-left, top-left
     // [radius, strength, scale, unused]
     d_0: vec4f,
@@ -16,13 +18,9 @@ struct Params {
     d_3: vec4f,
     d_4: vec4f,
 
-    // displacer "instance" params
     radius: f32,
     strength: f32,
     scaling_power: f32,
-    _pad1: f32,
-
-    // "global" params
     r: f32,
     g: f32,
     b: f32,
@@ -31,11 +29,11 @@ struct Params {
     ring_harmonics: f32,
     ring_harm_amt: f32,
     angular_variation: f32,
+    lerp: f32,
     frequency: f32,
     threshold: f32,
     mix: f32,
     time: f32,
-    resolution: vec2f,
 }
 
 @group(0) @binding(0)
@@ -45,19 +43,23 @@ var<uniform> params: Params;
 fn vs_main(vert: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     out.position = vec4f(vert.position, 0.0, 1.0);
-    out.uv = vert.position * 0.5 + 0.5;
+    out.pos = vert.position;
     return out;
 }
 
 @fragment
-fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
+    let aspect = params.resolution.x / params.resolution.y;
+    var pos = position;
+    pos.x *= aspect;
+
     var total_displacement = vec2f(0.0);
     var max_influence = 0.0;
 
     for (var i = 0u; i < 5u; i++) {
-        let pos = get_displacer_position(i);
+        let displacer_pos = get_displacer_position(i);
         let displacer_params = get_displacer_params(i);
-        let displacement = displace(uv, pos, displacer_params);
+        let displacement = displace(pos, displacer_pos, displacer_params);
         total_displacement += displacement;
         max_influence = max(max_influence, length(displacement));
     }
@@ -102,17 +104,12 @@ fn displace(
     displacer_pos: vec2f, 
     displacer_params: vec4f
 ) -> vec2f {
-    let aspect = params.resolution.x / params.resolution.y;
-
-    let pt = vec2f(point.x * aspect, point.y);
-    let pos = vec2f(displacer_pos.x * aspect, displacer_pos.y);
-
     let radius = displacer_params.x;
     let strength = displacer_params.y;
     let scaling_power = displacer_params.z;
     
-    // let distance_from_displacer = distance(pos, pt);
-    let distance_from_displacer = concentric_waves(pos, pt, params.frequency);
+    let distance_from_displacer = concentric_waves(displacer_pos, point, params.frequency);
+    // let distance_from_displacer = concentric_waves(displacer_pos, point, 50.0);
 
     if distance_from_displacer == 0.0 {
         return vec2f(0.0);
@@ -120,11 +117,11 @@ fn displace(
 
     let proximity = 1.0 - distance_from_displacer / (radius * 2.0);
     let distance_factor = max(proximity, 0.0);
-    let angle = atan2(pt.y - pos.y, pt.x - pos.x);
+    let angle = atan2(point.y - displacer_pos.y, point.x - displacer_pos.x);
     let force = strength * pow(distance_factor, scaling_power);
 
     return vec2f(
-        cos(angle) * force / aspect,
+        cos(angle) * force,
         sin(angle) * force
     );
 }
@@ -135,20 +132,24 @@ fn concentric_waves(p1: vec2<f32>, p2: vec2<f32>, frequency: f32) -> f32 {
 }
 
 fn get_displacer_position(index: u32) -> vec2f {
+    let aspect = params.resolution.x / params.resolution.y;
+    var pos: vec2f;
     switch(index) {
-        // Center
-        case 0u: { return vec2f(0.5); }
-        // Top right
-        case 1u: { return vec2f(1.0 - params.d_1.w, params.d_1.w); }
-        // Bottom right 
-        case 2u: { return vec2f(1.0 - params.d_2.w); }
-        // Bottom left 
-        case 3u: { return vec2f(params.d_3.w); }
-        // Top left 
-        case 4u: { return vec2f(params.d_4.w, 1.0 - params.d_4.w); }
+        // Center stays at origin
+        case 0u: { pos = vec2f(0.0); }
+        // Top right: start at (1,1) and offset inward
+        case 1u: { pos = vec2f(1.0 - params.d_1.w, 1.0 - params.d_1.w); }
+        // Bottom right: start at (1,-1) and offset inward 
+        case 2u: { pos = vec2f(1.0 - params.d_2.w, -1.0 + params.d_2.w); }
+        // Bottom left: start at (-1,-1) and offset inward
+        case 3u: { pos = vec2f(-1.0 + params.d_3.w, -1.0 + params.d_3.w); }
+        // Top left: start at (-1,1) and offset inward
+        case 4u: { pos = vec2f(-1.0 + params.d_4.w, 1.0 - params.d_4.w); }
         // Default case required
-        default: { return vec2f(0.0, 0.0); }
+        default: { pos = vec2f(0.0); }
     }
+    pos.x *= aspect;
+    return pos;
 }
 
 fn get_displacer_params(index: u32) -> vec4f {
