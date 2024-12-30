@@ -45,12 +45,13 @@ impl GpuState {
     ) -> Self {
         let size = std::mem::size_of::<P>();
         info!("ShaderParams size: {} bytes", size);
-        assert!(
-            size % 16 == 0,
-            "Param size {}, need {} pad bytes",
-            size,
-            (16 - (size % 16)) % 16
-        );
+        if size % 16 != 0 {
+            warn!(
+                "Param size {}, need {} pad bytes",
+                size,
+                (16 - (size % 16)) % 16
+            );
+        }
 
         let window = app.main_window();
         let device = window.device();

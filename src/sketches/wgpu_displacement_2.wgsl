@@ -72,6 +72,8 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     for (var i = 1u; i <= u32(params.ring_harmonics); i++) {
         rings *= sin(disp_length * params.ring_strength * f32(i)) * (1.0 / f32(i));
     }
+
+    // !IMPORTANT: REMOVE THE UV NORMALIZATION
     rings = (rings * params.ring_harm_amt) * 0.5 + 0.5; 
     
     // Add angular variation
@@ -107,9 +109,13 @@ fn displace(
     let radius = displacer_params.x;
     let strength = displacer_params.y;
     let scaling_power = displacer_params.z;
-    
-    let distance_from_displacer = concentric_waves(displacer_pos, point, params.frequency);
-    // let distance_from_displacer = concentric_waves(displacer_pos, point, 50.0);
+
+    let distance_values = array<f32, 3>(
+        distance(displacer_pos, point),
+        concentric_waves(displacer_pos, point, params.frequency),
+        wave_interference(displacer_pos, point, params.frequency),
+    );
+    let distance_from_displacer = multi_lerp_3(distance_values, params.lerp);
 
     if distance_from_displacer == 0.0 {
         return vec2f(0.0);
@@ -126,9 +132,18 @@ fn displace(
     );
 }
 
-fn concentric_waves(p1: vec2<f32>, p2: vec2<f32>, frequency: f32) -> f32 {
+fn concentric_waves(p1: vec2f, p2: vec2f, frequency: f32) -> f32 {
     let distance = length(p2 - p1);
     return abs(sin(distance * frequency)) * exp(-distance * 0.01);
+}
+
+fn wave_interference(p1: vec2f, p2: vec2f, frequency: f32) -> f32 {
+    let source2 = p1 + vec2f(50.0, 50.0);
+    
+    let d1 = distance(p1, p2);
+    let d2 = distance(source2, p2);
+    
+    return sin(d1 * frequency) + sin(d2 * frequency) * 2.0;
 }
 
 fn get_displacer_position(index: u32) -> vec2f {
@@ -167,4 +182,22 @@ fn get_displacer_params(index: u32) -> vec4f {
         // Default case required
         default: { return vec4f(0.0); }
     }
+}
+
+fn multi_lerp_3(values: array<f32, 3>, t: f32) -> f32 {
+    let n_segments = 2u; // Hardcoded for 3 values
+    let scaled_t = t * f32(n_segments);
+    let index = u32(floor(scaled_t));
+    let segment_t = scaled_t - f32(index);
+
+    // Handle interpolation manually with explicit branches
+    if index == 0u {
+        return mix(values[0], values[1], segment_t);
+    } 
+    if index == 1u {
+        return mix(values[1], values[2], segment_t);
+    }
+
+    // Handle edge case where t == 1.0
+    return values[2];
 }
