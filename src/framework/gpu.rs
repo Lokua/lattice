@@ -43,6 +43,15 @@ impl GpuState {
         shader_source: wgpu::ShaderModuleDescriptor,
         initial_params: &P,
     ) -> Self {
+        let size = std::mem::size_of::<P>();
+        info!("ShaderParams size: {} bytes", size);
+        assert!(
+            size % 16 == 0,
+            "Param size {}, need {} pad bytes",
+            size,
+            (16 - (size % 16)) % 16
+        );
+
         let window = app.main_window();
         let device = window.device();
         let format = Frame::TEXTURE_FORMAT;
@@ -65,9 +74,6 @@ impl GpuState {
                 usage: wgpu::BufferUsages::UNIFORM
                     | wgpu::BufferUsages::COPY_DST,
             });
-
-        let size = std::mem::size_of::<P>();
-        info!("ShaderParams size: {} bytes", size);
 
         let params_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

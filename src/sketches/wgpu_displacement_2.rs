@@ -12,7 +12,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(400),
+    gui_h: Some(420),
 };
 
 #[derive(SketchComponents)]
@@ -25,6 +25,8 @@ pub struct Model {
     gpu: gpu::GpuState,
 }
 
+const PAD_BYTES: usize = 2;
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct ShaderParams {
@@ -36,25 +38,30 @@ struct ShaderParams {
     d_2: [f32; 4],
     d_3: [f32; 4],
     d_4: [f32; 4],
+
     radius: f32,
     strength: f32,
     scaling_power: f32,
+    _pad1: f32,
 
     // "global" params
     r: f32,
     g: f32,
     b: f32,
     offset: f32,
+
     ring_strength: f32,
-    ring_harmonics: u32,
+    ring_harmonics: f32,
     ring_harm_amt: f32,
     angular_variation: f32,
+
+    frequency: f32,
     threshold: f32,
     mix: f32,
     time: f32,
 
     resolution: [f32; 2],
-    _padding: [u32; 4],
+    _padding: [u32; PAD_BYTES],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -76,6 +83,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("ring_harmonics", 1.0, (1.0, 10.0), 1.0),
         Control::slider("ring_harm_amt", 1.0, (1.0, 100.0), 1.0),
         Control::slider("angular_variation", 4.0, (1.0, 45.0), 1.0),
+        Control::slider("frequency", 0.5, (0.5, 100.0), 0.5),
         Control::slider_norm("threshold", 0.5),
         Control::slider_norm("mix", 0.5),
     ]);
@@ -89,23 +97,22 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         radius: 0.0,
         strength: 0.0,
         scaling_power: 0.0,
+        _pad1: 0.0,
         r: 0.0,
         g: 0.0,
         b: 0.0,
         offset: 0.0,
         ring_strength: 0.0,
-        ring_harmonics: 0,
+        ring_harmonics: 0.0,
         ring_harm_amt: 0.0,
         angular_variation: 0.0,
+        frequency: 0.0,
         threshold: 0.0,
         mix: 0.0,
         time: app.time,
         resolution: wr.resolution(),
-        _padding: [0; 4],
+        _padding: [0; PAD_BYTES],
     };
-
-    let size = std::mem::size_of::<ShaderParams>();
-    println!("ShaderParams size: {} bytes", size);
 
     let shader = wgpu::include_wgsl!("./wgpu_displacement_2.wgsl");
     let gpu = GpuState::new(app, shader, &params);
@@ -157,19 +164,21 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         radius: m.controls.float("radius"),
         strength: m.controls.float("strength"),
         scaling_power: m.controls.float("scaling_power"),
+        _pad1: 0.0,
         r: m.controls.float("r"),
         g: m.controls.float("g"),
         b: m.controls.float("b"),
         offset: a.ping_pong(64.0),
         ring_strength: m.controls.float("ring_strength"),
-        ring_harmonics: m.controls.float("ring_harmonics") as u32,
+        ring_harmonics: m.controls.float("ring_harmonics"),
         ring_harm_amt: m.controls.float("ring_harm_amt"),
         angular_variation: m.controls.float("angular_variation"),
+        frequency: m.controls.float("frequency"),
         threshold: m.controls.float("threshold"),
         mix: m.controls.float("mix"),
         time: app.time,
         resolution: m.wr.resolution(),
-        _padding: [0; 4],
+        _padding: [0; PAD_BYTES],
     };
 
     m.gpu.update_params(app, &params);
