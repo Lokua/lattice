@@ -20,6 +20,7 @@ struct Params {
     radius: f32,
     strength: f32,
     scaling_power: f32,
+    _pad1: f32,
 
     // "global" params
     r: f32,
@@ -27,9 +28,10 @@ struct Params {
     b: f32,
     offset: f32,
     ring_strength: f32,
-    ring_harmonics: u32,
+    ring_harmonics: f32,
     ring_harm_amt: f32,
     angular_variation: f32,
+    frequency: f32,
     threshold: f32,
     mix: f32,
     time: f32,
@@ -65,7 +67,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let angle = atan2(total_displacement.y, total_displacement.x);
 
     var rings = 1.0;
-    for (var i = 1u; i <= params.ring_harmonics; i++) {
+    for (var i = 1u; i <= u32(params.ring_harmonics); i++) {
         rings *= sin(disp_length * params.ring_strength * f32(i)) * (1.0 / f32(i));
     }
     rings = (rings * params.ring_harm_amt) * 0.5 + 0.5; 
@@ -109,7 +111,13 @@ fn displace(
     let strength = displacer_params.y;
     let scaling_power = displacer_params.z;
     
-    let distance_from_displacer = distance(pos, pt);
+    // let distance_from_displacer = distance(pos, pt);
+    let distance_from_displacer = concentric_waves(pos, pt, params.frequency);
+
+    if distance_from_displacer == 0.0 {
+        return vec2f(0.0);
+    }
+
     let proximity = 1.0 - distance_from_displacer / (radius * 2.0);
     let distance_factor = max(proximity, 0.0);
     let angle = atan2(pt.y - pos.y, pt.x - pos.x);
@@ -119,6 +127,11 @@ fn displace(
         cos(angle) * force / aspect,
         sin(angle) * force
     );
+}
+
+fn concentric_waves(p1: vec2<f32>, p2: vec2<f32>, frequency: f32) -> f32 {
+    let distance = length(p2 - p1);
+    return abs(sin(distance * frequency)) * exp(-distance * 0.01);
 }
 
 fn get_displacer_position(index: u32) -> vec2f {
