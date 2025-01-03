@@ -64,6 +64,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let disable = |_controls: &Controls| true;
 
     let controls = Controls::with_previous(vec![
+        Control::slider_x("offset", 0.2, (0.0, 1.0), 0.0001, disable),
         Control::slider_x("radius", 0.5, (0.0, 10.0), 0.01, disable),
         Control::slider_x("strength", 0.5, (0.0, 5.0), 0.001, disable),
         Control::slider("scaling_power", 1.0, (0.01, 20.0), 0.01),
@@ -72,12 +73,11 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider_norm("g", 0.0),
         Control::slider_norm("b", 1.0),
         Control::Separator {},
-        Control::slider_x("offset", 0.2, (0.0, 1.0), 0.0001, disable),
         Control::slider("ring_strength", 20.0, (1.0, 100.0), 0.01),
         Control::slider("ring_harmonics", 1.0, (1.0, 10.0), 1.0),
         Control::slider("ring_harm_amt", 1.0, (1.0, 100.0), 1.0),
         Control::slider("angular_variation", 4.0, (1.0, 45.0), 1.0),
-        Control::slider("frequency", 0.5, (0.5, 100.0), 0.5),
+        Control::slider("frequency", 1.0, (0.0, 1000.0), 1.0),
         Control::slider_norm("lerp", 0.0),
         Control::slider_norm("threshold", 0.5),
         Control::slider_norm("mix", 0.5),
@@ -147,11 +147,11 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ]
     };
 
-    let corner = gen_anim(16.0, 0.0, false);
+    let corner = gen_anim(16.0, 0.0, true);
 
     let params = ShaderParams {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
-        d_0: gen_anim(32.0, 0.0, true),
+        d_0: gen_anim(32.0, 0.0, false),
         d_1: corner,
         d_2: corner,
         d_3: corner,

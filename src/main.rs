@@ -88,6 +88,7 @@ fn main() {
         "displacement_2a" => run_sketch!(displacement_2a),
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
+        "genuary_1" => run_sketch!(genuary_1),
         "lines" => run_sketch!(lines),
         "midi_test" => run_sketch!(midi_test),
         "noise" => run_sketch!(noise),

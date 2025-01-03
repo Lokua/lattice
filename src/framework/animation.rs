@@ -95,9 +95,6 @@ impl Animation {
 
     pub fn loop_progress(&self, duration: f32) -> f32 {
         let frame_count = self.current_frame();
-        if frame_count == 0.0 || frame_count == 1.0 {
-            debug!("frame_count init {}", frame_count);
-        }
         let fps = frame_controller::fps();
         let beat_duration = 60.0 / self.bpm;
         let total_frames = beat_duration * duration * fps;
