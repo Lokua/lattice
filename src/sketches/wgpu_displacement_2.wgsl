@@ -64,34 +64,22 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
         max_influence = max(max_influence, length(displacement));
     }
     
-    // Create patterns based on influence strength
-    let disp_length = length(total_displacement);
     let angle = atan2(total_displacement.y, total_displacement.x);
-
-    var rings = 1.0;
-    for (var i = 1u; i <= u32(params.ring_harmonics); i++) {
-        rings *= sin(disp_length * params.ring_strength * f32(i)) * (1.0 / f32(i));
-    }
-
-    // !IMPORTANT: REMOVE THE UV NORMALIZATION
-    rings = (rings * params.ring_harm_amt) * 0.5 + 0.5; 
-    
-    // Add angular variation
-    let angular_pattern = sin(angle * params.angular_variation) * 0.5 + 0.5;
-    
-    // Create threshold effects
+    let disp_length = length(total_displacement);
+    let rings = sin(disp_length * params.ring_strength);
+    let angular_pattern = sin(angle * params.angular_variation);
     let threshold = step(params.threshold, rings * angular_pattern);
-    
-    // Mix different effects based on params.d
     let pattern = mix(rings * angular_pattern, threshold, params.mix);
-    
-    // Create black regions where influence is very low
+
     if max_influence < 0.01 {
         return vec4f(0.0, 0.0, 0.0, 1.0);
     }
 
-    let hue_shift = (sin((angle + params.time * 0.3) * 2.0) + 
-        sin((angle + params.time * 0.62) * 3.0)) * 0.25 + 0.5;
+    let hue_shift = 
+        (
+            sin((angle + params.time * 0.3) * 2.0) + 
+            sin((angle + params.time * 0.62) * 3.0)
+        ) * 0.25 + 0.5;
 
     return vec4f(
         pattern * params.r * hue_shift,
@@ -110,12 +98,11 @@ fn displace(
     let strength = displacer_params.y;
     let scaling_power = displacer_params.z;
 
-    let distance_values = array<f32, 3>(
+    let distance_from_displacer = mix(
         distance(displacer_pos, point),
         concentric_waves(displacer_pos, point, params.frequency),
-        wave_interference(displacer_pos, point, params.frequency),
+        params.lerp
     );
-    let distance_from_displacer = multi_lerp_3(distance_values, params.lerp);
 
     if distance_from_displacer == 0.0 {
         return vec2f(0.0);
@@ -126,10 +113,7 @@ fn displace(
     let angle = atan2(point.y - displacer_pos.y, point.x - displacer_pos.x);
     let force = strength * pow(distance_factor, scaling_power);
 
-    return vec2f(
-        cos(angle) * force,
-        sin(angle) * force
-    );
+    return vec2f(cos(angle) * force, sin(angle) * force);
 }
 
 fn concentric_waves(p1: vec2f, p2: vec2f, frequency: f32) -> f32 {
@@ -139,10 +123,8 @@ fn concentric_waves(p1: vec2f, p2: vec2f, frequency: f32) -> f32 {
 
 fn wave_interference(p1: vec2f, p2: vec2f, frequency: f32) -> f32 {
     let source2 = p1 + vec2f(50.0, 50.0);
-    
     let d1 = distance(p1, p2);
     let d2 = distance(source2, p2);
-    
     return sin(d1 * frequency) + sin(d2 * frequency) * 2.0;
 }
 

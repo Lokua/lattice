@@ -1,4 +1,4 @@
-use nannou::geom::{Point2, Rect};
+use nannou::prelude::*;
 
 pub struct WindowRect {
     current: Rect,
@@ -60,6 +60,10 @@ impl WindowRect {
 
     pub fn resolution(&self) -> [f32; 2] {
         [self.w(), self.h()]
+    }
+
+    pub fn vec2(&self) -> Vec2 {
+        vec2(self.w(), self.h())
     }
 
     // Methods delegated to self.current
