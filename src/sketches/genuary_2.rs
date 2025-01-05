@@ -4,8 +4,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "template_wgpu",
-    display_name: "Template WGPU",
+    name: "genuary_2",
+    display_name: "Genuary 2: Layers Upon Layers",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
@@ -33,7 +33,7 @@ struct ShaderParams {
     // constrast, smooth_mix, time, time_2
     a: [f32; 4],
 
-    // t1, t2, t3, unused
+    // t1, t2, t3, post_mix
     b: [f32; 4],
 
     // r1, r2, r3, unused
@@ -53,6 +53,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("g1", 2.0, (2.0, 32.0), 1.0),
         Control::slider("g2", 4.0, (2.0, 32.0), 1.0),
         Control::slider("g3", 8.0, (2.0, 32.0), 1.0),
+        Control::Separator {},
+        Control::slider_norm("post_mix", 0.5),
     ]);
 
     let params = ShaderParams {
@@ -90,7 +92,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.animation.r_ramp(&kfs, 0.0, time * 0.5, ease_in_out),
             m.animation.r_ramp(&kfs, 0.5, time * 0.5, ease_in_out),
             m.animation.r_ramp(&kfs, 1.0, time * 0.5, ease_in_out),
-            0.0,
+            m.controls.float("post_mix"),
         ],
         c: [
             m.animation.r_ramp(&kfs, 0.0, time * 0.5, ease_in_out),
