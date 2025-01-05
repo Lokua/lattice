@@ -4,8 +4,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "template_wgpu",
-    display_name: "Template: WGPU",
+    name: "genuary_5",
+    display_name: "Genuary 5: Isometric Art",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
@@ -30,7 +30,6 @@ struct ShaderParams {
     // w, h, ..unused
     resolution: [f32; 4],
 
-    // mode, radius, ..unused
     a: [f32; 4],
 }
 
@@ -38,8 +37,10 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::with_previous(vec![
-        Control::select("mode", "smooth", &["smooth", "step"]),
-        Control::slider_norm("radius", 0.5),
+        Control::slider_norm("a1", 0.5),
+        Control::slider_norm("a2", 0.5),
+        Control::slider_norm("a3", 0.5),
+        Control::slider_norm("a4", 0.5),
     ]);
 
     let params = ShaderParams {
@@ -47,7 +48,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         a: [0.0; 4],
     };
 
-    let shader = wgpu::include_wgsl!("./template_wgpu.wgsl");
+    let shader = wgpu::include_wgsl!("./genuary_5.wgsl");
     let gpu = GpuState::new(app, shader, &params);
 
     Model {
@@ -62,14 +63,10 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     let params = ShaderParams {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         a: [
-            match m.controls.string("mode").as_str() {
-                "smooth" => 0.0,
-                "step" => 1.0,
-                _ => unreachable!(),
-            },
-            m.controls.float("radius"),
-            0.0,
-            0.0,
+            m.controls.float("a1"),
+            m.controls.float("a2"),
+            m.controls.float("a3"),
+            m.controls.float("a4"),
         ],
     };
 
