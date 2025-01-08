@@ -1,6 +1,6 @@
 use env_logger::{Builder, Env};
 use log::LevelFilter;
-use std::io::Write;
+use std::{io::Write, sync::Once};
 use termcolor::{Color, ColorSpec, WriteColor};
 
 pub use log::{debug, error, info, trace, warn};
@@ -36,6 +36,14 @@ pub fn init_logger() {
             Ok(())
         })
         .init();
+}
+
+static WARN_ONCE: Once = Once::new();
+
+pub fn warn_once(message: String) {
+    WARN_ONCE.call_once(|| {
+        warn!("{}", message);
+    });
 }
 
 #[allow(unused_macros)]

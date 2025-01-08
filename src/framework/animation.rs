@@ -343,6 +343,7 @@ impl Animation {
         value
     }
 
+    // IMPORTANT: will bug out if any keyframe durations exceed ramp_time+delay
     pub fn r_ramp(
         &self,
         keyframes: &[KeyframeRandom],
@@ -358,7 +359,11 @@ impl Animation {
         let total_frames = self.beats_to_frames(total_beats);
         let delay_frames = self.beats_to_frames(delay);
         let wrapped_frame = self.current_frame() % total_frames;
-        let current_cycle = (self.current_frame() / total_frames) as u64;
+
+        // let current_cycle = (self.current_frame() / total_frames) as u64;
+        // Add a small epsilon before flooring to avoid floating-point jitter at boundaries
+        let cycle_float = (self.current_frame() / total_frames) + 1e-9;
+        let current_cycle = cycle_float.floor() as u64;
 
         // Handle initial case - first frame of first cycle
         if self.current_frame() == 0.0 {
