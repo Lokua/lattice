@@ -33,7 +33,7 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     let h = params.resolution.y;
     let size = mix(0.1, 0.4, params.a.x);
     let height = mix(0.1, 0.3, params.a.y);
-    let n_triangles = (params.a.z + 1.0) * 20.0;
+    let n_triangles = (params.a.z + 1.0) * 10.0;
     let spacing_param = params.a.w + 1.0;
 
     let aspect = w / h;
@@ -41,27 +41,48 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     p.x *= aspect;
     p = p * 2.0;
 
-    // Define colors
-    let base_color = vec3f(0.97);  // Off-white
-    let highlight_color = vec3f(1.0);  // Pure white
+    // Define colors with more contrast
+    let base_color = vec3f(0.92);  // Slightly darker off-white
+    let highlight_color = vec3f(1.0);
     
-    // Draw multiple triangles in a row
     let spacing = size * spacing_param;
-    let start_x = -spacing * (n_triangles - 1.0) / 2.0;
-
+    // Adjust vertical spacing to match the full triangle height
+    let vertical_spacing = size * 1.5; // This matches the full triangle height (from point to base)
+    let n_rows = i32(floor(n_triangles / 2.0));
+    
     var total_shape = 0.0;
     var total_edges = 0.0;
 
-    for (var i = 0; i < i32(floor(n_triangles)); i++) {
-        let offset = vec2f(start_x + spacing * f32(i), 0.0);
-        let shape_result = draw_isometric_triangle(p - offset, size, height);
-        total_shape = max(total_shape, shape_result.visibility);
-        total_edges = max(total_edges, shape_result.edges);
+    let triangle_count = i32(floor(n_triangles));
+    let start_x = -spacing * (f32(triangle_count) / 2.0) + spacing * 0.5;
+    let start_y = vertical_spacing * f32(n_rows);
+
+    for (var row = 0; row < n_rows * 2; row++) {
+        let row_offset = f32(row) * vertical_spacing;
+        let is_odd_row = row % 2 == 1;
+        let x_shift = select(0.0, spacing * 0.5, is_odd_row);
+        
+        for (var i = 0; i < triangle_count; i++) {
+            let x_pos = start_x + spacing * f32(i) + x_shift;
+            let y_pos = start_y - row_offset;
+            let offset = vec2f(x_pos, y_pos);
+            
+            let shape_result = draw_isometric_triangle(
+                p - offset, 
+                size, 
+                height, 
+                is_odd_row
+            );
+            
+            // Keep the original blending behavior
+            total_shape = max(total_shape, shape_result.visibility);
+            total_edges = max(total_edges, shape_result.edges);
+        }
     }
 
     let shaded = mix(
-        base_color * 0.95,  // Slightly darker off-white for shadows
-        highlight_color,     // Pure white for highlights
+        base_color * 0.95,
+        highlight_color,
         total_shape
     );
 
@@ -74,14 +95,21 @@ struct ShapeResult {
     edges: f32,
 };
 
-fn draw_isometric_triangle(p: vec2f, size: f32, height: f32) -> ShapeResult {
-    let top_left = vec2f(-size, -size * 0.5);
-    let top_right = vec2f(size, -size * 0.5);
-    let top_front = vec2f(0.0, size);
+fn draw_isometric_triangle(p: vec2f, size: f32, height: f32, flip: bool) -> ShapeResult {
+    var top_left = vec2f(-size, -size * 0.5);
+    var top_right = vec2f(size, -size * 0.5);
+    var top_front = vec2f(0.0, size);
 
-    let bottom_left = top_left + vec2f(0.0, height);
-    let bottom_right = top_right + vec2f(0.0, height);
-    let bottom_front = top_front + vec2f(0.0, height);
+    if (flip) {
+        // Rotate 180 degrees and adjust position for interlocking
+        top_left = vec2f(-size, size * 0.5);
+        top_right = vec2f(size, size * 0.5);
+        top_front = vec2f(0.0, -size);
+    }
+
+    let bottom_left = top_left + vec2f(0.0, height) * select(1.0, -1.0, flip);
+    let bottom_right = top_right + vec2f(0.0, height) * select(1.0, -1.0, flip);
+    let bottom_front = top_front + vec2f(0.0, height) * select(1.0, -1.0, flip);
 
     let line_width = 0.01;
 
@@ -105,10 +133,13 @@ fn draw_isometric_triangle(p: vec2f, size: f32, height: f32) -> ShapeResult {
     let left_face_2 = is_in_triangle(p, top_front, bottom_front, bottom_left);
     let left_face = max(left_face_1, left_face_2);
 
-    return ShapeResult(
+    let visibility = select(
         front_face * 0.7 + right_face * 0.5 + left_face * 0.3,
-        edges
+        front_face * 0.3 + right_face * 0.5 + left_face * 0.7,
+        flip
     );
+
+    return ShapeResult(visibility, edges);
 }
 
 fn line_distance(p: vec2f, a: vec2f, b: vec2f) -> f32 {
