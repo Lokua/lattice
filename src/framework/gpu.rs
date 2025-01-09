@@ -30,11 +30,28 @@ pub const QUAD_COVER_VERTICES: &[Vertex] = &[
     },
 ];
 
+pub struct PipelineConfig {
+    pub topology: wgpu::PrimitiveTopology,
+    pub vertex_data: Option<&'static [Vertex]>,
+    pub blend: Option<wgpu::BlendState>,
+}
+
+impl Default for PipelineConfig {
+    fn default() -> Self {
+        Self {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            vertex_data: Some(QUAD_COVER_VERTICES),
+            blend: None,
+        }
+    }
+}
+
 pub struct GpuState {
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
+    vertex_buffer: Option<wgpu::Buffer>,
     params_buffer: wgpu::Buffer,
     params_bind_group: wgpu::BindGroup,
+    n_vertices: u32,
 }
 
 impl GpuState {
@@ -42,6 +59,20 @@ impl GpuState {
         app: &App,
         shader_source: wgpu::ShaderModuleDescriptor,
         initial_params: &P,
+    ) -> Self {
+        Self::new_with_config(
+            app,
+            shader_source,
+            initial_params,
+            Default::default(),
+        )
+    }
+
+    pub fn new_with_config<P: bytemuck::Pod + bytemuck::Zeroable>(
+        app: &App,
+        shader_source: wgpu::ShaderModuleDescriptor,
+        initial_params: &P,
+        config: PipelineConfig,
     ) -> Self {
         let size = std::mem::size_of::<P>();
         info!("ShaderParams size: {} bytes", size);
@@ -59,14 +90,21 @@ impl GpuState {
         let sample_count = window.msaa_samples();
         let shader_module = device.create_shader_module(shader_source);
 
-        let vertices_bytes =
-            unsafe { wgpu::bytes::from_slice(QUAD_COVER_VERTICES) };
-        let vertex_buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: vertices_bytes,
-                usage: wgpu::BufferUsages::VERTEX,
-            });
+        // Create vertex buffer only if data provided
+        let (vertex_buffer, n_vertices) = if let Some(vertices) =
+            config.vertex_data
+        {
+            let vertices_bytes = unsafe { wgpu::bytes::from_slice(vertices) };
+            let buffer =
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: None,
+                    contents: vertices_bytes,
+                    usage: wgpu::BufferUsages::VERTEX,
+                });
+            (Some(buffer), vertices.len() as u32)
+        } else {
+            (None, 0)
+        };
 
         let params_buffer =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -106,7 +144,7 @@ impl GpuState {
 
         let pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Basic Pipeline Layout"),
+                label: Some("Pipeline Layout"),
                 bind_group_layouts: &[&params_bind_group_layout],
                 push_constant_ranges: &[],
             });
@@ -114,16 +152,37 @@ impl GpuState {
         let render_pipeline_builder = wgpu::RenderPipelineBuilder::from_layout(
             &pipeline_layout,
             &shader_module,
-        );
+        )
+        .primitive_topology(config.topology)
+        .vertex_entry_point("vs_main")
+        .fragment_shader(&shader_module)
+        .fragment_entry_point("fs_main");
 
-        let render_pipeline = render_pipeline_builder
-            .vertex_entry_point("vs_main")
-            .fragment_shader(&shader_module)
-            .fragment_entry_point("fs_main")
-            .color_format(format)
-            .add_vertex_buffer::<Vertex>(
+        // Add vertex buffer layout only if we have vertex data
+        let render_pipeline_builder = if config.vertex_data.is_some() {
+            render_pipeline_builder.add_vertex_buffer::<Vertex>(
                 &wgpu::vertex_attr_array![0 => Float32x2],
             )
+        } else {
+            render_pipeline_builder
+        };
+
+        let target = if let Some(blend) = config.blend {
+            wgpu::ColorTargetState {
+                format,
+                blend: Some(blend),
+                write_mask: wgpu::ColorWrites::ALL,
+            }
+        } else {
+            wgpu::ColorTargetState {
+                format,
+                blend: None,
+                write_mask: wgpu::ColorWrites::ALL,
+            }
+        };
+
+        let render_pipeline = render_pipeline_builder
+            .color_state(target)
             .sample_count(sample_count)
             .build(device);
 
@@ -132,6 +191,7 @@ impl GpuState {
             vertex_buffer,
             params_buffer,
             params_bind_group,
+            n_vertices,
         }
     }
 
@@ -152,7 +212,13 @@ impl GpuState {
             .begin(&mut encoder);
         render_pass.set_pipeline(&self.render_pipeline);
         render_pass.set_bind_group(0, &self.params_bind_group, &[]);
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.draw(0..6, 0..1);
+
+        if let Some(ref vertex_buffer) = self.vertex_buffer {
+            render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+            render_pass.draw(0..self.n_vertices, 0..1);
+        } else {
+            // When no vertex buffer is provided, use vertex_index
+            render_pass.draw(0..6000000, 0..1); // TODO: Make this configurable
+        }
     }
 }

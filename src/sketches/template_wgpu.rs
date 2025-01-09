@@ -1,4 +1,3 @@
-use gpu::GpuState;
 use nannou::prelude::*;
 
 use crate::framework::prelude::*;
@@ -48,7 +47,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     };
 
     let shader = wgpu::include_wgsl!("./template_wgpu.wgsl");
-    let gpu = GpuState::new(app, shader, &params);
+    let gpu = gpu::GpuState::new(app, shader, &params);
 
     Model {
         animation,
