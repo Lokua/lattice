@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use super::prelude::*;
 
+const AUDIO_DEVICE_NAME: &str = "Lattice";
+
 pub struct Audio {
     audio_processor: Arc<Mutex<AudioProcessor>>,
     slew_state: SlewState,
@@ -421,21 +423,20 @@ pub fn init_audio(
 ) -> Result<(), BuildStreamError> {
     let audio_host = cpal::default_host();
     let devices: Vec<_> = audio_host.input_devices().unwrap().collect();
-    let target_device_name = "Lattice Standalone";
 
     let device = devices
         .into_iter()
         .find(|device| {
             let name = device.name().unwrap();
             debug!("Enumerating devices. Device name: {}", name);
-            let found = device.name().unwrap() == target_device_name;
+            let found = device.name().unwrap() == AUDIO_DEVICE_NAME;
             if found {
-                debug!("Success. Using: {}", target_device_name);
+                debug!("Success. Using: {}", AUDIO_DEVICE_NAME);
             }
             found
         })
         .expect(
-            format!("No device named {} found", target_device_name).as_str(),
+            format!("No device named {} found", AUDIO_DEVICE_NAME).as_str(),
         );
 
     let input_config = match device.default_input_config() {

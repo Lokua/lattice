@@ -21,6 +21,7 @@ pub use self::scratch::animation_test;
 pub use self::scratch::audio_test;
 pub use self::scratch::bos;
 pub use self::scratch::chromatic_aberration;
+pub use self::scratch::lin_alg;
 pub use self::scratch::lines;
 pub use self::scratch::midi_test;
 pub use self::scratch::noise;
