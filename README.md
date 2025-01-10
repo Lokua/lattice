@@ -71,12 +71,33 @@ on other platforms. This project requires or optionally needs:
    `just start <name>` where `name` is what you put in your file's
    `SKETCH_CONFIG.name` field.
 
-### Other Notes (mostly for myself so I don't forget)
+### Audio
+
+Lattice is hardcoded to read audio from the first input (input 1, or index 0, or
+left channel) on a device named "Lattice". I am currently doing this via
+Aggregate Device on my Mac using [Blackhole 2ch][blackhole] to capture output
+from DAW. Here are some screenshots of the setup:
+
+**Aggregate Device Setup**
+![Mac Aggregate Device Setup](assets/aggregate-device-setup.png)
+
+**Routing Audio to Blackhole 2ch `Out(3/4):In(1/2)`**
+
+> Note that Blackhole automatically routes whatever its output channels are to
+> its own input, so sending audio out to Blackhole 3/4 will automatically appear
+> on inputs 1/2 in this setup; you don't even need to configure the inputs in
+> Ableton at all for this to work (just as long as you have the output config
+> set to "Lattice" and enable the appropriate ouputs in the output config under
+> Live's audio preferences)
+
+![Ableton Live - Blackhole Track Routing](assets/live-blackhole-track-routing.png)
+
+### MIDI
 
 Lattice is hardcoded to accept MIDI on a virtual MIDI device that must be named
 `IAC Driver Lattice In`.
 
-#### MIDI Loopback
+### MIDI Loopback
 
 To control synth parameters in Ableton and Lattice parameters simultaneously,
 you need to enable MIDI loopback by sending MIDI to `Lattice In` and also route
@@ -135,3 +156,4 @@ control to something.
 [midi-sketch-link]: src/sketches/midi_test.rs
 [module-link]: src/sketches/mod.res
 [main-link]: src/main.rs
+[blackhole]: https://existential.audio/blackhole/
