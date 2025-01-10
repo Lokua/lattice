@@ -1,14 +1,14 @@
 pub mod displacement_1;
 pub mod displacement_1a;
-pub mod displacement_1b;
-pub mod displacement_1b_animated;
 pub mod displacement_2;
 pub mod displacement_2a;
 pub mod drop;
 pub mod drop_walk;
+pub mod floor_supervisor;
 pub mod genuary_1;
 pub mod genuary_2;
 pub mod genuary_5;
+pub mod heat_mask;
 pub mod sand_lines;
 pub mod sand_lines_wgpu;
 pub mod template;

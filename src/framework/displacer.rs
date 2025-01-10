@@ -31,6 +31,10 @@ impl Displacer {
         Self::new(position, 50.0, 10.0, None)
     }
 
+    pub fn new_at_origin() -> Self {
+        Self::new_with_position(vec2(0.0, 0.0))
+    }
+
     pub fn update(&mut self, state: Option<DisplacerState>) {
         if let Some(state) = state {
             if let Some(position) = state.position {
