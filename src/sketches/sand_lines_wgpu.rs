@@ -26,7 +26,7 @@ struct ShaderParams {
     // points_per_segment, noise_scale, angle_variation, n_lines
     settings: [f32; 4],
 
-    // point_size, circle_r_min, circle_r_max, unused
+    // point_size, circle_r_min, circle_r_max, offset_mult
     settings2: [f32; 4],
 }
 
@@ -40,13 +40,14 @@ pub struct Model {
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
         Control::slider("v_count_millions", 6.0, (1.0, 100.0), 1.0),
-        Control::slider("n_lines", 64.0, (1.0, 128.0), 1.0),
+        Control::slider("n_lines", 64.0, (1.0, 256.0), 1.0),
         Control::slider("points_per_segment", 100.0, (10.0, 10_000.0), 10.0),
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
         Control::slider_norm("circle_r_min", 0.5),
         Control::slider_norm("circle_r_max", 0.9),
+        Control::slider("offset_mult", 0.9, (0.0, 3.0), 0.001),
     ]);
 
     let params = ShaderParams {
@@ -88,7 +89,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
                 m.controls.float("point_size"),
                 m.controls.float("circle_r_min"),
                 m.controls.float("circle_r_max"),
-                0.0,
+                m.controls.float("offset_mult"),
             ],
         };
 
