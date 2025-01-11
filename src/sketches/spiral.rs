@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(440),
+    gui_h: Some(500),
 };
 
 #[repr(C)]
@@ -29,8 +29,11 @@ struct ShaderParams {
     // point_size, circle_r_min, circle_r_max, offset_mult
     c: [f32; 4],
 
-    // bg_brightness, time, ...unused
+    // bg_brightness, time, invert, unused
     d: [f32; 4],
+
+    // wave_amp, wave_freq, stripe_amp, stripe_freq
+    e: [f32; 4],
 }
 
 #[derive(SketchComponents)]
@@ -53,10 +56,16 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
         Control::slider_norm("circle_r_min", 0.5),
         Control::slider_norm("circle_r_max", 0.9),
-        Control::slider("offset_mult", 0.9, (0.0, 3.0), 0.001),
+        Control::slider("offset_mult", 0.9, (0.0, 5.0), 0.001),
         Control::Separator {},
+        Control::checkbox("invert", false),
         Control::checkbox("bg_animate", false),
         Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
+        Control::Separator {},
+        Control::slider("wave_amp", 0.0, (0.0, 0.90), 0.001),
+        Control::slider("wave_freq", 10.0, (0.00, 64.0), 1.0),
+        Control::slider("stripe_amp", 0.0, (0.0, 0.90), 0.001),
+        Control::slider("stripe_freq", 10.0, (0.00, 64.0), 1.0),
     ]);
 
     let params = ShaderParams {
@@ -65,6 +74,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         b: [0.0; 4],
         c: [0.0; 4],
         d: [0.0; 4],
+        e: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./spiral.wgsl");
@@ -123,8 +133,14 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             } else {
                 0.0
             },
+            if m.controls.bool("invert") { 1.0 } else { 0.0 },
             0.0,
-            0.0,
+        ],
+        e: [
+            m.controls.float("wave_amp"),
+            m.controls.float("wave_freq"),
+            m.controls.float("stripe_amp"),
+            m.controls.float("stripe_freq"),
         ],
     };
 
