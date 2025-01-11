@@ -57,7 +57,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         settings2: [0.0; 4],
     };
 
-    let shader = wgpu::include_wgsl!("./sand_lines_wgpu.wgsl");
+    let shader = wgpu::include_wgsl!("./spiral.wgsl");
     let gpu = gpu::GpuState::new_with_config(
         app,
         shader,
