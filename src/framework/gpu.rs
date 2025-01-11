@@ -221,4 +221,17 @@ impl GpuState {
             render_pass.draw(0..6000000, 0..1); // TODO: Make this configurable
         }
     }
+
+    // Add new method for procedural rendering with custom vertex count
+    pub fn render_procedural(&self, frame: &Frame, vertex_count: u32) {
+        let mut encoder = frame.command_encoder();
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(frame.texture_view(), |color| {
+                color.load_op(wgpu::LoadOp::Load)
+            })
+            .begin(&mut encoder);
+        render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.set_bind_group(0, &self.params_bind_group, &[]);
+        render_pass.draw(0..vertex_count, 0..1);
+    }
 }
