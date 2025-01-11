@@ -28,26 +28,35 @@ struct ShaderParams {
 
     // point_size, circle_r_min, circle_r_max, offset_mult
     c: [f32; 4],
+
+    // bg_brightness, time, ...unused
+    d: [f32; 4],
 }
 
 #[derive(SketchComponents)]
 pub struct Model {
+    animation: Animation,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
+    let animation = Animation::new(SKETCH_CONFIG.bpm);
+
     let controls = Controls::with_previous(vec![
-        Control::slider("v_count_millions", 6.0, (1.0, 100.0), 1.0),
+        Control::slider("v_count_millions", 6.0, (1.0, 20.0), 1.0),
         Control::slider("n_lines", 64.0, (1.0, 256.0), 1.0),
-        Control::slider("points_per_segment", 100.0, (10.0, 10_000.0), 10.0),
+        Control::slider("points_per_segment", 100.0, (10.0, 20_000.0), 10.0),
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
         Control::slider_norm("circle_r_min", 0.5),
         Control::slider_norm("circle_r_max", 0.9),
         Control::slider("offset_mult", 0.9, (0.0, 3.0), 0.001),
+        Control::Separator {},
+        Control::checkbox("bg_animate", false),
+        Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
     ]);
 
     let params = ShaderParams {
@@ -55,6 +64,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         a: [0.0; 4],
         b: [0.0; 4],
         c: [0.0; 4],
+        d: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./spiral.wgsl");
@@ -80,33 +90,46 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         },
     );
 
-    Model { controls, wr, gpu }
+    Model {
+        animation,
+        controls,
+        wr,
+        gpu,
+    }
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
-    if m.controls.changed() {
-        let points_per_segment = m.controls.float("points_per_segment") as u32;
+    let points_per_segment = m.controls.float("points_per_segment") as u32;
 
-        let params = ShaderParams {
-            resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
-            a: [-0.9, 0.0, 0.9, 0.0],
-            b: [
-                points_per_segment as f32,
-                m.controls.float("noise_scale"),
-                m.controls.float("angle_variation"),
-                m.controls.float("n_lines"),
-            ],
-            c: [
-                m.controls.float("point_size"),
-                m.controls.float("circle_r_min"),
-                m.controls.float("circle_r_max"),
-                m.controls.float("offset_mult"),
-            ],
-        };
+    let params = ShaderParams {
+        resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
+        a: [-0.9, 0.0, 0.9, 0.0],
+        b: [
+            points_per_segment as f32,
+            m.controls.float("noise_scale"),
+            m.controls.float("angle_variation"),
+            m.controls.float("n_lines"),
+        ],
+        c: [
+            m.controls.float("point_size"),
+            m.controls.float("circle_r_min"),
+            m.controls.float("circle_r_max"),
+            m.controls.float("offset_mult"),
+        ],
+        d: [
+            m.controls.float("bg_brightness"),
+            if m.controls.bool("bg_animate") {
+                m.animation.ping_pong(64.0)
+            } else {
+                0.0
+            },
+            0.0,
+            0.0,
+        ],
+    };
 
-        m.gpu.update_params(app, &params);
-        m.controls.mark_unchanged();
-    }
+    m.gpu.update_params(app, &params);
+    m.controls.mark_unchanged();
 }
 
 pub fn view(_app: &App, m: &Model, frame: Frame) {
