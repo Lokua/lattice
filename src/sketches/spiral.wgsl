@@ -39,7 +39,7 @@ struct Params {
     // quant_amp, quant_freq, quant_phase, steep_phase
     g: vec4f,
 
-    // wave_phase, stripe_phase, ..unused
+    // wave_phase, stripe_phase, harmonic_influence, unused
     h: vec4f,
 }
 
@@ -71,6 +71,7 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
     let point_size = params.c.x;
     let circle_r_min = params.c.y;
     let circle_r_max = params.c.z;
+    let harmonic_influence = params.h.z;
 
     let total_points_per_pass = u32(n_lines * points_per_segment);
     let point_index = (vert_index / 6u) % total_points_per_pass;
@@ -130,12 +131,13 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
         noise * 
         (1.0 + 0.3 * combined_harmonic);
 
-    let dynamic_point_size = point_size * (1.0 + 0.2 * combined_harmonic);
-
     let w = params.resolution.x;
     let h = params.resolution.y;
     let aspect = w / h;
     adjusted_pos.x /= aspect;
+
+    let modulation_factor = 1.0 + harmonic_influence * combined_harmonic;
+    let dynamic_point_size = point_size * modulation_factor;
 
     let final_pos = adjusted_pos + 
         get_corner_offset(corner_index, dynamic_point_size);
@@ -143,7 +145,7 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
     var out: VertexOutput;
     out.pos = vec4f(final_pos, 0.0, 1.0);
     
-    let alpha = 0.1 * (1.0 + 0.2 * combined_harmonic);
+    let alpha = 0.1 * modulation_factor;
     out.point_color = vec4f(vec3f(0.0), alpha);
     out.uv = (final_pos.xy + 1.0) * 0.5;
     return out;
