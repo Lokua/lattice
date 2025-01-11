@@ -2,6 +2,12 @@ const PI: f32 = 3.14159265359;
 const TAU: f32 = 6.283185307179586;
 const PHI: f32 = 1.61803398875;
 
+const FULLSCREEN_TRIANGLE_VERTS = array<vec2f, 3>(
+    vec2f(-1.0, -3.0),
+    vec2f( 3.0,  1.0),
+    vec2f(-1.0,  1.0)
+);
+
 struct VertexOutput {
     @builtin(position) pos: vec4f,
     @location(0) point_color: vec4f,
@@ -13,13 +19,13 @@ struct Params {
     resolution: vec4f,
 
     // ax, ay, bx, by
-    ref_points: vec4f,
+    a: vec4f,
 
     // points_per_segment, noise_scale, angle_variation, n_lines
-    settings: vec4f,
+    b: vec4f,
 
     // point_size, circle_r_min, circle_r_max, unused
-    settings2: vec4f,
+    c: vec4f,
 }
 
 @group(0) @binding(0)
@@ -30,11 +36,7 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
         // Use first 3 vertices for background
     if (vidx < 3u) {
         // Full-screen triangle vertices
-        var pos = array<vec2f, 3>(
-            vec2f(-1.0, -3.0),
-            vec2f( 3.0,  1.0),
-            vec2f(-1.0,  1.0)
-        );
+        var pos = FULLSCREEN_TRIANGLE_VERTS;
         var out: VertexOutput;
         out.pos = vec4f(pos[vidx], 0.0, 1.0);
         // Use uv for noise sampling if needed
@@ -47,13 +49,13 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
     // Adjust index for spiral vertices: subtract background vertex count
     let vert_index = vidx - 3u;
 
-    let points_per_segment = params.settings.x;
-    let noise_scale = params.settings.y;
-    let angle_variation = params.settings.z;
-    let n_lines = params.settings.w;
-    let point_size = params.settings2.x;
-    let circle_r_min = params.settings2.y;
-    let circle_r_max = params.settings2.z;
+    let points_per_segment = params.b.x;
+    let noise_scale = params.b.y;
+    let angle_variation = params.b.z;
+    let n_lines = params.b.w;
+    let point_size = params.c.x;
+    let circle_r_min = params.c.y;
+    let circle_r_max = params.c.z;
 
     let total_points_per_pass = u32(n_lines * points_per_segment);
     let point_index = (vert_index / 6u) % total_points_per_pass;
@@ -98,8 +100,8 @@ fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
         spiral_angle * 0.5 + 
         combined_harmonic * 0.3;
 
-    let ref_a = vec2f(params.ref_points.x, y_pos);
-    let ref_b = vec2f(params.ref_points.z, y_pos);
+    let ref_a = vec2f(params.a.x, y_pos);
+    let ref_b = vec2f(params.a.z, y_pos);
     let line_dir = normalize(ref_b - ref_a);
     let perp_dir = vec2f(-line_dir.y, line_dir.x);
     
@@ -162,6 +164,7 @@ fn get_circle_pos(
     max_r: f32,
     spiral_factor: f32,
 ) -> vec2f {
+    let offset_mult = params.c.w;
     let radius_factor = line_idx / n_lines;
     let actual_min = min(min_r, max_r);
     let actual_max = max(min_r, max_r);
@@ -172,7 +175,7 @@ fn get_circle_pos(
     
     // Maintain spiral direction but adjust the phase
     let direction = select(1.0, -1.0, min_r > max_r);
-    let angle_offset = direction * pow(radius_factor, PHI) * TAU * params.settings2.w;
+    let angle_offset = direction * pow(radius_factor, PHI) * TAU * offset_mult;
     let pos_angle = t * TAU + angle_offset;
     
     return vec2f(
