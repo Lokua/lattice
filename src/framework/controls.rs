@@ -179,6 +179,11 @@ impl Control {
 pub type ControlValues = HashMap<String, ControlValue>;
 
 #[derive(Serialize, Deserialize)]
+pub struct SerializedControls {
+    pub values: HashMap<String, ControlValue>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Controls {
     controls: Vec<Control>,
     values: ControlValues,
@@ -319,6 +324,32 @@ impl Controls {
                 _ => None,
             })
             .unwrap_or_else(|| panic!("Unable to find range for {}", name))
+    }
+
+    pub fn to_serialized(&self) -> SerializedControls {
+        let filtered_values: HashMap<String, ControlValue> = self
+            .values
+            .iter()
+            .filter(|(key, _)| !key.is_empty())
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        SerializedControls {
+            values: filtered_values,
+        }
+    }
+
+    pub fn from_serialized(
+        serialized: SerializedControls,
+        controls: Vec<Control>,
+    ) -> Self {
+        Self {
+            controls,
+            values: serialized.values,
+            changed: true,
+            save_previous: false,
+            previous_values: HashMap::new(),
+        }
     }
 }
 
