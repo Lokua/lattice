@@ -87,7 +87,7 @@ pub fn apply_theme(ctx: &egui::Context) {
     visuals.popup_shadow.color = colors.shadow_color;
 
     style.visuals = visuals;
-    style.spacing.slider_width = 260.0;
+    style.spacing.slider_width = 320.0;
 
     ctx.set_style(style);
 }

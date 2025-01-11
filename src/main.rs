@@ -17,7 +17,7 @@ pub mod framework;
 pub mod runtime;
 mod sketches;
 
-const GUI_WIDTH: u32 = 530;
+const GUI_WIDTH: u32 = 560;
 
 macro_rules! run_sketch {
     ($sketch_module:ident) => {{
@@ -334,6 +334,7 @@ fn update_gui<S: SketchModel>(
                 draw_reset_button(ui, alert_text);
                 draw_clear_button(ui, clear_flag, alert_text);
                 draw_clear_cache_button(ui, sketch_config.name, alert_text);
+                draw_copy_controls(ui, sketch_model, alert_text);
                 draw_queue_record_button(ui, recording_state, alert_text);
                 draw_record_button(
                     ui,
@@ -342,7 +343,6 @@ fn update_gui<S: SketchModel>(
                     recording_state,
                     alert_text,
                 );
-                draw_export_button(ui, alert_text);
 
                 draw_avg_fps(ui);
             });
@@ -620,6 +620,28 @@ fn draw_clear_cache_button(
     });
 }
 
+fn draw_copy_controls<S: SketchModel>(
+    ui: &mut egui::Ui,
+    sketch_model: &mut S,
+    alert_text: &mut String,
+) {
+    ui.add(egui::Button::new("CP Ctrls")).clicked().then(|| {
+        if let Some(controls) = sketch_model.controls() {
+            if let Ok(mut clipboard) = Clipboard::new() {
+                let serialized = controls.to_serialized();
+                if let Ok(json) = serde_json::to_string_pretty(&serialized) {
+                    let _ = clipboard.set_text(&json);
+                    *alert_text = "Control state copied to clipboard".into();
+                } else {
+                    *alert_text = "Failed to serialize controls".into();
+                }
+            } else {
+                *alert_text = "Failed to access clipboard".into();
+            }
+        }
+    });
+}
+
 fn draw_queue_record_button(
     ui: &mut egui::Ui,
     recording_state: &mut RecordingState,
@@ -680,6 +702,13 @@ fn draw_record_button(
     });
 }
 
+fn draw_avg_fps(ui: &mut egui::Ui) {
+    let colors = ThemeColors::current();
+    let avg_fps = frame_controller::average_fps();
+    ui.label("FPS:");
+    ui.colored_label(colors.text_data, format!("{:.1}", avg_fps));
+}
+
 fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
     let colors = ThemeColors::current();
 
@@ -709,19 +738,6 @@ fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
                 }
             }
         });
-}
-
-fn draw_export_button(ui: &mut egui::Ui, alert_text: &mut String) {
-    ui.add(egui::Button::new("Exp.")).clicked().then(|| {
-        *alert_text = "Control state exported to (TBD)".into();
-    });
-}
-
-fn draw_avg_fps(ui: &mut egui::Ui) {
-    let colors = ThemeColors::current();
-    let avg_fps = frame_controller::average_fps();
-    ui.label("FPS:");
-    ui.colored_label(colors.text_data, format!("{:.1}", avg_fps));
 }
 
 fn draw_sketch_controls<S: SketchModel>(
