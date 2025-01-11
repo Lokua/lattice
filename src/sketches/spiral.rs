@@ -64,7 +64,18 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         &params,
         gpu::PipelineConfig {
             vertex_data: None,
-            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+            blend: Some(wgpu::BlendState {
+                color: wgpu::BlendComponent {
+                    src_factor: wgpu::BlendFactor::SrcAlpha,
+                    dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                    operation: wgpu::BlendOperation::Add,
+                },
+                alpha: wgpu::BlendComponent {
+                    src_factor: wgpu::BlendFactor::One,
+                    dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                    operation: wgpu::BlendOperation::Add,
+                },
+            }),
             ..Default::default()
         },
     );
@@ -101,14 +112,13 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
 pub fn view(_app: &App, m: &Model, frame: Frame) {
     frame.clear(WHITE);
 
-    // Calculate base geometry
     let points_per_line = m.controls.float("points_per_segment") as u32;
     let n_lines = m.controls.float("n_lines") as u32;
     let total_points = points_per_line * n_lines;
-
-    // Multiply by density factor from v_count_millions
     let density = m.controls.float("v_count_millions") as u32;
-    let total_vertices = total_points * 6 * density;
+    let spiral_vertices = total_points * 6 * density;
+    let background_vertices = 3;
+    let total_vertices = background_vertices + spiral_vertices;
 
     m.gpu.render_procedural(&frame, total_vertices);
 }

@@ -5,6 +5,7 @@ const PHI: f32 = 1.61803398875;
 struct VertexOutput {
     @builtin(position) pos: vec4f,
     @location(0) point_color: vec4f,
+    @location(1) uv: vec2f,
 }
 
 struct Params {
@@ -25,7 +26,27 @@ struct Params {
 var<uniform> params: Params;
 
 @vertex
-fn vs_main(@builtin(vertex_index) vert_index: u32) -> VertexOutput {
+fn vs_main(@builtin(vertex_index) vidx: u32) -> VertexOutput {
+        // Use first 3 vertices for background
+    if (vidx < 3u) {
+        // Full-screen triangle vertices
+        var pos = array<vec2f, 3>(
+            vec2f(-1.0, -3.0),
+            vec2f( 3.0,  1.0),
+            vec2f(-1.0,  1.0)
+        );
+        var out: VertexOutput;
+        out.pos = vec4f(pos[vidx], 0.0, 1.0);
+        // Use uv for noise sampling if needed
+        out.uv = (pos[vidx] + 1.0) * 0.5;
+        // Background doesn’t need a specific point_color
+        out.point_color = vec4f(0.0);
+        return out;
+    }
+
+    // Adjust index for spiral vertices: subtract background vertex count
+    let vert_index = vidx - 3u;
+
     let points_per_segment = params.settings.x;
     let noise_scale = params.settings.y;
     let angle_variation = params.settings.z;
@@ -107,12 +128,30 @@ fn vs_main(@builtin(vertex_index) vert_index: u32) -> VertexOutput {
     
     let alpha = 0.1 * (1.0 + 0.2 * combined_harmonic);
     out.point_color = vec4f(vec3f(0.0), alpha);
+    out.uv = (final_pos.xy + 1.0) * 0.5;
     return out;
 }
 
 @fragment
-fn fs_main(@location(0) point_color: vec4f) -> @location(0) vec4f {
-    return point_color;
+fn fs_main(
+    @builtin(position) pos: vec4f,
+    @location(0) point_color: vec4f,
+    @location(1) uv: vec2f,
+) -> @location(0) vec4f {
+    let pixel_pos = vec2u(floor(pos.xy));
+    let time_seed = 0u; 
+    let noise_seed = pixel_pos.x + pixel_pos.y * 1000u + time_seed;
+    
+    let fine_noise = rand_pcg(noise_seed);
+    let very_fine_noise = rand_pcg(noise_seed * 31u + 17u);
+    let combined_noise = mix(fine_noise, very_fine_noise, 0.5);
+    
+    // Use noise value to modulate brightness
+    let brightness = combined_noise * 1.5;
+    let background_color = vec4f(vec3f(brightness), 1.0);
+
+    // If point_color.a > 0.0, use point_color; otherwise use background
+    return select(background_color, point_color, point_color.a > 0.0);
 }
 
 fn get_circle_pos(
@@ -123,9 +162,19 @@ fn get_circle_pos(
     max_r: f32,
     spiral_factor: f32,
 ) -> vec2f {
-    let radius = mix(min_r, max_r, line_idx / n_lines);
-    let angle_offset = pow(line_idx / n_lines, PHI) * TAU * params.settings2.w;
+    let radius_factor = line_idx / n_lines;
+    let actual_min = min(min_r, max_r);
+    let actual_max = max(min_r, max_r);
+    
+    // Keep the radius interpolation direction-aware
+    let invert_factor = select(radius_factor, 1.0 - radius_factor, min_r > max_r);
+    let radius = mix(actual_min, actual_max, invert_factor);
+    
+    // Maintain spiral direction but adjust the phase
+    let direction = select(1.0, -1.0, min_r > max_r);
+    let angle_offset = direction * pow(radius_factor, PHI) * TAU * params.settings2.w;
     let pos_angle = t * TAU + angle_offset;
+    
     return vec2f(
         cos(pos_angle) * radius,
         sin(pos_angle) * radius
