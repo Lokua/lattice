@@ -27,11 +27,20 @@ struct Params {
     // point_size, circle_r_min, circle_r_max, unused
     c: vec4f,
 
-    // bg_brightness, time, invert, unused
+    // bg_brightness, time, invert, animate_angle_offset
     d: vec4f,
 
     // wave_amp, wave_freq, stripe_amp, stripe_freq
     e: vec4f,
+
+    // animate_bg, steep_amp, steep_freq, steepness
+    f: vec4f,
+
+    // quant_amp, quant_freq, quant_phase, steep_phase
+    g: vec4f,
+
+    // wave_phase, stripe_phase, ..unused
+    h: vec4f,
 }
 
 @group(0) @binding(0)
@@ -149,21 +158,22 @@ fn fs_main(
     let bg_brightness = params.d.x;
     let time = params.d.y;
     let invert = params.d.z;
+    let animate_bg = params.f.x;
 
     let pixel_pos = vec2u(floor(pos.xy));
-    let time_seed = u32(time * 1000.0); 
-    // let time_seed = 0u; 
+    var time_seed = 0u;
+    if animate_bg == 1.0 { 
+        time_seed = u32(time * 1000.0);
+    }
     let noise_seed = pixel_pos.x + pixel_pos.y * 1000u + time_seed;
     
     let fine_noise = rand_pcg(noise_seed);
     let very_fine_noise = rand_pcg(noise_seed * 31u + 17u);
     let combined_noise = mix(fine_noise, very_fine_noise, 0.5);
     
-    // Use noise value to modulate brightness
     let brightness = combined_noise * bg_brightness;
     let background_color = vec4f(vec3f(brightness), 1.0);
 
-    // If point_color.a > 0.0, use point_color; otherwise use background
     let color = select(background_color, point_color, point_color.a > 0.0);
     if invert == 1.0 {
         return vec4f(1.0 - color.r, 1.0 - color.g, 1.0 - color.b, color.a);
@@ -180,10 +190,8 @@ fn get_circle_pos(
     spiral_factor: f32,
 ) -> vec2f {
     let offset_mult = params.c.w;
-    let wave_amp = params.e.x;
-    let wave_freq = params.e.y;
-    let stripe_amp = params.e.z;
-    let stripe_freq = params.e.w;
+    let time = params.d.y;
+    let animate_angle_offset = params.d.w;
 
     let radius_factor = line_idx / n_lines;
     let actual_min = min(min_r, max_r);
@@ -195,34 +203,70 @@ fn get_circle_pos(
     
     // Maintain spiral direction but adjust the phase
     let direction = select(1.0, -1.0, min_r > max_r);
-    // let time_factor = params.d.y * 10000.0;
-    // let angle_offset = direction * 
-    //     pow(radius_factor, PHI) * TAU * offset_mult + 
-    //     sin(time_factor + radius_factor * 5.0) * 0.5;
-    let angle_offset = direction * pow(radius_factor, PHI) * TAU * offset_mult;
+    var angle_offset: f32;
+    if animate_angle_offset == 1.0 {
+        let time_factor = time * 10.0;
+        angle_offset = direction * 
+            pow(radius_factor, PHI) * TAU * offset_mult + 
+            sin(time_factor + radius_factor * 5.0) * 0.5;
+
+    } else {
+        angle_offset = direction * pow(radius_factor, PHI) * TAU * offset_mult;
+    }
     let pos_angle = t * TAU + angle_offset;
 
-    var modulation = 1.0 + wave_amp * sin(wave_freq * pos_angle);
-    var r_modulated = radius * modulation;
-
-    let stripe = step(0.0, sin(stripe_freq * pos_angle)); 
-    modulation = 1.0 + stripe_amp * (2.0 * stripe - 1.0);
-    r_modulated = r_modulated * modulation;
-
-    // let steepness = 50.0; // Increase steepness for sharper slices
-    // let base_signal = sin(stripe_freq * pos_angle);
-    // let slice_value = tanh(steepness * base_signal);
-    // modulation = 1.0 + stripe_amp * slice_value;
-    // r_modulated = r_modulated * modulation;
-
-    // let quantized_angle = floor(pos_angle / (TAU/stripe_freq)) * (TAU/stripe_freq);
-    // modulation = 1.0 + stripe_amp * sin(quantized_angle);
-    // r_modulated = r_modulated * modulation;
+    var r_modulated = apply_wave_modulation(radius, pos_angle);
+    // Next 3 are all variations on the same "slice" idea;
+    r_modulated = apply_stripe_modulation(r_modulated, pos_angle);
+    r_modulated = apply_steep_modulation(r_modulated, pos_angle);
+    r_modulated = apply_quant_modulation(r_modulated, pos_angle);
 
     return vec2f(
         cos(pos_angle) * r_modulated,
         sin(pos_angle) * r_modulated
     );
+}
+
+fn apply_wave_modulation(radius: f32, pos_angle: f32) -> f32 {
+    let wave_amp = params.e.x;
+    let wave_freq = params.e.y;
+    let wave_phase = params.h.x;
+    let normalized_phase = wave_phase * wave_freq;
+    let modulation = 1.0 + wave_amp * 
+        sin(wave_freq * pos_angle + normalized_phase);
+    return radius * modulation;
+}
+
+fn apply_stripe_modulation(radius: f32, pos_angle: f32) -> f32 {
+    let stripe_amp = params.e.z;
+    let stripe_freq = params.e.w;
+    let stripe_phase = params.h.y;
+    let normalized_phase = stripe_phase * stripe_freq;
+    let stripe = step(0.0, sin(stripe_freq * pos_angle + normalized_phase)); 
+    let modulation = 1.0 + stripe_amp * (2.0 * stripe - 1.0);
+    return radius * modulation;
+}
+
+fn apply_steep_modulation(radius: f32, pos_angle: f32) -> f32 {
+    let steep_amp = params.f.y;
+    let steep_freq = params.f.z;
+    let steepness = params.f.w; 
+    let steep_phase = params.g.w;
+    let normalized_phase = steep_phase * steep_freq;
+    let base_signal = sin(steep_freq * pos_angle + normalized_phase);
+    let slice_value = tanh(steepness * base_signal);
+    let modulation = 1.0 + steep_amp * slice_value;
+    return radius * modulation;
+}
+
+fn apply_quant_modulation(radius: f32, pos_angle: f32) -> f32 {
+    let quant_amp = params.g.x;
+    let quant_freq = params.g.y;
+    let quant_phase = params.g.z;
+    let tau_by_freq = TAU / quant_freq;
+    let quantized_angle = floor(pos_angle / tau_by_freq) * tau_by_freq;
+    let modulation = 1.0 + quant_amp * sin(quantized_angle + quant_phase);
+    return radius * modulation;
 }
 
 fn get_corner_offset(index: u32, point_size: f32) -> vec2f {
