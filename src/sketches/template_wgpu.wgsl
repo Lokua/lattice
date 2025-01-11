@@ -1,4 +1,5 @@
 const PI: f32 = 3.14159265359;
+const TAU: f32 = 6.283185307179586;
 
 struct VertexInput {
     @location(0) position: vec2f,
