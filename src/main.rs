@@ -453,7 +453,8 @@ fn persist_controls(
     if let Some(parent_dir) = path.parent() {
         fs::create_dir_all(parent_dir)?;
     }
-    let json = serde_json::to_string_pretty(controls)?;
+    let serialized = controls.to_serialized();
+    let json = serde_json::to_string_pretty(&serialized)?;
     fs::write(&path, json)?;
     Ok(path)
 }
@@ -462,8 +463,8 @@ fn stored_controls(sketch_name: &str) -> Option<ControlValues> {
     let path = controls_storage_path(sketch_name)?;
     let bytes = fs::read(path).ok()?;
     let string = str::from_utf8(&bytes).ok()?;
-    let controls = serde_json::from_str::<Controls>(string).ok()?;
-    Some(controls.values().clone())
+    let serialized = serde_json::from_str::<SerializedControls>(string).ok()?;
+    Some(serialized.values)
 }
 
 fn delete_stored_controls(sketch_name: &str) -> Result<(), Box<dyn Error>> {
