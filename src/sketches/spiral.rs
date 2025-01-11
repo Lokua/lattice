@@ -21,13 +21,13 @@ struct ShaderParams {
     resolution: [f32; 4],
 
     // start_x, start_y, end_x, end_y
-    ref_points: [f32; 4],
+    a: [f32; 4],
 
     // points_per_segment, noise_scale, angle_variation, n_lines
-    settings: [f32; 4],
+    b: [f32; 4],
 
     // point_size, circle_r_min, circle_r_max, offset_mult
-    settings2: [f32; 4],
+    c: [f32; 4],
 }
 
 #[derive(SketchComponents)]
@@ -52,9 +52,9 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 
     let params = ShaderParams {
         resolution: [0.0; 4],
-        ref_points: [0.0; 4],
-        settings: [0.0; 4],
-        settings2: [0.0; 4],
+        a: [0.0; 4],
+        b: [0.0; 4],
+        c: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./spiral.wgsl");
@@ -89,14 +89,14 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
 
         let params = ShaderParams {
             resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
-            ref_points: [-0.9, 0.0, 0.9, 0.0],
-            settings: [
+            a: [-0.9, 0.0, 0.9, 0.0],
+            b: [
                 points_per_segment as f32,
                 m.controls.float("noise_scale"),
                 m.controls.float("angle_variation"),
                 m.controls.float("n_lines"),
             ],
-            settings2: [
+            c: [
                 m.controls.float("point_size"),
                 m.controls.float("circle_r_min"),
                 m.controls.float("circle_r_max"),
