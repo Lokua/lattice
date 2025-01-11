@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(400),
+    gui_h: Some(440),
 };
 
 #[repr(C)]
@@ -26,14 +26,8 @@ struct ShaderParams {
     // points_per_segment, noise_scale, angle_variation, n_lines
     settings: [f32; 4],
 
-    // point_size, ...unused
+    // point_size, circle_r_min, circle_r_max, unused
     settings2: [f32; 4],
-
-    // straight_weight, circle_weight, sine_weight, unused
-    effect_weights: [f32; 4],
-
-    // circle_r_min, circle_r_max, sine_amp, sine_freq
-    effect_params: [f32; 4],
 }
 
 #[derive(SketchComponents)]
@@ -51,14 +45,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TWO_PI), 0.1),
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
-        Control::Separator {},
-        Control::slider_norm("straight_weight", 1.0),
-        Control::slider_norm("circle_weight", 0.0),
         Control::slider_norm("circle_r_min", 0.5),
         Control::slider_norm("circle_r_max", 0.9),
-        Control::slider_norm("sine_weight", 0.0),
-        Control::slider("sine_freq", 1.0, (1.0, 100.0), 1.0),
-        Control::slider_norm("sine_amp", 0.5),
     ]);
 
     let params = ShaderParams {
@@ -66,8 +54,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         ref_points: [0.0; 4],
         settings: [0.0; 4],
         settings2: [0.0; 4],
-        effect_weights: [0.0; 4],
-        effect_params: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./sand_lines_wgpu.wgsl");
@@ -98,18 +84,11 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
                 m.controls.float("angle_variation"),
                 m.controls.float("n_lines"),
             ],
-            settings2: [m.controls.float("point_size"), 0.0, 0.0, 0.0],
-            effect_weights: [
-                m.controls.float("straight_weight"),
-                m.controls.float("circle_weight"),
-                m.controls.float("sine_weight"),
-                0.0,
-            ],
-            effect_params: [
+            settings2: [
+                m.controls.float("point_size"),
                 m.controls.float("circle_r_min"),
                 m.controls.float("circle_r_max"),
-                m.controls.float("sine_amp"),
-                m.controls.float("sine_freq"),
+                0.0,
             ],
         };
 
