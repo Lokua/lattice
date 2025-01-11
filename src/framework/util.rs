@@ -60,6 +60,14 @@ pub fn luminance(color: &LinSrgb) -> f32 {
     0.2126 * color.red + 0.7152 * color.green + 0.0722 * color.blue
 }
 
+pub fn bool_to_f32(cond: bool) -> f32 {
+    if cond {
+        1.0
+    } else {
+        0.0
+    }
+}
+
 pub fn create_grid<F>(
     w: f32,
     h: f32,
