@@ -3,15 +3,15 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "sand_lines_wgpu",
-    display_name: "Sand Lines WGPU",
+    name: "spiral",
+    display_name: "Spiral",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(900),
+    gui_h: Some(1_000),
 };
 
 #[repr(C)]
@@ -41,7 +41,7 @@ struct ShaderParams {
     // quant_amp, quant_freq, quant_phase, steep_phase
     g: [f32; 4],
 
-    // wave_phase, stripe_phase, ..unused
+    // wave_phase, stripe_phase, harmonic_influence, unused
     h: [f32; 4],
 }
 
@@ -62,6 +62,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("n_lines", 64.0, (1.0, 256.0), 1.0),
         Control::slider("points_per_segment", 100.0, (10.0, 20_000.0), 10.0),
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
+        Control::slider("harmonic_influence", 0.2, (0.01, 10.0), 0.01),
         Control::Separator {}, // -----------------------------------
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TAU), 0.1),
@@ -213,7 +214,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         h: [
             get_phase(&m, "wave", 36.0),
             get_phase(&m, "stripe", 56.0),
-            0.0,
+            m.controls.float("harmonic_influence"),
             0.0,
         ],
     };
