@@ -1,3 +1,4 @@
+use arboard::Clipboard;
 use nannou::prelude::*;
 use nannou_egui::egui::{self, FontDefinitions, FontFamily};
 use nannou_egui::Egui;
@@ -16,7 +17,7 @@ pub mod framework;
 pub mod runtime;
 mod sketches;
 
-const GUI_WIDTH: u32 = 490;
+const GUI_WIDTH: u32 = 530;
 
 macro_rules! run_sketch {
     ($sketch_module:ident) => {{
@@ -341,6 +342,7 @@ fn update_gui<S: SketchModel>(
                     recording_state,
                     alert_text,
                 );
+                draw_export_button(ui, alert_text);
 
                 draw_avg_fps(ui);
             });
@@ -398,10 +400,10 @@ fn view_gui<S: SketchModel>(_app: &App, model: &AppModel<S>, frame: Frame) {
 
 fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
     match key {
-        Key::A => {
+        Key::A if has_no_modifiers(app) => {
             frame_controller::advance_single_frame();
         }
-        Key::C => {
+        Key::C if has_no_modifiers(app) => {
             let window = app.window(model.gui_window_id).unwrap();
             let is_visible = model.gui_visible.get();
 
@@ -415,6 +417,13 @@ fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
         }
         _ => {}
     }
+}
+
+fn has_no_modifiers(app: &App) -> bool {
+    !app.keys.mods.alt()
+        && !app.keys.mods.ctrl()
+        && !app.keys.mods.shift()
+        && !app.keys.mods.logo()
 }
 
 fn on_midi_instruction(
@@ -684,8 +693,28 @@ fn draw_alert_panel(ctx: &egui::Context, alert_text: &str) {
         .show_separator_line(false)
         .min_height(40.0)
         .show(ctx, |ui| {
-            ui.colored_label(colors.text_secondary, alert_text);
+            let mut text = alert_text.to_owned();
+            let response = ui.add(
+                egui::TextEdit::multiline(&mut text)
+                    .text_color(colors.text_secondary)
+                    .desired_width(ui.available_width())
+                    .frame(false)
+                    .margin(egui::vec2(0.0, 0.0))
+                    .interactive(true),
+            );
+
+            if response.clicked() {
+                if let Ok(mut clipboard) = Clipboard::new() {
+                    let _ = clipboard.set_text(alert_text);
+                }
+            }
         });
+}
+
+fn draw_export_button(ui: &mut egui::Ui, alert_text: &mut String) {
+    ui.add(egui::Button::new("Exp.")).clicked().then(|| {
+        *alert_text = "Control state exported to (TBD)".into();
+    });
 }
 
 fn draw_avg_fps(ui: &mut egui::Ui) {
