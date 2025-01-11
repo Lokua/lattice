@@ -26,6 +26,9 @@ struct Params {
 
     // point_size, circle_r_min, circle_r_max, unused
     c: vec4f,
+
+    // bg_brightness, time, ..unused
+    d: vec4f,
 }
 
 @group(0) @binding(0)
@@ -140,8 +143,12 @@ fn fs_main(
     @location(0) point_color: vec4f,
     @location(1) uv: vec2f,
 ) -> @location(0) vec4f {
+    let bg_brightness = params.d.x;
+    let time = params.d.y;
+
     let pixel_pos = vec2u(floor(pos.xy));
-    let time_seed = 0u; 
+    let time_seed = u32(time * 1000.0); 
+    // let time_seed = 0u; 
     let noise_seed = pixel_pos.x + pixel_pos.y * 1000u + time_seed;
     
     let fine_noise = rand_pcg(noise_seed);
@@ -149,7 +156,7 @@ fn fs_main(
     let combined_noise = mix(fine_noise, very_fine_noise, 0.5);
     
     // Use noise value to modulate brightness
-    let brightness = combined_noise * 1.5;
+    let brightness = combined_noise * bg_brightness;
     let background_color = vec4f(vec3f(brightness), 1.0);
 
     // If point_color.a > 0.0, use point_color; otherwise use background
