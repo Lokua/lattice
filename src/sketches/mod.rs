@@ -10,7 +10,7 @@ pub mod genuary_2;
 pub mod genuary_5;
 pub mod heat_mask;
 pub mod sand_lines;
-pub mod sand_lines_wgpu;
+pub mod spiral;
 pub mod template;
 pub mod template_wgpu;
 pub mod wgpu_displacement;

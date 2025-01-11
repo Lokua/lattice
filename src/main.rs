@@ -99,7 +99,7 @@ fn main() {
         "responsive_test" => run_sketch!(responsive_test),
         "sand_line" => run_sketch!(sand_line),
         "sand_lines" => run_sketch!(sand_lines),
-        "sand_lines_wgpu" => run_sketch!(sand_lines_wgpu),
+        "spiral" => run_sketch!(spiral),
         "template" => run_sketch!(template),
         "template_wgpu" => run_sketch!(template_wgpu),
         "vertical" => run_sketch!(vertical),
