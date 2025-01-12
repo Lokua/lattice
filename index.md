@@ -1,5 +1,17 @@
 Files sorted from most to least recent
 
+## spiral-awe3d.png
+
+<img src="images/spiral-awe3d.png" alt="spiral-awe3d.png">
+
+## spiral-4127t.png
+
+<img src="images/spiral-4127t.png" alt="spiral-4127t.png">
+
+## spiral-o1ro2.png
+
+<img src="images/spiral-o1ro2.png" alt="spiral-o1ro2.png">
+
 ## sand_lines_wgpu-0t9zg.png
 
 <img src="images/sand_lines_wgpu-0t9zg.png" alt="sand_lines_wgpu-0t9zg.png">
