@@ -3,11 +3,11 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "spiral",
-    display_name: "Spiral",
+    name: "spiral_auto",
+    display_name: "Spiral (Automated)",
     play_mode: PlayMode::Loop,
     fps: 60.0,
-    bpm: 120.0,
+    bpm: 134.0,
     w: 700,
     h: 700,
     gui_w: None,
@@ -51,6 +51,7 @@ pub struct Model {
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
+    midi: MidiControls,
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -162,11 +163,31 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         },
     );
 
+    let midi = MidiControlBuilder::new()
+        .control_mapped("n_lines", (0, 1), (1.0, 256.0), 0.5)
+        .control_mapped("points_per_segment", (0, 2), (10.0, 20_000.0), 0.75)
+        // ---
+        .control_mapped("noise_scale", (0, 3), (0.0, 0.1), 0.025)
+        .control_mapped("angle_variation", (0, 4), (0.0, TAU), 0.2)
+        .control_mapped("offset_mult", (0, 5), (0.0, 10.0), 0.0)
+        .control("circle_r_min", (0, 6), 0.0)
+        .control("circle_r_max", (0, 7), 1.0)
+        // ---
+        .control("wave_amp", (0, 8), 0.0)
+        .control("steep_amp", (0, 9), 0.0)
+        .control("quant_amp", (0, 10), 0.0)
+        .control("stripe_amp", (0, 11), 0.0)
+        .control_mapped("steep_freq", (0, 12), (0.00, 64.0), 1.0)
+        .control_mapped("quant_freq", (0, 13), (0.00, 64.0), 1.0)
+        .control_mapped("stripe_freq", (0, 14), (0.00, 64.0), 1.0)
+        .build();
+
     Model {
         animation,
         controls,
         wr,
         gpu,
+        midi,
     }
 }
 
@@ -175,20 +196,16 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         a: [-0.9, 0.0, 0.9, 0.0],
         b: [
-            m.controls.float("points_per_segment"),
-            m.controls.float("noise_scale"),
-            m.controls.float("angle_variation"),
-            m.controls.float("n_lines"),
+            m.midi.get("points_per_segment"),
+            m.midi.get("noise_scale"),
+            m.midi.get("angle_variation"),
+            m.midi.get("n_lines"),
         ],
         c: [
             m.controls.float("point_size"),
-            m.controls.float("circle_r_min"),
-            m.controls.float("circle_r_max"),
-            if m.controls.bool("offset_mult_10") {
-                m.controls.float("offset_mult") * 10.0
-            } else {
-                m.controls.float("offset_mult")
-            },
+            m.midi.get("circle_r_min"),
+            m.midi.get("circle_r_max"),
+            m.midi.get("offset_mult"),
         ],
         d: [
             m.controls.float("bg_brightness"),
@@ -197,20 +214,20 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             bool_to_f32(m.controls.bool("animate_angle_offset")),
         ],
         e: [
-            m.controls.float("wave_amp"),
+            m.midi.get("wave_amp"),
             m.controls.float("wave_freq"),
-            m.controls.float("stripe_amp"),
-            m.controls.float("stripe_freq"),
+            m.midi.get("stripe_amp"),
+            m.midi.get("stripe_freq"),
         ],
         f: [
             bool_to_f32(m.controls.bool("animate_bg")),
-            m.controls.float("steep_amp"),
-            m.controls.float("steep_freq"),
+            m.midi.get("steep_amp"),
+            m.midi.get("steep_freq"),
             m.controls.float("steepness"),
         ],
         g: [
-            m.controls.float("quant_amp"),
-            m.controls.float("quant_freq"),
+            m.midi.get("quant_amp"),
+            m.midi.get("quant_freq"),
             get_phase(&m, "quant", 24.0),
             get_phase(&m, "steep", 48.0),
         ],
