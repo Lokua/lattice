@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(960),
+    gui_h: Some(700),
 };
 
 #[repr(C)]
@@ -73,20 +73,12 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
         Control::slider("harmonic_influence", 0.2, (0.01, 10.0), 0.01),
         Control::Separator {}, // -----------------------------------
-        Control::slider_x("noise_scale", 0.001, (0.0, 0.1), 0.0001, disabled),
-        Control::slider_x("angle_variation", 0.2, (0.0, TAU), 0.1, disabled),
-        Control::checkbox("offset_mult_10", false),
-        Control::slider_x("offset_mult", 0.9, (0.0, 10.0), 0.001, disabled),
-        Control::slider_x("circle_r_min", 0.5, (0.0, 1.0), 0.0001, disabled),
-        Control::slider_x("circle_r_max", 0.9, (0.0, 1.0), 0.0001, disabled),
-        Control::Separator {}, // -----------------------------------
         Control::checkbox("invert", false),
         Control::checkbox("animate_bg", false),
         Control::checkbox("animate_angle_offset", false),
         Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
         Control::slider("phase_animation_mult", 1.0, (0.0, 1.0), 0.125),
         Control::Separator {}, // -----------------------------------
-        Control::slider_x("wave_amp", 0.0, (0.0, 0.5), 0.0001, disabled),
         Control::slider("wave_freq", 10.0, (0.00, 64.0), 1.0),
         Control::checkbox("animate_wave_phase", false),
         Control::checkbox("invert_animate_wave_phase", false),
@@ -98,8 +90,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             |controls: &Controls| controls.bool("animate_wave_phase"),
         ),
         Control::Separator {}, // -----------------------------------
-        Control::slider_x("stripe_amp", 0.0, (0.0, 0.5), 0.0001, disabled),
-        Control::slider_x("stripe_freq", 10.0, (0.00, 64.0), 1.0, disabled),
         Control::checkbox("animate_stripe_phase", false),
         Control::checkbox("invert_animate_stripe_phase", false),
         Control::slider_x(
@@ -110,8 +100,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             |controls: &Controls| controls.bool("animate_stripe_phase"),
         ),
         Control::Separator {}, // -----------------------------------
-        Control::slider_x("steep_amp", 0.0, (0.0, 0.5), 0.0001, disabled),
-        Control::slider_x("steep_freq", 10.0, (0.00, 64.0), 1.0, disabled),
         Control::slider("steepness", 10.0, (1.0, 100.0), 1.0),
         Control::checkbox("animate_steep_phase", false),
         Control::checkbox("invert_animate_steep_phase", false),
@@ -123,8 +111,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             |controls: &Controls| controls.bool("animate_steep_phase"),
         ),
         Control::Separator {}, // -----------------------------------
-        Control::slider_x("quant_amp", 0.0, (0.0, 0.5), 0.0001, disabled),
-        Control::slider_x("quant_freq", 10.0, (0.00, 64.0), 1.0, disabled),
         Control::checkbox("animate_quant_phase", false),
         Control::checkbox("invert_animate_quant_phase", false),
         Control::slider_x(
@@ -223,19 +209,19 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ],
         e: [
             m.midi.get("wave_amp"),
-            m.controls.float("wave_freq"),
+            m.controls.float("wave_freq").ceil(),
             m.midi.get("stripe_amp"),
-            m.midi.get("stripe_freq"),
+            m.midi.get("stripe_freq").ceil(),
         ],
         f: [
             bool_to_f32(m.controls.bool("animate_bg")),
             m.midi.get("steep_amp"),
-            m.midi.get("steep_freq"),
+            m.midi.get("steep_freq").ceil(),
             m.controls.float("steepness"),
         ],
         g: [
             m.midi.get("quant_amp"),
-            m.midi.get("quant_freq"),
+            m.midi.get("quant_freq").ceil(),
             get_phase(&m, "quant", 24.0),
             get_phase(&m, "steep", 48.0),
         ],
@@ -254,8 +240,8 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
 pub fn view(_app: &App, m: &Model, frame: Frame) {
     frame.clear(WHITE);
 
-    let points_per_line = m.controls.float("points_per_segment") as u32;
-    let n_lines = m.controls.float("n_lines") as u32;
+    let points_per_line = m.midi.get("points_per_segment") as u32;
+    let n_lines = m.midi.get("n_lines") as u32;
     let total_points = points_per_line * n_lines;
     let density = m.controls.float("passes") as u32;
     let spiral_vertices = total_points * 6 * density;
