@@ -1995,6 +1995,7 @@ dependencies = [
  "midir",
  "nannou",
  "nannou_egui",
+ "nannou_osc",
  "once_cell",
  "parking_lot",
  "rayon",
@@ -2399,6 +2400,15 @@ checksum = "dec4e3bd7156bd646dd44f50e687671a1bf4dc970e9448f661bbeec3689ff922"
 dependencies = [
  "nannou_core",
  "serde",
+]
+
+[[package]]
+name = "nannou_osc"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "234e925dd17cf561de17e9838e1d4924e34d8a159e05a8f80efee964058b3b81"
+dependencies = [
+ "rosc",
 ]
 
 [[package]]
@@ -3401,6 +3411,16 @@ name = "rgb"
 version = "0.8.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57397d16646700483b67d2dd6511d79318f9d057fdbd21a4066aeac8b41d310a"
+
+[[package]]
+name = "rosc"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2e63d9e6b0d090be1485cf159b1e04c3973d2d3e1614963544ea2ff47a4a981"
+dependencies = [
+ "byteorder",
+ "nom",
+]
 
 [[package]]
 name = "rust-ini"

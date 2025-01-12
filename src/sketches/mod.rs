@@ -11,6 +11,7 @@ pub mod genuary_5;
 pub mod heat_mask;
 pub mod sand_lines;
 pub mod spiral;
+pub mod spiral_auto;
 pub mod template;
 pub mod template_wgpu;
 pub mod wgpu_displacement;
