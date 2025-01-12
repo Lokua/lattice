@@ -130,6 +130,7 @@ struct AppModel<S> {
     sketch_config: &'static SketchConfig,
     gui_visible: Cell<bool>,
     main_visible: Cell<bool>,
+    main_maximized: Cell<bool>,
 }
 
 fn model<S: SketchModel + 'static>(
@@ -204,6 +205,7 @@ fn model<S: SketchModel + 'static>(
         sketch_config,
         gui_visible: Cell::new(true),
         main_visible: Cell::new(true),
+        main_maximized: Cell::new(false),
     }
 }
 
@@ -428,6 +430,27 @@ fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
             } else {
                 window.set_visible(true);
                 model.main_visible.set(true);
+            }
+        }
+        Key::F if has_no_modifiers(app) => {
+            let window = app.window(model.main_window_id).unwrap();
+            if let Some(monitor) = window.current_monitor() {
+                let monitor_size = monitor.size();
+                let is_maximized = model.main_maximized.get();
+
+                if is_maximized {
+                    window.set_inner_size_points(
+                        model.sketch_config.w as f32,
+                        model.sketch_config.h as f32,
+                    );
+                    model.main_maximized.set(false);
+                } else {
+                    window.set_inner_size_pixels(
+                        monitor_size.width,
+                        monitor_size.height,
+                    );
+                    model.main_maximized.set(true);
+                }
             }
         }
         _ => {}

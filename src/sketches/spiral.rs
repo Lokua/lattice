@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(940),
+    gui_h: Some(960),
 };
 
 #[repr(C)]
@@ -66,6 +66,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::Separator {}, // -----------------------------------
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TAU), 0.1),
+        Control::checkbox("offset_mult_10", false),
         Control::slider("offset_mult", 0.9, (0.0, 10.0), 0.001),
         Control::slider_norm("circle_r_min", 0.5),
         Control::slider_norm("circle_r_max", 0.9),
@@ -185,7 +186,11 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("point_size"),
             m.controls.float("circle_r_min"),
             m.controls.float("circle_r_max"),
-            m.controls.float("offset_mult"),
+            if m.controls.bool("offset_mult_10") {
+                m.controls.float("offset_mult") * 10.0
+            } else {
+                m.controls.float("offset_mult")
+            },
         ],
         d: [
             m.controls.float("bg_brightness"),
@@ -208,11 +213,11 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         g: [
             m.controls.float("quant_amp"),
             m.controls.float("quant_freq"),
-            get_phase(&m, "quant", 32.0),
+            get_phase(&m, "quant", 24.0),
             get_phase(&m, "steep", 48.0),
         ],
         h: [
-            get_phase(&m, "wave", 36.0),
+            get_phase(&m, "wave", 32.0),
             get_phase(&m, "stripe", 56.0),
             m.controls.float("harmonic_influence"),
             0.0,
