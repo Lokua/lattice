@@ -129,6 +129,7 @@ struct AppModel<S> {
     sketch_model: S,
     sketch_config: &'static SketchConfig,
     gui_visible: Cell<bool>,
+    main_visible: Cell<bool>,
 }
 
 fn model<S: SketchModel + 'static>(
@@ -202,6 +203,7 @@ fn model<S: SketchModel + 'static>(
         sketch_model,
         sketch_config,
         gui_visible: Cell::new(true),
+        main_visible: Cell::new(true),
     }
 }
 
@@ -212,7 +214,8 @@ enum MidiInstruction {
 }
 
 thread_local! {
-    static MIDI_MESSAGE_RX: RefCell<Option<Receiver<MidiInstruction>>> = RefCell::new(None);
+    static MIDI_MESSAGE_RX: RefCell<Option<Receiver<MidiInstruction>>> =
+        RefCell::new(None);
 }
 
 fn update<S: SketchModel>(
@@ -413,6 +416,18 @@ fn on_key_pressed<S: SketchModel>(app: &App, model: &AppModel<S>, key: Key) {
             } else {
                 window.set_visible(true);
                 model.gui_visible.set(true);
+            }
+        }
+        Key::S if has_no_modifiers(app) => {
+            let window = app.window(model.main_window_id).unwrap();
+            let is_visible = model.main_visible.get();
+
+            if is_visible {
+                window.set_visible(false);
+                model.main_visible.set(false);
+            } else {
+                window.set_visible(true);
+                model.main_visible.set(true);
             }
         }
         _ => {}
