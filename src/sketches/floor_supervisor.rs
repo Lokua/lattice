@@ -8,20 +8,19 @@ use crate::framework::prelude::*;
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "floor_supervisor",
     display_name: "Floor Supervisor",
-    fps: 30.0,
+    fps: 60.0,
     bpm: 134.0,
     w: 1000,
     h: 1000,
     gui_w: None,
-    gui_h: Some(735),
+    gui_h: Some(920),
     play_mode: PlayMode::Loop,
 };
 
 const GRID_SIZE: usize = 128;
-const USE_TRIANGLES: bool = true;
 
 #[derive(SketchComponents)]
-#[sketch(clear_color = "hsl(0.0, 0.0, 0.02, 0.5)")]
+#[sketch(clear_color = "hsl(0.0, 0.0, 0.03, 0.5)")]
 pub struct Model {
     wr: WindowRect,
     grid: Vec<Vec2>,
@@ -41,18 +40,70 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
 
     let modes = ["attract", "influence"];
 
+    let disable_center_controls =
+        |controls: &Controls| controls.bool("animate_center");
+    let disable_corner_controls =
+        |controls: &Controls| controls.bool("animate_corner");
+    let disable_trbl_controls =
+        |controls: &Controls| controls.bool("animate_trbl");
+
     let controls = Controls::new(vec![
-        Control::checkbox("show_center", true),
+        Control::checkbox("show_center", false),
+        Control::checkbox("animate_center", false),
         Control::checkbox("center_use_grain", true),
         Control::select("center_mode", "attract", &modes),
+        Control::slider_x(
+            "center_radius",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_center_controls,
+        ),
+        Control::slider_x(
+            "center_strength",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_center_controls,
+        ),
         Control::Separator {},
         Control::checkbox("show_corner", true),
+        Control::checkbox("animate_corner", false),
         Control::checkbox("corner_use_grain", true),
         Control::select("corner_mode", "attract", &modes),
+        Control::slider_x(
+            "corner_radius",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_corner_controls,
+        ),
+        Control::slider_x(
+            "corner_strength",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_corner_controls,
+        ),
         Control::Separator {},
         Control::checkbox("show_trbl", true),
+        Control::checkbox("animate_trbl", false),
         Control::checkbox("trbl_use_grain", true),
         Control::select("trbl_mode", "attract", &modes),
+        Control::slider_x(
+            "trbl_radius",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_trbl_controls,
+        ),
+        Control::slider_x(
+            "trbl_strength",
+            20.0,
+            (1.0, 500.0),
+            1.0,
+            disable_trbl_controls,
+        ),
         Control::Separator {},
         Control::slider("scale", 1.0, (0.1, 4.0), 0.1),
         Control::checkbox("flip", false),
@@ -83,50 +134,49 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
         Control::slider("grain_size", 101.0, (1.0, 200.0), 1.0),
         Control::slider("angle_mult", 48.0, (1.0, 200.0), 1.0),
         Control::slider("distance_strength", 0.5, (0.001, 1.0), 0.001),
-        Control::slider("angle_frequency", 5.0, (5.0, 500.0), 5.0),
+        Control::slider("angle_frequency", 1.0, (1.0, 63.0), 1.0),
     ]);
 
-    let w4th = w as f32 / 4.0;
-    let h4th = h as f32 / 4.0;
-
-    let displacer_configs = vec![
+    let mut displacer_configs = vec![
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Center,
-            Displacer::new_with_position(vec2(0.0, 0.0)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Corner,
-            Displacer::new_with_position(vec2(w4th, h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Corner,
-            Displacer::new_with_position(vec2(w4th, -h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Corner,
-            Displacer::new_with_position(vec2(-w4th, -h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Corner,
-            Displacer::new_with_position(vec2(-w4th, h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Trbl,
-            Displacer::new_with_position(vec2(0.0, h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Trbl,
-            Displacer::new_with_position(vec2(w4th, 0.0)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Trbl,
-            Displacer::new_with_position(vec2(0.0, -h4th)),
+            Displacer::new_at_origin(),
         ),
         DisplacerConfig::new_no_anim(
             DisplacerConfigKind::Trbl,
-            Displacer::new_with_position(vec2(-w4th, 0.0)),
+            Displacer::new_at_origin(),
         ),
     ];
+
+    update_positions(&wr, &mut displacer_configs);
 
     Model {
         wr,
@@ -144,37 +194,47 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     }
 }
 
-pub fn update(_app: &App, model: &mut Model, _update: Update) {
-    let show_center = model.controls.bool("show_center");
-    let center_use_grain = model.controls.bool("center_use_grain");
-    let center_mode = model.controls.string("center_mode");
-    let show_corner = model.controls.bool("show_corner");
-    let corner_use_grain = model.controls.bool("corner_use_grain");
-    let corner_mode = model.controls.string("corner_mode");
-    let show_trbl = model.controls.bool("show_trbl");
-    let trbl_use_grain = model.controls.bool("trbl_use_grain");
-    let trbl_mode = model.controls.string("trbl_mode");
-    let sort = model.controls.string("sort");
-    let size_max = model.controls.float("size_max");
-    let invert_colors = model.controls.bool("invert_colors");
-    let gradient_spread = model.controls.float("gradient_spread");
-    let scaling_power = model.controls.float("scaling_power");
-    let t_scale = model.controls.float("t_scale");
-    // let grain_size = model.controls.float("grain_size");
-    let grain_size = model.animation.lrp(&[(50.0, 16.0), (200.0, 16.0)], 0.0);
-    // let angle_mult = model.controls.float("angle_mult");
-    let angle_mult = model.animation.lrp(&[(1.0, 12.0), (200.0, 12.0)], 0.0);
-    let distance_strength = model.controls.float("distance_strength");
-    let angle_frequency = model.controls.float("angle_frequency");
+pub fn update(_app: &App, m: &mut Model, _update: Update) {
+    let show_center = m.controls.bool("show_center");
+    let animate_center = m.controls.bool("animate_center");
+    let center_use_grain = m.controls.bool("center_use_grain");
+    let center_mode = m.controls.string("center_mode");
+    let center_radius = m.controls.float("center_radius");
+    let center_strength = m.controls.float("center_strength");
+    // ---
+    let show_corner = m.controls.bool("show_corner");
+    let animate_corner = m.controls.bool("animate_corner");
+    let corner_use_grain = m.controls.bool("corner_use_grain");
+    let corner_mode = m.controls.string("corner_mode");
+    let corner_radius = m.controls.float("corner_radius");
+    let corner_strength = m.controls.float("corner_strength");
+    // ---
+    let show_trbl = m.controls.bool("show_trbl");
+    let animate_trbl = m.controls.bool("animate_trbl");
+    let trbl_use_grain = m.controls.bool("trbl_use_grain");
+    let trbl_mode = m.controls.string("trbl_mode");
+    let trbl_radius = m.controls.float("trbl_radius");
+    let trbl_strength = m.controls.float("trbl_strength");
+    // ---
+    let sort = m.controls.string("sort");
+    let size_max = m.controls.float("size_max");
+    let invert_colors = m.controls.bool("invert_colors");
+    let gradient_spread = m.controls.float("gradient_spread");
+    let scaling_power = m.controls.float("scaling_power");
+    let t_scale = m.controls.float("t_scale");
+    let grain_size = m.controls.float("grain_size");
+    let angle_mult = m.controls.float("angle_mult");
+    let distance_strength = m.controls.float("distance_strength");
+    let angle_frequency = m.controls.float("angle_frequency");
 
     let max_mag =
-        model.displacer_configs.len() as f32 * model.controls.float("mag_mult");
-    let gradient = &model.gradient;
+        m.displacer_configs.len() as f32 * m.controls.float("mag_mult");
+    let gradient = &m.gradient;
 
-    if model.wr.changed() {
-        (model.grid, _) =
-            create_grid(model.wr.w(), model.wr.h(), GRID_SIZE, vec2);
-        model.wr.commit();
+    if m.wr.changed() {
+        (m.grid, _) = create_grid(m.wr.w(), m.wr.h(), GRID_SIZE, vec2);
+        update_positions(&m.wr, &mut m.displacer_configs);
+        m.wr.commit();
     }
 
     let custom_distance_fn: CustomDistanceFn =
@@ -192,7 +252,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             )
         }));
 
-    let configs: Vec<&mut DisplacerConfig> = model
+    let configs: Vec<&mut DisplacerConfig> = m
         .displacer_configs
         .iter_mut()
         .filter(|config| match config.kind {
@@ -201,7 +261,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             DisplacerConfigKind::Trbl => show_trbl,
         })
         .map(|config| {
-            config.update(&model.animation, &model.controls);
+            config.update(&m.animation, &m.controls);
             match config.kind {
                 DisplacerConfigKind::Center => {
                     config.displacer.set_custom_distance_fn(
@@ -211,12 +271,23 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                             None
                         },
                     );
-                    config.displacer.set_strength(
-                        model.animation.lrp(&[(1.0, 16.0), (200.0, 16.0)], 0.0),
-                    );
-                    config.displacer.set_strength(
-                        model.animation.lrp(&[(1.0, 16.0), (200.0, 16.0)], 0.0),
-                    );
+                    if animate_center {
+                        config.displacer.set_strength(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 8.0)],
+                            0.0,
+                            4.0,
+                            linear,
+                        ));
+                        config.displacer.set_radius(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 12.0)],
+                            1.0,
+                            3.0,
+                            linear,
+                        ));
+                    } else {
+                        config.displacer.set_strength(center_radius);
+                        config.displacer.set_radius(center_strength);
+                    }
                 }
                 DisplacerConfigKind::Corner => {
                     config.displacer.set_custom_distance_fn(
@@ -226,18 +297,23 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                             None
                         },
                     );
-                    config.displacer.set_strength(model.animation.r_ramp(
-                        &[kfr((1.0, 500.0), 1.0)],
-                        0.0,
-                        0.5,
-                        linear,
-                    ));
-                    config.displacer.set_radius(model.animation.r_ramp(
-                        &[kfr((1.0, 500.0), 4.0)],
-                        1.0,
-                        1.0,
-                        linear,
-                    ));
+                    if animate_corner {
+                        config.displacer.set_strength(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 4.0)],
+                            0.0,
+                            4.0,
+                            linear,
+                        ));
+                        config.displacer.set_radius(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 8.0)],
+                            1.0,
+                            3.0,
+                            linear,
+                        ));
+                    } else {
+                        config.displacer.set_strength(corner_radius);
+                        config.displacer.set_radius(corner_strength);
+                    }
                 }
                 DisplacerConfigKind::Trbl => {
                     config.displacer.set_custom_distance_fn(
@@ -247,25 +323,30 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                             None
                         },
                     );
-                    config.displacer.set_strength(model.animation.r_ramp(
-                        &[kfr((1.0, 500.0), 2.0)],
-                        0.0,
-                        1.0,
-                        linear,
-                    ));
-                    config.displacer.set_radius(model.animation.r_ramp(
-                        &[kfr((1.0, 500.0), 4.0)],
-                        1.0,
-                        1.0,
-                        linear,
-                    ));
+                    if animate_trbl {
+                        config.displacer.set_strength(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 16.0)],
+                            0.0,
+                            6.0,
+                            linear,
+                        ));
+                        config.displacer.set_radius(m.animation.r_ramp(
+                            &[kfr((1.0, 500.0), 24.0)],
+                            2.0,
+                            18.0,
+                            linear,
+                        ));
+                    } else {
+                        config.displacer.set_strength(trbl_radius);
+                        config.displacer.set_radius(trbl_strength);
+                    }
                 }
             }
             config
         })
         .collect();
 
-    model.objects = model
+    m.objects = m
         .grid
         .par_iter()
         .map(|point| {
@@ -285,12 +366,14 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
                 });
 
             let displacement_magnitude = total_displacement.length();
+
             let triangle_height =
                 map_range(displacement_magnitude, 0.0, max_mag, 1.0, t_scale);
 
             let normalized = (displacement_magnitude / max_mag)
                 .powf(gradient_spread)
                 .clamp(0.0, 1.0);
+
             let color = gradient.get(if invert_colors {
                 normalized
             } else {
@@ -316,7 +399,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
         })
         .collect();
 
-    model.objects.sort_by(
+    m.objects.sort_by(
         |(_position_a, radius_a, _triangle_height_a, color_a),
          (_position_b, radius_b, _triangle_height_b, color_b)| {
             match sort.as_str() {
@@ -330,72 +413,60 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     );
 }
 
-pub fn view(app: &App, model: &Model, frame: Frame) {
+pub fn view(app: &App, m: &Model, frame: Frame) {
     let draw = app.draw();
 
-    draw.rect().w_h(model.wr.w(), model.wr.h()).color(hsla(
+    draw.rect().w_h(m.wr.w(), m.wr.h()).color(hsla(
         0.0,
         0.0,
-        0.02,
-        model.controls.float("background_alpha"),
+        0.03,
+        m.controls.float("background_alpha"),
     ));
 
-    let scaled_draw = draw.scale(model.controls.float("scale"));
+    let scaled_draw = draw.scale(m.controls.float("scale"));
 
-    let alpha = model.controls.float("alpha");
-    let stroke = model.controls.bool("stroke");
-    let stroke_weight = model.controls.float("stroke_weight");
-    let flip = model.controls.bool("flip");
+    let alpha = m.controls.float("alpha");
+    let stroke = m.controls.bool("stroke");
+    let stroke_weight = m.controls.float("stroke_weight");
+    let flip = m.controls.bool("flip");
 
-    for (position, radius, triangle_height, color) in &model.objects {
-        if USE_TRIANGLES {
-            // Calculate outward direction from center to position
-            let outward_dir = if position.length_squared() == 0.0 {
-                vec2(1.0, 0.0)
-            } else {
-                (*position - vec2(0.0, 0.0)).normalize()
-            };
-
-            let radius = radius.max(0.01);
-
-            // Distance from the center to the tip
-            let height = radius;
-            let base_width = radius;
-
-            // Calculate vertices
-            let tip = *position
-                + outward_dir
-                    * height
-                    * *triangle_height
-                    * if flip { -1.0 } else { 1.0 };
-
-            // Perpendicular vector for the base
-            let perpendicular = vec2(-outward_dir.y, outward_dir.x);
-
-            let base_left = *position - perpendicular * (base_width / 2.0);
-            let base_right = *position + perpendicular * (base_width / 2.0);
-
-            scaled_draw
-                .polygon()
-                .stroke(if stroke {
-                    hsla(0.0, 0.0, 0.0, 1.0)
-                } else {
-                    hsla(0.0, 0.0, 0.0, 0.0)
-                })
-                .stroke_weight(stroke_weight)
-                .points(vec![tip, base_left, base_right])
-                .color(lin_srgb_to_lin_srgba(*color, alpha));
+    for (position, radius, triangle_height, color) in &m.objects {
+        // Calculate outward direction from center to position
+        let outward_dir = if position.length_squared() == 0.0 {
+            vec2(1.0, 0.0)
         } else {
-            let rect = scaled_draw
-                .rect()
-                .color(lin_srgb_to_lin_srgba(*color, alpha))
-                .w_h(*radius, *radius)
-                .xy(*position);
+            (*position - vec2(0.0, 0.0)).normalize()
+        };
 
-            if stroke {
-                rect.stroke(BLACK).stroke_weight(stroke_weight);
-            }
-        }
+        let radius = radius.max(0.01);
+
+        // Distance from the center to the tip
+        let height = radius;
+        let base_width = radius;
+
+        // Calculate vertices
+        let tip = *position
+            + outward_dir
+                * height
+                * *triangle_height
+                * if flip { -1.0 } else { 1.0 };
+
+        // Perpendicular vector for the base
+        let perpendicular = vec2(-outward_dir.y, outward_dir.x);
+
+        let base_left = *position - perpendicular * (base_width / 2.0);
+        let base_right = *position + perpendicular * (base_width / 2.0);
+
+        scaled_draw
+            .polygon()
+            .stroke(if stroke {
+                hsla(0.0, 0.0, 0.0, 1.0)
+            } else {
+                hsla(0.0, 0.0, 0.0, 0.0)
+            })
+            .stroke_weight(stroke_weight)
+            .points(vec![tip, base_left, base_right])
+            .color(lin_srgb_to_lin_srgba(*color, alpha));
     }
 
     draw.to_frame(app, &frame).unwrap();
@@ -449,5 +520,35 @@ impl DisplacerConfig {
             self.displacer.radius =
                 radius_fn(&self.displacer, animation, controls);
         }
+    }
+}
+
+fn update_positions(
+    wr: &WindowRect,
+    displacer_configs: &mut Vec<DisplacerConfig>,
+) {
+    let w = wr.w() / 4.0;
+    let h = wr.w() / 4.0;
+
+    for (index, config) in displacer_configs.iter_mut().enumerate() {
+        config.displacer.set_position(match index {
+            1 => vec2(w, h),
+            // Corner Q2
+            2 => vec2(w, -h),
+            // Corner Q3
+            3 => vec2(-w, -h),
+            // Corner Q4
+            4 => vec2(-w, h),
+            // Top
+            5 => vec2(0.0, h),
+            // Right
+            6 => vec2(w, 0.0),
+            // Bottom
+            7 => vec2(0.0, -h),
+            // Left
+            8 => vec2(-w, 0.0),
+            // Center
+            _ => vec2(0.0, 0.0),
+        });
     }
 }
