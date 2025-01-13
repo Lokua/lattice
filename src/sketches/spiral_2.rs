@@ -29,24 +29,25 @@ struct ShaderParams {
     // point_size, col_freq, width, distortion
     c: [f32; 4],
 
-    // bg_brightness, time, invert, row_freq
+    // clip_start, clip_grade, distortion_intensity, row_freq
     d: [f32; 4],
 
     // stripe_step, stripe_mix, stripe_amp, stripe_freq
     e: [f32; 4],
 
-    // animate_bg, circle_radius, circle_phase, wave_amp
+    // unused, circle_radius, circle_phase, wave_amp
     f: [f32; 4],
 
     // center_count, center_spread, center_falloff, circle_force
     g: [f32; 4],
 
-    // unused, stripe_phase, harmonic_influence, unused
+    // stripe_min, stripe_phase, harmonic_influence, stripe_max
     h: [f32; 4],
 }
 
 #[derive(SketchComponents)]
 pub struct Model {
+    #[allow(dead_code)]
     animation: Animation,
     controls: Controls,
     wr: WindowRect,
@@ -64,13 +65,13 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("point_size", 0.001, (0.0005, 0.01), 0.0001),
         Control::slider("harmonic_influence", 0.2, (0.01, 10.0), 0.01),
         Control::Separator {}, // -----------------------------------
-        Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
+        Control::slider("noise_scale", 0.00001, (0.0, 0.002), 0.00001),
         Control::slider("angle_variation", 0.2, (0.0, TAU), 0.1),
         Control::Separator {}, // -----------------------------------
-        Control::slider("col_freq", 0.5, (0.01, 128.0), 0.01),
-        Control::slider("row_freq", 0.5, (0.01, 128.0), 0.01),
+        Control::slider("col_freq", 0.5, (0.01, 256.0), 0.01),
+        Control::slider("row_freq", 0.5, (0.01, 256.0), 0.01),
         Control::slider("width", 1.0, (0.01, 2.00), 0.01),
-        Control::slider("distortion", 0.9, (0.0, 10.0), 0.001),
+        Control::slider("distortion", 0.9, (0.0, 10.0), 0.01),
         Control::slider("wave_amp", 1.0, (0.0001, 0.5), 0.0001),
         Control::Separator {}, // -----------------------------------
         Control::slider("center_count", 1.0, (0.0, 10.0), 1.0),
@@ -80,10 +81,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("circle_force", 0.5, (0.001, 5.0), 0.001),
         Control::slider("circle_phase", 0.0, (0.0, TAU), 0.1),
         Control::Separator {}, // -----------------------------------
-        Control::checkbox("invert", false),
-        Control::checkbox("animate_bg", false),
-        Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
-        Control::slider("phase_animation_mult", 1.0, (0.0, 1.0), 0.125),
+        Control::slider_norm("clip_start", 0.8),
+        Control::slider_norm("clip_grade", 0.3),
         Control::Separator {}, // -----------------------------------
         Control::checkbox("animate_stripe_phase", false),
         Control::checkbox("invert_animate_stripe_phase", false),
@@ -151,9 +150,9 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("distortion"),
         ],
         d: [
-            m.controls.float("bg_brightness"),
-            m.animation.ping_pong(64.0),
-            bool_to_f32(m.controls.bool("invert")),
+            m.controls.float("clip_start"),
+            m.controls.float("clip_grade"),
+            0.0,
             m.controls.float("row_freq"),
         ],
         e: [
@@ -163,7 +162,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("stripe_freq"),
         ],
         f: [
-            bool_to_f32(m.controls.bool("animate_bg")),
+            0.0,
             m.controls.float("circle_radius"),
             m.controls.float("circle_phase"),
             m.controls.float("wave_amp"),
@@ -176,7 +175,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ],
         h: [
             m.controls.float("stripe_min"),
-            get_phase(&m, "stripe", 56.0),
+            m.controls.float("stripe_phase"),
             m.controls.float("harmonic_influence"),
             m.controls.float("stripe_max"),
         ],
@@ -198,23 +197,6 @@ pub fn view(_app: &App, m: &Model, frame: Frame) {
     let total_vertices = background_vertices + spiral_vertices;
 
     m.gpu.render_procedural(&frame, total_vertices);
-}
-
-fn get_phase(m: &Model, param_name: &str, animation_time: f32) -> f32 {
-    let animate_param = format!("animate_{}_phase", param_name);
-    let invert_param = format!("invert_animate_{}_phase", param_name);
-    let phase_param = format!("{}_phase", param_name);
-    let time = animation_time * m.controls.float("phase_animation_mult");
-
-    if m.controls.bool(&animate_param) {
-        if m.controls.bool(&invert_param) {
-            m.animation.loop_progress(time) * TAU
-        } else {
-            (1.0 - m.animation.loop_progress(time)) * TAU
-        }
-    } else {
-        m.controls.float(&phase_param)
-    }
 }
 
 fn create_blend_state() -> wgpu::BlendState {
