@@ -24,10 +24,10 @@ struct Params {
     // points_per_segment, noise_scale, angle_variation, n_lines
     b: vec4f,
 
-    // point_size, col_freq, width, unused
+    // point_size, col_freq, width, distortion
     c: vec4f,
 
-    // bg_brightness, time, invert, animate_angle_offset
+    // bg_brightness, time, invert, row_freq
     d: vec4f,
 
     // stripe_step, stripe_mix, stripe_amp, stripe_freq
@@ -36,7 +36,7 @@ struct Params {
     // animate_bg, circle_radius, circle_phase, wave_amp
     f: vec4f,
 
-    // center_count, center_spread, center_falloff, unused
+    // center_count, center_spread, center_falloff, circle_force
     g: vec4f,
 
     // stripe_min, stripe_phase, harmonic_influence, stripe_max
@@ -191,60 +191,63 @@ fn get_pos(
 ) -> vec2f {
     let distortion = params.c.w;
     let time = params.d.y;
-    let animate_angle_offset = params.d.w;
-    let n_lines = params.b.w;
+    let row_freq = params.d.w;
     let wave_amp = params.f.w;
     let center_count = params.g.x;  
     let center_spread = params.g.y; 
     let center_falloff = params.g.z;
-    let circle_radius = params.f.y;  // Controls actual circle size
-    let circle_phase = params.f.z; 
+    let circle_radius = params.f.y;
+    let circle_phase = params.f.z;
+    let circle_force = params.g.w;
+    let n_lines = params.b.w;
     
     // Base grid position
     let x = (t * 2.0 - 1.0) * width;
     let y = ((line_idx / (n_lines - 1.0)) * 2.0 - 1.0) * width;
     
-    // Create frequency-based displacement
-    let freq = max(col_freq, 0.1);
-    let displacement = sin(x * freq) * width * wave_amp;
+    // Create both horizontal and vertical grid waves
+    let x_freq = max(col_freq, 0.1);
+    let y_freq = max(row_freq, 0.1);
+    let x_wave = sin(x * x_freq) * width * wave_amp;
+    let y_wave = sin(y * y_freq) * width * wave_amp;
     
-    var pos = vec2f(x, y + displacement);
+    var pos = vec2f(
+        x + y_wave,
+        y + x_wave
+    );
     
     var total_distortion = vec2f(0.0);
     
     // Create distortion from multiple centers
     for (var i = 0.0; i < center_count; i += 1.0) {
-        // Calculate center position in a circle
         let center_angle = (i / center_count) * TAU + circle_phase;
         let center_pos = vec2f(
             cos(center_angle) * center_spread * width,
             sin(center_angle) * center_spread * width
         );
         
-        // Calculate distance to this center
         let delta = pos - center_pos;
         let dist = length(delta);
         
-        // Use circle_radius to define the actual size of each distortion circle
-        let circle_size = width * circle_radius;
+        if (dist == 0.0) { continue; }
         
-        // Create a more defined circle edge using smoothstep
-        let circle_edge = smoothstep(circle_size, circle_size * 0.8, dist);
-        let strength = circle_edge * distortion * width * 0.2;
+        let radius = width * circle_radius;
         
-        // Add radial distortion
-        total_distortion += normalize(delta) * strength;
+        // Calculate force that affects entire space
+        // Higher force closer to center, falls off with distance
+        let force = distortion * circle_force * radius / 
+            (dist + radius * 0.1);  // Avoid division by zero
+            
+        // Apply falloff based on distance
+        let falloff = exp(-dist * center_falloff / (width * 2.0));
+        
+        // Push outward from center
+        let direction = normalize(delta);
+        
+        total_distortion += direction * force * falloff;
     }
     
-    // Apply distortion with size preservation
-    let distortion_length = length(total_distortion);
-    let max_distortion = width * 0.3; // Maximum allowed distortion
-    if distortion_length > 0.0 {
-        total_distortion = normalize(total_distortion) * 
-            min(distortion_length, max_distortion);
-    }
-    
-    pos += total_distortion;
+    pos += total_distortion * width * 0.2;
     
     let angle = atan2(pos.y, pos.x);
     let final_r = length(pos);
