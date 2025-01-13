@@ -101,6 +101,7 @@ fn main() {
         "sand_line" => run_sketch!(sand_line),
         "sand_lines" => run_sketch!(sand_lines),
         "spiral" => run_sketch!(spiral),
+        "spiral_2" => run_sketch!(spiral_2),
         "spiral_auto" => run_sketch!(spiral_auto),
         "template" => run_sketch!(template),
         "template_wgpu" => run_sketch!(template_wgpu),
