@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(700),
+    gui_h: Some(680),
 };
 
 #[repr(C)]
@@ -79,7 +79,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
         Control::slider("phase_animation_mult", 1.0, (0.0, 1.0), 0.125),
         Control::Separator {}, // -----------------------------------
-        Control::slider("wave_freq", 10.0, (0.00, 64.0), 1.0),
         Control::checkbox("animate_wave_phase", false),
         Control::checkbox("invert_animate_wave_phase", false),
         Control::slider_x(
@@ -174,6 +173,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         .control_mapped("steep_freq", (0, 12), (0.00, 64.0), 1.0)
         .control_mapped("quant_freq", (0, 13), (0.00, 64.0), 1.0)
         .control_mapped("stripe_freq", (0, 14), (0.00, 64.0), 1.0)
+        .control_mapped("wave_freq", (0, 15), (0.00, 64.0), 1.0)
         .build();
 
     Model {
@@ -209,7 +209,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ],
         e: [
             m.midi.get("wave_amp"),
-            m.controls.float("wave_freq").ceil(),
+            m.midi.get("wave_freq").ceil(),
             m.midi.get("stripe_amp"),
             m.midi.get("stripe_freq").ceil(),
         ],
