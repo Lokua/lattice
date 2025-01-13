@@ -29,7 +29,7 @@ struct ShaderParams {
     // point_size, col_freq, width, distortion
     c: [f32; 4],
 
-    // bg_brightness, time, invert, animate_angle_offset
+    // bg_brightness, time, invert, row_freq
     d: [f32; 4],
 
     // stripe_step, stripe_mix, stripe_amp, stripe_freq
@@ -38,7 +38,7 @@ struct ShaderParams {
     // animate_bg, circle_radius, circle_phase, wave_amp
     f: [f32; 4],
 
-    // center_count, center_spread, center_falloff, unused
+    // center_count, center_spread, center_falloff, circle_force
     g: [f32; 4],
 
     // unused, stripe_phase, harmonic_influence, unused
@@ -67,20 +67,21 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("noise_scale", 0.001, (0.0, 0.1), 0.0001),
         Control::slider("angle_variation", 0.2, (0.0, TAU), 0.1),
         Control::Separator {}, // -----------------------------------
-        Control::slider("distortion", 0.9, (0.0, 10.0), 0.001),
-        Control::slider("col_freq", 0.5, (0.01, 64.0), 0.01),
+        Control::slider("col_freq", 0.5, (0.01, 128.0), 0.01),
+        Control::slider("row_freq", 0.5, (0.01, 128.0), 0.01),
         Control::slider("width", 1.0, (0.01, 2.00), 0.01),
-        Control::slider("wave_amp", 1.0, (0.001, 3.0), 0.001),
+        Control::slider("distortion", 0.9, (0.0, 10.0), 0.001),
+        Control::slider("wave_amp", 1.0, (0.0001, 0.5), 0.0001),
         Control::Separator {}, // -----------------------------------
         Control::slider("center_count", 1.0, (0.0, 10.0), 1.0),
         Control::slider("center_spread", 1.0, (0.0, 2.0), 0.001),
         Control::slider("center_falloff", 1.0, (0.01, 10.0), 0.01),
         Control::slider_norm("circle_radius", 0.5),
+        Control::slider("circle_force", 0.5, (0.001, 5.0), 0.001),
         Control::slider("circle_phase", 0.0, (0.0, TAU), 0.1),
         Control::Separator {}, // -----------------------------------
         Control::checkbox("invert", false),
         Control::checkbox("animate_bg", false),
-        Control::checkbox("animate_angle_offset", false),
         Control::slider("bg_brightness", 1.5, (0.0, 5.0), 0.01),
         Control::slider("phase_animation_mult", 1.0, (0.0, 1.0), 0.125),
         Control::Separator {}, // -----------------------------------
@@ -153,7 +154,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("bg_brightness"),
             m.animation.ping_pong(64.0),
             bool_to_f32(m.controls.bool("invert")),
-            bool_to_f32(m.controls.bool("animate_angle_offset")),
+            m.controls.float("row_freq"),
         ],
         e: [
             m.controls.float("stripe_step"),
@@ -171,7 +172,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("center_count"),
             m.controls.float("center_spread"),
             m.controls.float("center_falloff"),
-            0.0,
+            m.controls.float("circle_force"),
         ],
         h: [
             m.controls.float("stripe_min"),
