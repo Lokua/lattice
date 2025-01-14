@@ -46,14 +46,28 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::with_previous(vec![
+        Control::checkbox("animate_wave1_phase", false),
         Control::slider_norm("wave1_frequency", 0.02),
         Control::slider_norm("wave1_angle", 0.5),
-        Control::slider_norm("wave1_phase", 0.0),
+        Control::slider_x(
+            "wave1_phase",
+            0.0,
+            (0.0, 1.0),
+            0.0001,
+            |controls: &Controls| controls.bool("animate_wave1_phase"),
+        ),
         Control::slider_norm("wave1_y_influence", 0.5),
         Control::Separator {},
+        Control::checkbox("animate_wave2_phase", false),
         Control::slider_norm("wave2_frequency", 0.02),
         Control::slider_norm("wave2_angle", 0.5),
-        Control::slider_norm("wave2_phase", 0.0),
+        Control::slider_x(
+            "wave1_phase",
+            0.0,
+            (0.0, 1.0),
+            0.0001,
+            |controls: &Controls| controls.bool("animate_wave2_phase"),
+        ),
         Control::slider_norm("wave2_y_influence", 0.5),
         Control::Separator {},
         Control::slider_norm("pattern_mix", 0.0),
@@ -95,8 +109,18 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("wave2_angle"),
         ],
         b: [
-            m.controls.float("wave1_phase"),
-            m.controls.float("wave2_phase"),
+            if m.controls.bool("animate_wave1_phase") {
+                m.animation
+                    .r_ramp(&[kfr((0.0, 1.0), 4.0)], 0.0, 1.0, linear)
+            } else {
+                m.controls.float("wave1_phase")
+            },
+            if m.controls.bool("animate_wave2_phase") {
+                m.animation
+                    .r_ramp(&[kfr((0.0, 1.0), 4.0)], 2.0, 1.0, linear)
+            } else {
+                m.controls.float("wave1_phase")
+            },
             m.controls.float("wave1_y_influence"),
             m.controls.float("wave2_y_influence"),
         ],

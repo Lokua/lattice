@@ -25,7 +25,7 @@ impl ThemeColors {
             text_primary: Color32::from_gray(20),
             text_secondary: Color32::from_gray(40),
             // Also controls slider track, handle, number inputs
-            button_bg: Color32::from_gray(200),
+            button_bg: Color32::from_gray(190),
             button_active: Color32::from_gray(210),
             accent: Color32::from_rgb(20, 138, 242),
             text_data: Color32::from_rgb(0, 100, 0),
