@@ -10,6 +10,7 @@ pub mod genuary_14;
 pub mod genuary_2;
 pub mod genuary_5;
 pub mod heat_mask;
+pub mod interference;
 pub mod sand_lines;
 pub mod sierpinski_triangle;
 pub mod sierpinski_triangle_auto;

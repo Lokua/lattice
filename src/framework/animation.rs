@@ -244,6 +244,18 @@ impl Animation {
         value
     }
 
+    /// Convenience version of #r_amp that uses array of tuples instead of
+    /// KeyframeRandom ctor and omits the ramp argument for linear default.
+    pub fn r_rmp(
+        &self,
+        kfs: &[((f32, f32), f32)],
+        delay: f32,
+        ramp_time: f32,
+    ) -> f32 {
+        let kfs: Vec<KFR> = kfs.iter().map(|k| kfr(k.0, k.1)).collect();
+        self.r_ramp(&kfs, delay, ramp_time, linear)
+    }
+
     /// Animates through keyframes with stepped transitions and configurable ramping.
     ///
     /// Each keyframe value is held for its full duration. After transitioning to the
