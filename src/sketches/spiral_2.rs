@@ -77,7 +77,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider("center_count", 1.0, (0.0, 10.0), 1.0),
         Control::slider("center_spread", 1.0, (0.0, 2.0), 0.001),
         Control::slider("center_falloff", 1.0, (0.01, 10.0), 0.01),
-        Control::slider_norm("circle_radius", 0.5),
+        Control::slider("circle_radius", 0.5, (0.001, 2.0), 0.001),
         Control::slider("circle_force", 0.5, (0.001, 5.0), 0.001),
         Control::slider("circle_phase", 0.0, (0.0, TAU), 0.1),
         Control::Separator {}, // -----------------------------------

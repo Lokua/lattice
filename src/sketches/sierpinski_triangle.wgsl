@@ -1,6 +1,6 @@
 const PRIMARY_LEVEL_COLOR: vec4f = vec4f(0.95, 0.95, 0.95, 1.0);
 const SECOND_LEVEL_COLOR: vec4f = vec4f(0.1, 0.1, 0.6, 1.0);
-const THIRD_LEVEL_COLOR: vec4f = vec4f(1.0, 0.6, 0.2, 1.0);
+const THIRD_LEVEL_COLOR: vec4f = vec4f(1.0, 0.4, 0.2, 1.0);
 const FOURTH_LEVEL_COLOR: vec4f = vec4f(0.0, 0.3, 0.2, 1.0);
 const BACKGROUND_COLOR: vec4f = vec4f(0.0, 0.0, 0.0, 1.0);
 
@@ -101,8 +101,10 @@ fn get_pattern_at_level(p: vec2f, iterations: vec4i, level: i32) -> f32 {
 
             if (in_triangle(current_p, mid_top, mid_left, mid_right)) {
                 let center = (mid_top + mid_left + mid_right) / 3.0;
-                current_p = center + (center - current_p); // Rotate 180°
-                current_p = (current_p - center) * 2.0 + center; // Scale
+                // Rotate 180°
+                current_p = center + (center - current_p); 
+                // Scale
+                current_p = (current_p - center) * 2.0 + center; 
                 found_hole = true;
                 break;
             }
