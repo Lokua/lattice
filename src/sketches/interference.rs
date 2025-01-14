@@ -3,8 +3,8 @@ use nannou::prelude::*;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "genuary_14",
-    display_name: "Genuary 14: Black & White",
+    name: "interference",
+    display_name: "Interference",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
@@ -135,8 +135,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         d: [
             m.controls.float("curve_freq_x"),
             m.controls.float("curve_freq_y"),
-            m.animation.lrp(&[(0.0, 48.0), (1.0, 48.0)], 0.0),
-            // m.controls.float("wave_distort"),
+            m.controls.float("wave_distort"),
             m.controls.float("smoothing"),
         ],
         e: [0.0, 0.0, 0.0, 0.0],
