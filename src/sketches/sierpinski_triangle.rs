@@ -28,16 +28,20 @@ pub struct Model {
 struct ShaderParams {
     // w, h, ..unused
     resolution: [f32; 4],
-
-    // iterations, scale, ..unused
+    // primary_iterations, second_iterations, third_iterations, fourth_iterations
     a: [f32; 4],
+    // scale, y_offset, unused, unused
+    b: [f32; 4],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let controls = Controls::with_previous(vec![
-        Control::slider("iterations", 1.0, (0.0, 16.0), 1.0),
+        Control::slider("primary_iterations", 1.0, (0.0, 16.0), 1.0),
+        Control::slider("second_iterations", 1.0, (0.0, 16.0), 1.0),
+        Control::slider("third_iterations", 1.0, (0.0, 16.0), 1.0),
+        Control::slider("fourth_iterations", 1.0, (0.0, 16.0), 1.0),
         Control::slider("scale", 1.0, (0.0001, 2.0), 0.0001),
         Control::slider_norm("y_offset", 0.3),
     ]);
@@ -45,6 +49,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let params = ShaderParams {
         resolution: [0.0; 4],
         a: [0.0; 4],
+        b: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./sierpinski_triangle.wgsl");
@@ -62,9 +67,15 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     let params = ShaderParams {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         a: [
-            m.controls.float("iterations"),
+            m.controls.float("primary_iterations"),
+            m.controls.float("second_iterations"),
+            m.controls.float("third_iterations"),
+            m.controls.float("fourth_iterations"),
+        ],
+        b: [
             m.controls.float("scale"),
             m.controls.float("y_offset"),
+            0.0,
             0.0,
         ],
     };
