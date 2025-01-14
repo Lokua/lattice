@@ -19,11 +19,14 @@ struct Params {
     // wave1_phase, wave2_phase, wave1_y_influence, wave2_y_influence
     b: vec4f,
     
-    // pattern_mix, type mix, threshold, unused
+    // unused, type_mix, threshold, checkerboard
     c: vec4f,
 
     // curve_freq_x, curve_freq_y, wave_distort, smoothing
     d: vec4f,
+
+    // unused
+    e: vec4f,
 }
 
 @group(0) @binding(0)
@@ -42,83 +45,76 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     let w = params.resolution.x;
     let h = params.resolution.y;
     let aspect = w / h;
-    
     var p = position;
     p.x *= aspect;
 
-    let freq_scale = 10.0;
+    let wave1_frequency = params.a.x;
+    let wave1_angle = params.a.y;
+    let wave1_phase = params.b.x;
+    let wave1_y_influence = params.b.z;
 
-    let freq1 = 1.0 + params.a.x * freq_scale;
-    let angle1 = params.a.y * TAU;
-    let phase1 = params.b.x;
-    let y_influence1 = params.b.z;
-    
-    let freq2 = 1.0 + params.a.z * freq_scale;
-    let angle2 = params.a.w * TAU;
-    let phase2 = params.b.y;
-    let y_influence2 = params.b.w;
-    
-    let pattern_mix = params.c.x;
-    let pattern_type_mix = params.c.y;
-    let threshold = params.c.z;
-    
-    let curve_freq_x = params.d.x * 10.0; 
-    let curve_freq_y = params.d.y * 10.0;
+    let wave2_frequency = params.a.z;
+    let wave2_angle = params.a.w;
+    let wave2_phase = params.b.y;
+    let wave2_y_influence = params.b.w;
+
+    let curve_freq_x = params.d.x;
+    let curve_freq_y = params.d.y;
     let wave_distort = params.d.z;
     let smoothing = params.d.w;
-    
-    let rot1 = mat2x2f(
-        cos(angle1), -sin(angle1),
-        sin(angle1), cos(angle1)
-    );
-    
-    let rot2 = mat2x2f(
-        cos(angle2), -sin(angle2),
-        sin(angle2), cos(angle2)
-    );
-    
-    let p1 = rot1 * p;
-    let p2 = rot2 * p;
-    
-    let curve1 = sin(p1.y * y_influence1 * curve_freq_y) * 
-        cos(p1.x * y_influence1 * curve_freq_x);
-    let wave1x = freq1 * (p1.x + curve1 * wave_distort) + phase1;
-    
-    let curve2 = sin(p2.y * y_influence2 * curve_freq_y) * 
-        cos(p2.x * y_influence2 * curve_freq_x);
-    let wave2x = freq2 * (p2.x + curve2 * wave_distort) + phase2;
-    
-    let base1 = fract(wave1x);
-    let harmonic1 = fract(2.0 * wave1x + curve1 * wave_distort);
-    let harmonic1b = fract(3.0 * wave1x + curve1 * wave_distort * 1.5);
-    
-    let base2 = fract(wave2x);
-    let harmonic2 = fract(2.0 * wave2x + curve2 * wave_distort);
-    let harmonic2b = fract(3.0 * wave2x + curve2 * wave_distort * 1.5);
-    
-    let wave1 = mix(
-        base1,
-        mix(harmonic1, harmonic1b, pattern_type_mix),
-        pattern_type_mix
-    );
-    
-    let wave2 = mix(
-        base2,
-        mix(harmonic2, harmonic2b, pattern_type_mix),
-        pattern_type_mix
-    );
-    
+    let threshold = params.c.z;
+    let checkerboard = params.c.w;
+
+    let wave1 = calculate_wave(
+       p,
+       wave1_frequency,
+       wave1_angle, 
+       wave1_phase,
+       wave1_y_influence
+   );
+
+    let wave2 = calculate_wave(
+       p,
+       wave2_frequency,
+       wave2_angle,
+       wave2_phase,
+       wave2_y_influence
+   );
+
     let half_smooth = smoothing * 0.5;
     let square1 = smoothstep(0.5 - half_smooth, 0.5 + half_smooth, wave1);
     let square2 = smoothstep(0.5 - half_smooth, 0.5 + half_smooth, wave2);
-    
-    let mult_pattern = square1 * square2;
-    let add_pattern = 
-        smoothstep(1.0 - smoothing, 1.0 + smoothing, square1 + square2);
-    let pattern = mix(mult_pattern, add_pattern, pattern_mix);
-    
-    let value = 
-        smoothstep(threshold - half_smooth, threshold + half_smooth, pattern);
-    
-    return vec4f(value);
+
+    let pattern_a = square1 * square2;
+    let pattern_b = abs(square1 - square2) / (square1 + square2 + 0.1);
+    let value = select(pattern_a, pattern_b, checkerboard == 1.0);
+   
+   return vec4f(value);
+}
+
+fn calculate_wave(
+   p: vec2f,
+   frequency: f32,
+   angle: f32,
+   phase: f32,
+   y_influence: f32
+) -> f32 {
+   let curve_freq_x = params.d.x;
+   let curve_freq_y = params.d.y;
+   let wave_distort = params.d.z;
+   let type_mix = params.c.y;
+
+   let rot = mat2x2f(
+       cos(angle * TAU), -sin(angle * TAU),
+       sin(angle * TAU), cos(angle * TAU)
+   );
+   let rotated_p = rot * p;
+   let curve = 
+       sin(rotated_p.y * y_influence * curve_freq_y * 10.0) * 
+       cos(rotated_p.x * y_influence * curve_freq_x * 10.0);
+   let freq = 1.0 + frequency * 10.0;
+   let wave_x = freq * (rotated_p.x + curve * wave_distort) + phase;
+   let base = fract(wave_x);
+   let harmonic = fract(3.0 * wave_x + curve * wave_distort * 1.5);
+   return mix(base, harmonic, type_mix);
 }
