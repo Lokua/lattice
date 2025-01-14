@@ -11,7 +11,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(500),
+    gui_h: Some(580),
 };
 
 #[derive(SketchComponents)]
@@ -35,11 +35,14 @@ struct ShaderParams {
     // wave1_phase, wave2_phase, wave1_y_influence, wave2_y_influence
     b: [f32; 4],
 
-    // pattern_mix, type mix, threshold, unused
+    // unused, type_mix, threshold, checkerboard
     c: [f32; 4],
 
     // curve_freq_x, curve_freq_y, wave_distort, smoothing
     d: [f32; 4],
+
+    // unused
+    e: [f32; 4],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -48,7 +51,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let controls = Controls::with_previous(vec![
         Control::checkbox("animate_wave1_phase", false),
         Control::slider_norm("wave1_frequency", 0.02),
-        Control::slider_norm("wave1_angle", 0.5),
+        Control::slider("wave1_angle", 0.0, (0.0, 1.0), 0.125),
         Control::slider_x(
             "wave1_phase",
             0.0,
@@ -60,9 +63,9 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::Separator {},
         Control::checkbox("animate_wave2_phase", false),
         Control::slider_norm("wave2_frequency", 0.02),
-        Control::slider_norm("wave2_angle", 0.5),
+        Control::slider("wave2_angle", 0.0, (0.0, 1.0), 0.125),
         Control::slider_x(
-            "wave1_phase",
+            "wave2_phase",
             0.0,
             (0.0, 1.0),
             0.0001,
@@ -70,8 +73,8 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         ),
         Control::slider_norm("wave2_y_influence", 0.5),
         Control::Separator {},
-        Control::slider_norm("pattern_mix", 0.0),
-        Control::slider_norm("pattern_type_mix", 0.0),
+        Control::checkbox("checkerboard", false),
+        Control::slider_norm("type_mix", 0.0),
         Control::slider_norm("threshold", 0.5),
         Control::Separator {},
         Control::slider_norm("curve_freq_x", 0.3),
@@ -86,6 +89,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         b: [0.0; 4],
         c: [0.0; 4],
         d: [0.0; 4],
+        e: [0.0; 4],
     };
 
     let shader = wgpu::include_wgsl!("./genuary_14.wgsl");
@@ -119,16 +123,16 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
                 m.animation
                     .r_ramp(&[kfr((0.0, 1.0), 4.0)], 2.0, 1.0, linear)
             } else {
-                m.controls.float("wave1_phase")
+                m.controls.float("wave2_phase")
             },
             m.controls.float("wave1_y_influence"),
             m.controls.float("wave2_y_influence"),
         ],
         c: [
-            m.controls.float("pattern_mix"),
-            m.controls.float("pattern_type_mix"),
-            m.controls.float("threshold"),
             0.0,
+            m.controls.float("type_mix"),
+            m.controls.float("threshold"),
+            bool_to_f32(m.controls.bool("checkerboard")),
         ],
         d: [
             m.controls.float("curve_freq_x"),
@@ -136,6 +140,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("wave_distort"),
             m.controls.float("smoothing"),
         ],
+        e: [0.0, 0.0, 0.0, 0.0],
     };
 
     m.gpu.update_params(app, &params);
