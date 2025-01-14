@@ -1,5 +1,9 @@
 Files sorted from most to least recent
 
+## sierpinski_triangle-0rb2k.png
+
+<img src="images/sierpinski_triangle-0rb2k.png" alt="sierpinski_triangle-0rb2k.png">
+
 ## spiral_2-b6208.png
 
 <img src="images/spiral_2-b6208.png" alt="spiral_2-b6208.png">
