@@ -32,10 +32,8 @@ pub struct Model {
 }
 
 pub fn init_model(_app: &App, wr: WindowRect) -> Model {
-    let w = SKETCH_CONFIG.w;
-    let h = SKETCH_CONFIG.h;
-    let grid_w = w as f32 - 80.0;
-    let grid_h = h as f32 - 80.0;
+    let grid_w = wr.w() - 80.0;
+    let grid_h = wr.h() - 80.0;
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
     let modes = ["attract", "influence"];
