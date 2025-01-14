@@ -10,6 +10,7 @@ pub mod genuary_2;
 pub mod genuary_5;
 pub mod heat_mask;
 pub mod sand_lines;
+pub mod sierpinski_triangle;
 pub mod spiral;
 pub mod spiral_2;
 pub mod spiral_auto;

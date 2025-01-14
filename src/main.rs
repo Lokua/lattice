@@ -100,6 +100,7 @@ fn main() {
         "responsive_test" => run_sketch!(responsive_test),
         "sand_line" => run_sketch!(sand_line),
         "sand_lines" => run_sketch!(sand_lines),
+        "sierpinski_triangle" => run_sketch!(sierpinski_triangle),
         "spiral" => run_sketch!(spiral),
         "spiral_2" => run_sketch!(spiral_2),
         "spiral_auto" => run_sketch!(spiral_auto),
