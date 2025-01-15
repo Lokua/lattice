@@ -7,7 +7,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Genuary 14: Black & White",
     play_mode: PlayMode::Loop,
     fps: 60.0,
-    bpm: 134.0,
+    bpm: 127.0,
     w: 700,
     h: 700,
     gui_w: None,
@@ -48,6 +48,8 @@ struct ShaderParams {
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
+    let disable = |_controls: &Controls| true;
+
     let controls = Controls::with_previous(vec![
         Control::checkbox("animate_wave1_phase", false),
         Control::slider_norm("wave1_frequency", 0.02),
@@ -77,9 +79,9 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider_norm("type_mix", 0.0),
         Control::slider_norm("threshold", 0.5),
         Control::Separator {},
-        Control::slider_norm("curve_freq_x", 0.3),
-        Control::slider_norm("curve_freq_y", 0.3),
-        Control::slider_norm("wave_distort", 0.4),
+        Control::slider("curve_freq_x", 0.3, (0.0, 2.0), 0.01),
+        Control::slider("curve_freq_y", 0.3, (0.0, 2.0), 0.01),
+        Control::slider_x("wave_distort", 0.4, (0.0, 1.0), 0.001, disable),
         Control::slider_norm("smoothing", 0.5),
     ]);
 
