@@ -19,7 +19,7 @@ struct Params {
     // wave1_phase, wave2_phase, wave1_y_influence, wave2_y_influence
     b: vec4f,
     
-    // unused, type_mix, threshold, checkerboard
+    // unused, type_mix, unused, checkerboard
     c: vec4f,
 
     // curve_freq_x, curve_freq_y, wave_distort, smoothing
@@ -52,33 +52,33 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     let wave1_angle = params.a.y;
     let wave1_phase = params.b.x;
     let wave1_y_influence = params.b.z;
+    let wave1_amp = params.e.x;
 
     let wave2_frequency = params.a.z;
     let wave2_angle = params.a.w;
     let wave2_phase = params.b.y;
     let wave2_y_influence = params.b.w;
+    let wave2_amp = params.e.y;
 
-    let curve_freq_x = params.d.x;
-    let curve_freq_y = params.d.y;
-    let wave_distort = params.d.z;
     let smoothing = params.d.w;
-    let threshold = params.c.z;
     let checkerboard = params.c.w;
 
     let wave1 = calculate_wave(
-       p,
-       wave1_frequency,
-       wave1_angle, 
-       wave1_phase,
-       wave1_y_influence
+        p,
+        wave1_frequency,
+        wave1_angle, 
+        wave1_phase,
+        wave1_y_influence,
+        wave1_amp
    );
 
     let wave2 = calculate_wave(
-       p,
-       wave2_frequency,
-       wave2_angle,
-       wave2_phase,
-       wave2_y_influence
+        p,
+        wave2_frequency,
+        wave2_angle,
+        wave2_phase,
+        wave2_y_influence,
+        wave2_amp
    );
 
     let half_smooth = smoothing * 0.5;
@@ -97,24 +97,27 @@ fn calculate_wave(
    frequency: f32,
    angle: f32,
    phase: f32,
-   y_influence: f32
+   y_influence: f32,
+   amp: f32
 ) -> f32 {
-   let curve_freq_x = params.d.x;
-   let curve_freq_y = params.d.y;
-   let wave_distort = params.d.z;
-   let type_mix = params.c.y;
+    let curve_freq_x = params.d.x;
+    let curve_freq_y = params.d.y;
+    let wave_distort = params.d.z;
+    let type_mix = params.c.y;
 
-   let rot = mat2x2f(
-       cos(angle * TAU), -sin(angle * TAU),
-       sin(angle * TAU), cos(angle * TAU)
-   );
-   let rotated_p = rot * p;
-   let curve = 
-       sin(rotated_p.y * y_influence * curve_freq_y * 10.0) * 
-       cos(rotated_p.x * y_influence * curve_freq_x * 10.0);
-   let freq = 1.0 + frequency * 10.0;
-   let wave_x = freq * (rotated_p.x + curve * wave_distort) + phase;
-   let base = fract(wave_x);
-   let harmonic = fract(3.0 * wave_x + curve * wave_distort * 1.5);
-   return mix(base, harmonic, type_mix);
+    let rot = mat2x2f(
+        cos(angle * TAU), -sin(angle * TAU),
+        sin(angle * TAU), cos(angle * TAU)
+    );
+    let rotated_p = rot * p;
+
+    let curve = 
+        sin(rotated_p.y * y_influence * curve_freq_y * 10.0) * 
+        cos(rotated_p.x * y_influence * curve_freq_x * 10.0);
+
+    let freq = 1.0 + frequency * 10.0;
+    let wave_x = freq * (rotated_p.x + curve * wave_distort * amp) + phase;
+    let base = fract(wave_x);
+    let harmonic = fract(3.0 * wave_x + curve * wave_distort * 1.5);
+    return mix(base, harmonic, type_mix);
 }

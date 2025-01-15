@@ -35,13 +35,13 @@ struct ShaderParams {
     // wave1_phase, wave2_phase, wave1_y_influence, wave2_y_influence
     b: [f32; 4],
 
-    // unused, type_mix, threshold, checkerboard
+    // unused, type_mix, unused, checkerboard
     c: [f32; 4],
 
     // curve_freq_x, curve_freq_y, wave_distort, smoothing
     d: [f32; 4],
 
-    // unused
+    // wave1_amp, wave2_amp, ..unused
     e: [f32; 4],
 }
 
@@ -50,6 +50,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 
     let controls = Controls::with_previous(vec![
         Control::checkbox("animate_wave1_phase", false),
+        Control::slider("wave1_amp", 1.0, (0.0, 2.0), 0.001),
         Control::slider_norm("wave1_frequency", 0.02),
         Control::slider("wave1_angle", 0.0, (0.0, 1.0), 0.125),
         Control::slider_x(
@@ -60,8 +61,9 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             |controls: &Controls| controls.bool("animate_wave1_phase"),
         ),
         Control::slider_norm("wave1_y_influence", 0.5),
-        Control::Separator {},
+        Control::Separator {}, // ------------------------------------------
         Control::checkbox("animate_wave2_phase", false),
+        Control::slider("wave2_amp", 1.0, (0.0, 2.0), 0.001),
         Control::slider_norm("wave2_frequency", 0.02),
         Control::slider("wave2_angle", 0.0, (0.0, 1.0), 0.125),
         Control::slider_x(
@@ -72,13 +74,11 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             |controls: &Controls| controls.bool("animate_wave2_phase"),
         ),
         Control::slider_norm("wave2_y_influence", 0.5),
-        Control::Separator {},
+        Control::Separator {}, // ------------------------------------------
         Control::checkbox("checkerboard", false),
         Control::slider_norm("type_mix", 0.0),
-        Control::slider_norm("threshold", 0.5),
-        Control::Separator {},
-        Control::slider_norm("curve_freq_x", 0.3),
-        Control::slider_norm("curve_freq_y", 0.3),
+        Control::slider("curve_freq_x", 0.3, (0.0, 2.0), 0.001),
+        Control::slider("curve_freq_y", 0.3, (0.0, 2.0), 0.001),
         Control::slider_norm("wave_distort", 0.4),
         Control::slider_norm("smoothing", 0.5),
     ]);
@@ -92,7 +92,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         e: [0.0; 4],
     };
 
-    let shader = wgpu::include_wgsl!("./genuary_14.wgsl");
+    let shader = wgpu::include_wgsl!("./interference.wgsl");
     let gpu = gpu::GpuState::new(app, shader, &params);
 
     Model {
@@ -129,7 +129,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         c: [
             0.0,
             m.controls.float("type_mix"),
-            m.controls.float("threshold"),
+            0.0,
             bool_to_f32(m.controls.bool("checkerboard")),
         ],
         d: [
@@ -138,7 +138,12 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("wave_distort"),
             m.controls.float("smoothing"),
         ],
-        e: [0.0, 0.0, 0.0, 0.0],
+        e: [
+            m.controls.float("wave1_amp"),
+            m.controls.float("wave2_amp"),
+            0.0,
+            0.0,
+        ],
     };
 
     m.gpu.update_params(app, &params);
