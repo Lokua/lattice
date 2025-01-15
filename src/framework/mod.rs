@@ -10,6 +10,7 @@ pub mod gpu;
 pub mod logging;
 pub mod midi;
 pub mod noise;
+pub mod osc;
 pub mod prelude;
 pub mod sand_line;
 pub mod sketch;

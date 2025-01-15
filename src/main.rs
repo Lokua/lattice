@@ -98,6 +98,7 @@ fn main() {
         "lines" => run_sketch!(lines),
         "midi_test" => run_sketch!(midi_test),
         "noise" => run_sketch!(noise),
+        "osc_test" => run_sketch!(osc_test),
         "perlin_loop" => run_sketch!(perlin_loop),
         "responsive_test" => run_sketch!(responsive_test),
         "sand_line" => run_sketch!(sand_line),
