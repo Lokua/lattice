@@ -15,5 +15,6 @@ pub mod osc;
 pub mod prelude;
 pub mod sand_line;
 pub mod sketch;
+pub mod timing;
 pub mod util;
 pub mod window_rect;

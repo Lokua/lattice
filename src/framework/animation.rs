@@ -40,7 +40,6 @@ impl KeyframeRandom {
         Self { range, duration }
     }
 
-    // TODO: make private again after merging
     fn generate_value(&self, seed: u64) -> f32 {
         let mut rng = StdRng::seed_from_u64(seed);
         let random = rng.gen::<f32>();
@@ -61,47 +60,42 @@ pub struct Trigger {
 }
 
 #[derive(Clone, Debug)]
-pub struct Animation {
-    bpm: f32,
+pub struct Animation<T: TimingSource = FrameTiming> {
+    timing: T,
 }
 
-impl Animation {
+// Backwards compatible constructor
+impl Animation<FrameTiming> {
     pub fn new(bpm: f32) -> Self {
-        Self { bpm }
+        Self {
+            timing: FrameTiming::new(bpm, frame_controller::fps()),
+        }
+    }
+}
+
+impl<T: TimingSource> Animation<T> {
+    pub fn with_timing(timing: T) -> Self {
+        Self { timing }
     }
 
-    /// Retrieves the current frame count from the frame controller.
-    /// returns f32 for math convenience (frame_controller uses u32)
-    fn current_frame(&self) -> f32 {
-        frame_controller::frame_count() as f32
+    /// Gets the current beat position
+    fn beat_position(&self) -> f32 {
+        self.timing.beat_position()
     }
 
-    /// Retrieves the current frame count from the frame controller.
-    /// returns f32 for math convenience (frame_controller uses u32)
-    fn fps(&self) -> f32 {
-        frame_controller::fps()
+    /// Gets total beats elapsed
+    fn total_beats(&self) -> f32 {
+        self.timing.total_beats()
     }
 
-    /// Converts beats to frames based on BPM and FPS.
+    /// Converts beats to frames using timing source
     pub fn beats_to_frames(&self, beats: f32) -> f32 {
-        let seconds_per_beat = 60.0 / self.bpm;
-        let total_seconds = beats * seconds_per_beat;
-        total_seconds * self.fps()
-    }
-
-    /// Returns total beats elapsed since start
-    pub fn get_total_beats_elapsed(&self) -> f32 {
-        self.current_frame() / self.beats_to_frames(1.0)
+        self.timing.beats_to_frames(beats)
     }
 
     pub fn loop_progress(&self, duration: f32) -> f32 {
-        let frame_count = self.current_frame();
-        let fps = frame_controller::fps();
-        let beat_duration = 60.0 / self.bpm;
-        let total_frames = beat_duration * duration * fps;
-        let current_frame = frame_count % total_frames;
-        let progress = current_frame / total_frames as f32;
-        progress
+        let total_beats = self.total_beats();
+        (total_beats / duration) % 1.0
     }
 
     pub fn ping_pong(&self, duration: f32) -> f32 {
@@ -117,15 +111,7 @@ impl Animation {
         }
     }
 
-    /// Creates a new trigger that when used in conjuction with `should_trigger`
-    /// will fire at regular intervals with an optional delay.
-    ///
-    /// # Arguments
-    /// * `every` - Number of beats between each trigger
-    /// * `delay` - Offfset before trigger (in beats)
-    ///
-    /// # Panics
-    /// * If delay is greater than or equal to the interval length (`every`)
+    /// Creates a new trigger with specified interval and delay
     pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
         if delay >= every {
             panic!("Delay must be less than interval length");
@@ -138,21 +124,11 @@ impl Animation {
         }
     }
 
-    /// Checks if a trigger should fire based on the current beat position.
-    /// Returns true if:
-    /// 1. We're in a new interval (crossed an interval boundary)
-    /// 2. We're past the delay point in the current interval
-    /// 3. We haven't already triggered in this interval
-    ///
-    /// # Arguments
-    /// * `config` - Mutable reference to a Trigger config
-    ///
-    /// # Returns
-    /// * `true` if the trigger should fire, `false` otherwise
+    /// Checks if a trigger should fire based on current beat position
     pub fn should_trigger(&self, config: &mut Trigger) -> bool {
-        let total_beats_elapsed = self.get_total_beats_elapsed();
-        let current_interval = (total_beats_elapsed / config.every).floor();
-        let position_in_interval = total_beats_elapsed % config.every;
+        let total_beats = self.total_beats();
+        let current_interval = (total_beats / config.every).floor();
+        let position_in_interval = total_beats % config.every;
 
         let should_trigger = current_interval != config.last_trigger_count
             && position_in_interval >= config.delay;
@@ -164,21 +140,14 @@ impl Animation {
         should_trigger
     }
 
-    /// Convenience version of #lerp that uses array of tuples instead of Keyframe ctor
-    /// and also provides an ending Keyframe that mirrors the first Keyframe value
-    /// for continuous wrapping.
+    /// Convenience version of lerp that uses array of tuples
     pub fn lrp(&self, kfs: &[(f32, f32)], delay: f32) -> f32 {
         let mut kfs: Vec<KF> = kfs.iter().map(|k| kf(k.0, k.1)).collect();
         kfs.push(kf(kfs[0].value, KF::END));
         self.lerp(kfs, delay)
     }
 
-    /// Animates through keyframes with continuous linear interpolation.
-    /// Each keyframe value smoothly transitions to the next over its duration.
-    ///
-    /// # Arguments
-    /// * `keyframes` - Vector of keyframes defining values and their durations (in beats)
-    /// * `delay` - Initial delay before animation starts in each keyframe (in beats)
+    /// Animates through keyframes with continuous linear interpolation
     pub fn lerp(&self, keyframes: Vec<Keyframe>, delay: f32) -> f32 {
         let total_beats: f32 = keyframes
             .iter()
@@ -186,14 +155,14 @@ impl Animation {
             .map(|kf| kf.duration)
             .sum();
 
-        let total_frames = self.beats_to_frames(total_beats);
-        let delay_frames = self.beats_to_frames(delay);
-        let wrapped_frame = self.current_frame() % total_frames;
+        let current_beat = self.beat_position();
+        let delay_beats = delay;
+        let wrapped_beat = current_beat % total_beats;
 
-        if wrapped_frame < delay_frames {
+        if wrapped_beat < delay_beats {
             return keyframes[0].value;
         }
-        if wrapped_frame >= total_frames {
+        if wrapped_beat >= total_beats {
             return keyframes[keyframes.len() - 1].value;
         }
 
@@ -202,9 +171,7 @@ impl Animation {
             let duration_to_here: f32 =
                 keyframes.iter().take(index + 1).map(|kf| kf.duration).sum();
 
-            let frames_to_here = self.beats_to_frames(duration_to_here);
-
-            if wrapped_frame < frames_to_here {
+            if wrapped_beat < duration_to_here {
                 current_segment_index = index;
                 break;
             }
@@ -219,34 +186,17 @@ impl Animation {
             .map(|kf| kf.duration)
             .sum();
 
-        let frame_in_segment =
-            wrapped_frame - self.beats_to_frames(segment_start_beats);
-        let segment_progress =
-            frame_in_segment / self.beats_to_frames(current_keyframe.duration);
-        let value = lerp(
+        let beat_in_segment = wrapped_beat - segment_start_beats;
+        let segment_progress = beat_in_segment / current_keyframe.duration;
+
+        lerp(
             current_keyframe.value,
             next_keyframe.value,
             segment_progress,
-        );
-
-        trace!("--- lerp");
-        trace!("wrapped_frame: {}", wrapped_frame);
-        trace!("total_beats: {}", total_beats);
-        trace!("total_frames: {}", total_frames);
-        trace!("current_segment_index: {}", current_segment_index);
-        trace!("current_keyframe.value: {}", current_keyframe.value);
-        trace!("next_keyframe.value: {}", next_keyframe.value);
-        trace!("segment_start_beats: {}", segment_start_beats);
-        trace!("frame_in_segment: {}", frame_in_segment);
-        trace!("segment_progress: {}", segment_progress);
-        trace!("value: {}", value);
-        trace!("---");
-
-        value
+        )
     }
 
-    /// Convenience version of #r_amp that uses array of tuples instead of
-    /// KeyframeRandom ctor and omits the ramp argument for linear default.
+    /// Convenience version of r_ramp
     pub fn r_rmp(
         &self,
         kfs: &[((f32, f32), f32)],
@@ -257,16 +207,7 @@ impl Animation {
         self.r_ramp(&kfs, delay, ramp_time, linear)
     }
 
-    /// Animates through keyframes with stepped transitions and configurable ramping.
-    ///
-    /// Each keyframe value is held for its full duration. After transitioning to the
-    /// next keyframe, the value ramps to the next value over the specified ramp_time.
-    ///
-    /// # Arguments
-    /// * `keyframes` - Vector of keyframes defining values and their durations
-    /// * `delay` - Initial delay before ramp starts in each keyframe
-    /// * `ramp_time` - Duration of transition between keyframe values (in beats)
-    /// * `ramp` - Function to control the transition curve (0.0 to 1.0)
+    /// Animates through keyframes with stepped transitions and configurable ramping
     pub fn ramp(
         &self,
         keyframes: Vec<Keyframe>,
@@ -279,17 +220,16 @@ impl Animation {
         }
 
         let total_beats: f32 = keyframes.iter().map(|kf| kf.duration).sum();
-        let total_frames = self.beats_to_frames(total_beats);
-        let delay_frames = self.beats_to_frames(delay);
-        let wrapped_frame = self.current_frame() % total_frames;
+        let wrapped_beat = self.beat_position() % total_beats;
+        let delay_beats = delay;
 
         // Handle delay period
-        if wrapped_frame < delay_frames {
+        if wrapped_beat < delay_beats {
             return keyframes[0].value;
         }
 
         // No ramping at absolute start
-        if self.current_frame() <= self.beats_to_frames(ramp_time) {
+        if self.beat_position() <= ramp_time {
             return keyframes[0].value;
         }
 
@@ -299,15 +239,12 @@ impl Animation {
 
         for (index, kf) in keyframes.iter().enumerate() {
             beats_elapsed += kf.duration;
-            let frames_elapsed = self.beats_to_frames(beats_elapsed);
-
-            if wrapped_frame < frames_elapsed {
+            if wrapped_beat < beats_elapsed {
                 current_segment_index = index;
                 break;
             }
         }
 
-        // Get the current keyframe
         let current_keyframe = &keyframes[current_segment_index];
 
         // Calculate position within current segment
@@ -317,9 +254,8 @@ impl Animation {
             .map(|kf| kf.duration)
             .sum();
 
-        let frame_in_segment =
-            wrapped_frame - self.beats_to_frames(segment_start_beats);
-        let time_in_segment = frame_in_segment / self.beats_to_frames(1.0);
+        let beat_in_segment = wrapped_beat - segment_start_beats;
+        let time_in_segment = beat_in_segment;
 
         let previous_index = if current_segment_index == 0 {
             keyframes.len() - 1
@@ -332,31 +268,13 @@ impl Animation {
         let clamped_progress = ramp_progress.clamp(0.0, 1.0);
         let eased_progress = ramp(clamped_progress);
 
-        let value = if time_in_segment <= ramp_time {
+        if time_in_segment <= ramp_time {
             lerp(previous_value, current_keyframe.value, eased_progress)
         } else {
             current_keyframe.value
-        };
-
-        trace!("--- ramp");
-        trace!("wrapped_frame: {}", wrapped_frame);
-        trace!("total_beats: {}", total_beats);
-        trace!("total_frames: {}", total_frames);
-        trace!("current_segment_index: {}", current_segment_index);
-        trace!("current_keyframe.value: {}", current_keyframe.value);
-        trace!("previous_value: {}", previous_value);
-        trace!("segment_start_beats: {}", segment_start_beats);
-        trace!("frame_in_segment: {}", frame_in_segment);
-        trace!("time_in_segment: {}", time_in_segment);
-        trace!("clamped_progress: {}", clamped_progress);
-        trace!("eased_progress: {}", eased_progress);
-        trace!("value: {}", value);
-        trace!("---");
-
-        value
+        }
     }
 
-    // IMPORTANT: will bug out if any keyframe durations exceed ramp_time+delay
     pub fn r_ramp(
         &self,
         keyframes: &[KeyframeRandom],
@@ -369,17 +287,15 @@ impl Animation {
         }
 
         let total_beats: f32 = keyframes.iter().map(|kf| kf.duration).sum();
-        let total_frames = self.beats_to_frames(total_beats);
-        let delay_frames = self.beats_to_frames(delay);
-        let wrapped_frame = self.current_frame() % total_frames;
+        let wrapped_beat = self.beat_position() % total_beats;
+        let delay_beats = delay;
 
-        // let current_cycle = (self.current_frame() / total_frames) as u64;
-        // Add a small epsilon before flooring to avoid floating-point jitter at boundaries
-        let cycle_float = (self.current_frame() / total_frames) + 1e-9;
+        // Calculate cycle based on total beats
+        let cycle_float = (self.total_beats() / total_beats) + 1e-9;
         let current_cycle = cycle_float.floor() as u64;
 
-        // Handle initial case - first frame of first cycle
-        if self.current_frame() == 0.0 {
+        // Handle initial case
+        if self.total_beats() == 0.0 {
             return keyframes[0].generate_value(0);
         }
 
@@ -389,9 +305,7 @@ impl Animation {
 
         for (index, kf) in keyframes.iter().enumerate() {
             beats_elapsed += kf.duration;
-            let frames_elapsed = self.beats_to_frames(beats_elapsed);
-
-            if wrapped_frame < frames_elapsed {
+            if wrapped_beat < beats_elapsed {
                 current_segment_index = index;
                 break;
             }
@@ -404,8 +318,7 @@ impl Animation {
             .map(|kf| kf.duration)
             .sum();
 
-        let frame_in_segment =
-            wrapped_frame - self.beats_to_frames(segment_start_beats);
+        let beat_in_segment = wrapped_beat - segment_start_beats;
 
         // Generate current value
         let current_value = if current_segment_index == 0 {
@@ -430,19 +343,18 @@ impl Animation {
         };
 
         // Handle delay period
-        if frame_in_segment < delay_frames {
+        if beat_in_segment < delay_beats {
             return previous_value;
         }
 
         // Calculate ramp progress after delay
-        let adjusted_frames = frame_in_segment - delay_frames;
-        let ramp_frames = self.beats_to_frames(ramp_time);
-        let ramp_progress = adjusted_frames / ramp_frames;
+        let adjusted_beats = beat_in_segment - delay_beats;
+        let ramp_progress = adjusted_beats / ramp_time;
         let clamped_progress = ramp_progress.clamp(0.0, 1.0);
         let eased_progress = ramp(clamped_progress);
 
         // Return interpolated or final value
-        if adjusted_frames <= ramp_frames {
+        if adjusted_beats <= ramp_time {
             lerp(previous_value, current_value, eased_progress)
         } else {
             current_value
@@ -471,7 +383,7 @@ pub mod tests {
         frame_controller::set_frame_count(frame_count);
     }
 
-    fn create_instance() -> Animation {
+    fn create_instance() -> Animation<FrameTiming> {
         Animation::new(BPM)
     }
 

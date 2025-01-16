@@ -14,6 +14,7 @@ pub use crate::framework::noise::*;
 pub use crate::framework::osc::*;
 pub use crate::framework::sand_line;
 pub use crate::framework::sketch::*;
+pub use crate::framework::timing::*;
 pub use crate::framework::util::*;
 pub use crate::framework::window_rect::*;
 pub use crate::string_vec;
