@@ -7,7 +7,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     display_name: "Genuary 14: Interference",
     play_mode: PlayMode::Loop,
     fps: 60.0,
-    bpm: 134.0,
+    bpm: 127.0,
     w: 700,
     h: 700,
     gui_w: None,
@@ -16,12 +16,11 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    #[allow(dead_code)]
     animation: Animation,
+    animation_script: AnimationScript,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
-    osc: OscControls,
 }
 
 #[repr(C)]
@@ -49,6 +48,11 @@ struct ShaderParams {
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(SKETCH_CONFIG.bpm);
 
+    let animation_script = AnimationScript::new(
+        to_absolute_path(file!(), "genuary_14.toml"),
+        animation.clone(),
+    );
+
     let controls = Controls::with_previous(vec![]);
 
     let params = ShaderParams {
@@ -63,55 +67,52 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let shader = wgpu::include_wgsl!("./genuary_14.wgsl");
     let gpu = gpu::GpuState::new(app, shader, &params);
 
-    let osc = OscControlBuilder::new()
-        .control_mapped("/wave1_amp", (0.0, 2.0), 0.0)
-        .control("/wave1_freq", 0.0)
-        .control("/wave1_y", 0.0)
-        .control_mapped("/wave2_amp", (0.0, 2.0), 0.0)
-        .control("/wave2_freq", 0.0)
-        .control("/wave2_y", 0.0)
-        .control("/checker", 0.0)
-        .control("/type_mix", 0.0)
-        .control_mapped("/curve_x", (0.0, 2.0), 0.3)
-        .control_mapped("/curve_y", (0.0, 2.0), 0.3)
-        .control("/wave_distort", 0.0)
-        .control("/phase_mod", 0.0)
-        .build();
-
     Model {
         animation,
+        animation_script,
         controls,
         wr,
         gpu,
-        osc,
     }
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
-    let phase_mod = m.osc.get("/phase_mod");
+    m.animation_script.update();
+
+    let phase_mod = m.animation_script.get("phase_mod");
 
     let params = ShaderParams {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         a: [
-            m.osc.get("/wave1_freq"),
+            m.animation_script.get("wave1_freq"),
             0.0, // wave1_angle
-            m.osc.get("/wave2_freq"),
+            m.animation_script.get("wave2_freq"),
             0.25, // wave2_angle
         ],
         b: [
             m.animation.r_rmp(&[((0.0, phase_mod), 2.0)], 0.0, 1.0),
             m.animation.r_rmp(&[((0.0, phase_mod), 2.0)], 1.0, 1.0),
-            m.osc.get("/wave1_y"),
-            m.osc.get("/wave2_y"),
+            m.animation_script.get("wave1_y"),
+            m.animation_script.get("wave2_y"),
         ],
-        c: [0.0, m.osc.get("/type_mix"), 0.0, m.osc.get("/checker")],
+        c: [
+            0.0,
+            m.animation_script.get("type_mix"),
+            0.0,
+            m.animation_script.get("checker"),
+        ],
         d: [
-            m.osc.get("/curve_x"),
-            m.osc.get("/curve_y"),
-            m.osc.get("/wave_distort"),
+            m.animation_script.get("curve_x"),
+            m.animation_script.get("curve_y"),
+            m.animation_script.get("wave_distort"),
             0.0, // smoothing
         ],
-        e: [m.osc.get("/wave1_amp"), m.osc.get("/wave2_amp"), 0.0, 0.0],
+        e: [
+            m.animation_script.get("wave1_amp"),
+            m.animation_script.get("wave2_amp"),
+            0.0,
+            0.0,
+        ],
     };
 
     m.gpu.update_params(app, &params);

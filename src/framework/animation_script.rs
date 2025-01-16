@@ -115,12 +115,15 @@ impl AnimationScript {
 
             self.keyframe_sequences.insert(param.clone(), keyframes);
         }
+
+        debug!("keyframe_sequences: {:?}", self.keyframe_sequences);
     }
 
     pub fn get(&self, param: &str) -> f32 {
         if let Some(keyframes) = self.keyframe_sequences.get(param) {
             self.animation.lerp(keyframes.clone(), 0.0)
         } else {
+            warn!("No param named {}. Falling back to 0.0", param);
             0.0
         }
     }
