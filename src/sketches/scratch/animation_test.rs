@@ -19,14 +19,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     lerp: f32,
     ramp: f32,
     r_ramp: f32,
 }
 
 pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     Model {
         animation,

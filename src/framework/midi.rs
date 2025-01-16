@@ -87,8 +87,6 @@ impl MidiControls {
         let state = self.state.clone();
         let configs = self.configs.clone();
 
-        debug!("start called");
-
         match on_message(
             move |message| {
                 if message.len() >= 3 {
@@ -110,10 +108,10 @@ impl MidiControls {
         ) {
             Ok(_) => {
                 self.is_active = true;
-                info!("MIDI controls initialized successfully");
+                info!("MidiControls initialized successfully");
             }
             Err(e) => {
-                warn!("Failed to initialize MIDI controls: {}. Using default values.", e);
+                warn!("Failed to initialize MidiControls: {}. Using default values.", e);
                 self.is_active = false;
             }
         }
@@ -154,7 +152,6 @@ impl MidiControlBuilder {
     }
 
     pub fn build(mut self) -> MidiControls {
-        debug!("build() called");
         self.controls.start();
         self.controls
     }

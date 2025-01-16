@@ -23,8 +23,8 @@ struct UpdateState {
     state: Arc<Mutex<Option<(Config, HashMap<String, Vec<Keyframe>>)>>>,
 }
 
-pub struct AnimationScript {
-    pub animation: Animation,
+pub struct AnimationScript<T: TimingSource> {
+    pub animation: Animation<T>,
     #[allow(dead_code)]
     path: PathBuf,
     config: Config,
@@ -32,8 +32,8 @@ pub struct AnimationScript {
     update_state: UpdateState,
 }
 
-impl AnimationScript {
-    pub fn new(path: PathBuf, animation: Animation) -> Self {
+impl<T: TimingSource> AnimationScript<T> {
+    pub fn new(path: PathBuf, animation: Animation<T>) -> Self {
         // Create state to share with watcher
         let state = Arc::new(Mutex::new(None));
         let state_clone = state.clone();
@@ -69,23 +69,6 @@ impl AnimationScript {
         Ok(config)
     }
 
-    fn parse_bar_beat_16th(time_str: &str) -> Result<f32, Box<dyn Error>> {
-        let parts: Vec<f32> = time_str
-            .split('.')
-            .map(|s| s.parse::<f32>())
-            .collect::<Result<Vec<f32>, _>>()?;
-
-        if parts.len() != 3 {
-            return Err("Time string must be in format bar.beat.16th".into());
-        }
-
-        let [bars, beats, sixteenths] = [parts[0], parts[1], parts[2]];
-
-        let total_beats = (bars * 4.0) + beats + (sixteenths * 0.25);
-
-        Ok(total_beats)
-    }
-
     fn precompute_keyframes(&mut self) {
         self.keyframe_sequences.clear();
 
@@ -93,7 +76,7 @@ impl AnimationScript {
             let mut parsed_keyframes = Vec::new();
 
             for (time_str, value) in time_values {
-                if let Ok(beats) = Self::parse_bar_beat_16th(time_str) {
+                if let Ok(beats) = parse_bar_beat_16th(time_str) {
                     parsed_keyframes.push(ParsedKeyframe {
                         beats,
                         value: *value,
@@ -165,7 +148,7 @@ impl AnimationScript {
                 let parsed_keyframes: Vec<_> = time_values
                     .iter()
                     .filter_map(|(time_str, value)| {
-                        Self::parse_bar_beat_16th(time_str).ok().map(|beats| {
+                        parse_bar_beat_16th(time_str).ok().map(|beats| {
                             ParsedKeyframe {
                                 beats,
                                 value: *value,
@@ -214,6 +197,22 @@ impl AnimationScript {
     }
 }
 
+fn parse_bar_beat_16th(time_str: &str) -> Result<f32, Box<dyn Error>> {
+    let parts: Vec<f32> = time_str
+        .split('.')
+        .map(|s| s.parse::<f32>())
+        .collect::<Result<Vec<f32>, _>>()?;
+
+    if parts.len() != 3 {
+        return Err("Time string must be in format bar.beat.16th".into());
+    }
+
+    let [bars, beats, sixteenths] = [parts[0], parts[1], parts[2]];
+    let total_beats = (bars * 4.0) + beats + (sixteenths * 0.25);
+
+    Ok(total_beats)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,7 +223,7 @@ mod tests {
     #[serial]
     fn test_animation_script_interpolation() {
         init(0);
-        let animation = Animation::new(360.0);
+        let animation = Animation::new(FrameTiming::new(360.0));
         let script = AnimationScript::new(
             to_absolute_path(file!(), "./animation_script.toml"),
             animation,
@@ -260,7 +259,7 @@ mod tests {
         ];
 
         for (input, expected) in test_cases {
-            let result = AnimationScript::parse_bar_beat_16th(input)
+            let result = parse_bar_beat_16th(input)
                 .expect("Failed to parse time string");
             assert!(
                 (result - expected).abs() < 0.001,

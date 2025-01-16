@@ -47,7 +47,7 @@ struct ShaderParams {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
@@ -55,7 +55,7 @@ pub struct Model {
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let disabled = |_controls: &Controls| true;
 

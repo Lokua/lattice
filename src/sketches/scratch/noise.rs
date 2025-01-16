@@ -23,14 +23,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 #[derive(SketchComponents)]
 #[sketch(clear_color = "hsla(0.0, 0.0, 1.0, 1.0)")]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     noise: SuperSimplex,
     last_seed: u32,
 }
 
 pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::new(vec![
         Control::checkbox("rotate", false),

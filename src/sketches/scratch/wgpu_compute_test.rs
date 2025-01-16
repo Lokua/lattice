@@ -50,7 +50,7 @@ struct OutputPoint {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     wr: WindowRect,
     compute_pipeline: wgpu::ComputePipeline,
@@ -63,7 +63,7 @@ pub struct Model {
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::with_previous(vec![
         Control::checkbox("show_ref_line", false),

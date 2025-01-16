@@ -25,7 +25,7 @@ pub struct Model {
     wr: WindowRect,
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     gradient: Gradient<LinSrgb>,
     objects: Vec<(Vec2, f32, f32, LinSrgb)>,
@@ -34,7 +34,7 @@ pub struct Model {
 pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let grid_w = wr.w() - 80.0;
     let grid_h = wr.h() - 80.0;
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let modes = ["attract", "influence"];
 
@@ -471,7 +471,7 @@ pub fn view(app: &App, m: &Model, frame: Frame) {
 }
 
 type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
+    Option<Arc<dyn Fn(&Displacer, &Animation<FrameTiming>, &Controls) -> R + Send + Sync>>;
 
 enum DisplacerConfigKind {
     Center,
@@ -509,7 +509,7 @@ impl DisplacerConfig {
         Self::new(kind, displacer, None, None)
     }
 
-    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
+    pub fn update(&mut self, animation: &Animation<FrameTiming>, controls: &Controls) {
         if let Some(position_fn) = &self.position_animation {
             self.displacer.position =
                 position_fn(&self.displacer, animation, controls);

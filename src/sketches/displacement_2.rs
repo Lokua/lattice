@@ -24,7 +24,7 @@ const GRID_SIZE: usize = 128;
 pub struct Model {
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     cached_pattern: String,
     cached_trig_fns: Option<(fn(f32) -> f32, fn(f32) -> f32)>,
@@ -74,7 +74,7 @@ impl Model {
 }
 
 type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
+    Option<Arc<dyn Fn(&Displacer, &Animation<FrameTiming>, &Controls) -> R + Send + Sync>>;
 
 struct DisplacerConfig {
     kind: &'static str,
@@ -98,7 +98,7 @@ impl DisplacerConfig {
         }
     }
 
-    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
+    pub fn update(&mut self, animation: &Animation<FrameTiming>, controls: &Controls) {
         if let Some(position_fn) = &self.position_animation {
             self.displacer.position =
                 position_fn(&self.displacer, animation, controls);
@@ -113,7 +113,7 @@ impl DisplacerConfig {
 pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let w = SKETCH_CONFIG.w;
     let h = SKETCH_CONFIG.h;
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::new(vec![
         Control::Select {
