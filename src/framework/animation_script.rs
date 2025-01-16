@@ -1,4 +1,11 @@
-use std::{collections::HashMap, error::Error, fs, path::PathBuf};
+use notify::{Event, RecursiveMode, Watcher};
+use std::{
+    collections::HashMap,
+    error::Error,
+    fs,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use toml;
 
 use super::prelude::*;
@@ -11,34 +18,54 @@ struct ParsedKeyframe {
     value: f32,
 }
 
+struct UpdateState {
+    _watcher: notify::RecommendedWatcher,
+    state: Arc<Mutex<Option<(Config, HashMap<String, Vec<Keyframe>>)>>>,
+}
+
 pub struct AnimationScript {
     pub animation: Animation,
     #[allow(dead_code)]
     path: PathBuf,
     config: Config,
     keyframe_sequences: HashMap<String, Vec<Keyframe>>,
+    update_state: UpdateState,
 }
 
 impl AnimationScript {
     pub fn new(path: PathBuf, animation: Animation) -> Self {
+        // Create state to share with watcher
+        let state = Arc::new(Mutex::new(None));
+        let state_clone = state.clone();
+
+        // Initial load
         let config =
             Self::import_script(&path).expect("Unable to import script");
 
         let mut script = Self {
             animation,
-            config,
-            path,
+            config: config.clone(),
+            path: path.clone(),
             keyframe_sequences: HashMap::new(),
+            update_state: UpdateState {
+                state: state.clone(),
+                _watcher: Self::setup_watcher(path, state_clone),
+            },
         };
 
         script.precompute_keyframes();
+
+        // Store initial state
+        *script.update_state.state.lock().unwrap() =
+            Some((config, script.keyframe_sequences.clone()));
+
         script
     }
 
     fn import_script(path: &PathBuf) -> Result<Config, Box<dyn Error>> {
         let file_content = fs::read_to_string(&path)?;
         let config: Config = toml::from_str(&file_content)?;
-        debug!("{:?}", config);
+        trace!("{:?}", config);
         Ok(config)
     }
 
@@ -53,12 +80,15 @@ impl AnimationScript {
         }
 
         let [bars, beats, sixteenths] = [parts[0], parts[1], parts[2]];
+
         let total_beats = (bars * 4.0) + beats + (sixteenths * 0.25);
 
         Ok(total_beats)
     }
 
     fn precompute_keyframes(&mut self) {
+        self.keyframe_sequences.clear();
+
         for (param, time_values) in &self.config {
             let mut parsed_keyframes = Vec::new();
 
@@ -91,7 +121,92 @@ impl AnimationScript {
         if let Some(keyframes) = self.keyframe_sequences.get(param) {
             self.animation.lerp(keyframes.clone(), 0.0)
         } else {
-            panic!("No param named {}", param);
+            0.0
+        }
+    }
+
+    fn setup_watcher(
+        path: PathBuf,
+        state: Arc<Mutex<Option<(Config, HashMap<String, Vec<Keyframe>>)>>>,
+    ) -> notify::RecommendedWatcher {
+        let path_to_watch = path.clone();
+
+        let mut watcher = notify::recommended_watcher(move |res| {
+            let event: Event = match res {
+                Ok(event) => event,
+                Err(_) => return,
+            };
+
+            // Only proceed for content modifications
+            if event.kind
+                != notify::EventKind::Modify(notify::event::ModifyKind::Data(
+                    notify::event::DataChange::Content,
+                ))
+            {
+                return;
+            }
+
+            info!(
+                "{:?} changed. Attempting to rebuild keyframe sequences.",
+                path
+            );
+
+            let new_config = match Self::import_script(&path) {
+                Ok(config) => config,
+                Err(_) => return,
+            };
+
+            let mut keyframe_sequences = HashMap::new();
+            for (param, time_values) in &new_config {
+                let mut keyframes = Vec::new();
+                let parsed_keyframes: Vec<_> = time_values
+                    .iter()
+                    .filter_map(|(time_str, value)| {
+                        Self::parse_bar_beat_16th(time_str).ok().map(|beats| {
+                            ParsedKeyframe {
+                                beats,
+                                value: *value,
+                            }
+                        })
+                    })
+                    .collect();
+
+                for (i, current) in parsed_keyframes.iter().enumerate() {
+                    let duration = if i < parsed_keyframes.len() - 1 {
+                        parsed_keyframes[i + 1].beats - current.beats
+                    } else {
+                        0.0
+                    };
+                    keyframes.push(Keyframe::new(current.value, duration));
+                }
+
+                keyframe_sequences.insert(param.clone(), keyframes);
+            }
+
+            if let Ok(mut guard) = state.lock() {
+                info!(
+                    "Created new keyframe sequences; call `update` to refresh."
+                );
+                *guard = Some((new_config, keyframe_sequences));
+            }
+        })
+        .expect("Failed to create watcher");
+
+        watcher
+            .watch(&path_to_watch, RecursiveMode::NonRecursive)
+            .expect("Failed to start watching file");
+
+        watcher
+    }
+
+    pub fn update(&mut self) {
+        if let Ok(mut guard) = self.update_state.state.lock() {
+            // take() sets to None
+            if let Some((new_config, new_keyframes)) = guard.take() {
+                info!("Swapping in new keyframe sequences.");
+                self.config = new_config;
+                self.keyframe_sequences = new_keyframes;
+            }
         }
     }
 }
@@ -99,15 +214,14 @@ impl AnimationScript {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::framework::animation::tests::init;
     use serial_test::serial;
-
-    use crate::framework::animation::tests::{init, BPM};
 
     #[test]
     #[serial]
     fn test_animation_script_interpolation() {
         init(0);
-        let animation = Animation::new(BPM);
+        let animation = Animation::new(360.0);
         let script = AnimationScript::new(
             to_absolute_path(file!(), "./animation_script.toml"),
             animation,
@@ -134,11 +248,12 @@ mod tests {
     #[serial]
     fn test_bar_beat_16th_conversion() {
         let test_cases = vec![
+            // bars.beats.16ths, beats
             ("0.0.0", 0.0),
-            ("1.0.0", 4.0),  // 1 bar = 4 beats
-            ("0.1.0", 1.0),  // 1 beat = 1 beat
-            ("0.0.2", 0.5),  // 2 sixteenths = 0.5 beats
-            ("2.2.2", 10.5), // 2 bars + 2 beats + 2 sixteenths = 8 + 2 + 0.5 = 10.5
+            ("1.0.0", 4.0),
+            ("0.1.0", 1.0),
+            ("0.0.2", 0.5),
+            ("2.2.2", 10.5),
         ];
 
         for (input, expected) in test_cases {

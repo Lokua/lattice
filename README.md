@@ -31,6 +31,8 @@ controls, and declarative frame-based animation.
 - [x] Declarative per-sketch control definitions with frameword agnostic design
 - [x] BPM/musical timing based keyframe animations (times are expressed in
       beats)
+- [x] NEW! Ability to write parameter automations in TOML and hotswap without
+      reloading the sketch!
 - [x] Automatic store/recall of GUI control/parameters
 - [x] Audio reactivity. Basic peak, rms, and FFT available to use in sketches
       through a dead simple API

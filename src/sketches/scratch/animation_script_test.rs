@@ -47,6 +47,7 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
 }
 
 pub fn update(_app: &App, m: &mut Model, _update: Update) {
+    m.animation_script.update();
     m.radius = m.animation_script.get("radius");
     m.hue = m.animation_script.get("hue");
 }
