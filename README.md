@@ -60,7 +60,7 @@ on other platforms. This project requires or optionally needs:
 2. Rename at a minimum the `SKETCH_CONFIG.name` field at the top of the file:
    ```rust
    pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-       name: "template", // <-- RENAME THIS!
+      name: "template", // <-- RENAME THIS!
    ```
 3. Add that filename to the [sketches module][module-link]
 4. Add a match case for the sketch in [src/main.rs][main-link]:
