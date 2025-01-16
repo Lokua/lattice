@@ -21,13 +21,13 @@ const GRID_SIZE: usize = 32;
 pub struct Model {
     window_rect: WindowRect,
     controls: Controls,
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     grid: Vec<Vec2>,
     cell_size: f32,
 }
 
 pub fn init_model(_app: &App, window_rect: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let (grid, cell_size) =
         create_grid(window_rect.w(), window_rect.h(), GRID_SIZE, vec2);

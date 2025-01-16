@@ -1,4 +1,3 @@
-use midir::MidiInput;
 use std::sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -26,8 +25,11 @@ pub struct FrameTiming {
 }
 
 impl FrameTiming {
-    pub fn new(bpm: f32, fps: f32) -> Self {
-        Self { bpm, fps }
+    pub fn new(bpm: f32) -> Self {
+        Self {
+            bpm,
+            fps: frame_controller::fps(),
+        }
     }
 
     fn current_frame(&self) -> f32 {
@@ -51,17 +53,21 @@ impl TimingSource for FrameTiming {
     }
 }
 
-// Constants for MIDI timing
+pub const TIMING_CLOCK: u8 = 248;
+pub const START: u8 = 250;
+pub const STOP: u8 = 252;
+pub const SONG_POSITION: u8 = 242;
 const PULSES_PER_QUARTER_NOTE: u32 = 24;
-const TICKS_PER_QUARTER_NOTE: u32 = 960; // Common MIDI resolution
+const TICKS_PER_QUARTER_NOTE: u32 = 960;
 
 // MIDI Song Position timing implementation
 #[derive(Clone)]
 pub struct MidiSongTiming {
     // Atomic counters for thread safety
     clock_count: Arc<AtomicU32>,
-    song_position: Arc<AtomicU32>, // In MIDI ticks (1 tick = 1/960th of a quarter note)
-    bpm: f32,                      // For conversion calculations
+    // In MIDI ticks (1 tick = 1/960th of a quarter note)
+    song_position: Arc<AtomicU32>,
+    bpm: f32,
 }
 
 impl MidiSongTiming {
@@ -77,18 +83,48 @@ impl MidiSongTiming {
     }
 
     fn setup_midi_listener(&self) {
-        let _clock_count = self.clock_count.clone();
-        let _song_position = self.song_position.clone();
+        let clock_count = self.clock_count.clone();
+        let song_position = self.song_position.clone();
 
-        match MidiInput::new("Timing Input") {
-            Ok(_midi_in) => {
-                // TODO: Connect to proper MIDI input port
-                // Handle incoming MIDI messages:
-                // - 0xF8: Timing Clock (increment clock_count)
-                // - 0xF2: Song Position Pointer (update song_position)
+        match on_message(
+            move |message| {
+                if message.len() < 1 {
+                    return;
+                }
+                match message[0] {
+                    TIMING_CLOCK => {
+                        clock_count.fetch_add(1, Ordering::SeqCst);
+                    }
+                    SONG_POSITION => {
+                        if message.len() < 3 {
+                            return;
+                        }
+                        // Song position is a 14-bit value split across two bytes
+                        let lsb = message[1] as u32;
+                        let msb = message[2] as u32;
+                        let position = ((msb << 7) | lsb) as u32;
+
+                        // Convert from MIDI beats (16th notes) to our tick resolution
+                        // 1 MIDI beat = 6 MIDI clock pulses
+                        let tick_pos = position * 6;
+                        song_position.store(tick_pos, Ordering::SeqCst);
+                        // Reset clock count when position changes
+                        clock_count.store(0, Ordering::SeqCst);
+                    }
+                    START => {
+                        clock_count.store(0, Ordering::SeqCst);
+                    }
+                    STOP => {}
+                    _ => {}
+                }
+            },
+            "[MidiSongTiming]",
+        ) {
+            Ok(_) => {
+                info!("MidiSongTiming initialized successfully");
             }
-            Err(err) => {
-                warn!("Failed to initialize MIDI input: {}", err);
+            Err(e) => {
+                warn!("Failed to initialize MidiSongTiming: {}. Using default values.", e);
             }
         }
     }
@@ -131,7 +167,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_frame_timing_conversion() {
-        let timing = FrameTiming::new(120.0, 60.0);
+        let timing = FrameTiming::new(120.0);
 
         // At 120 BPM, one beat = 0.5 seconds
         // At 60 FPS, 0.5 seconds = 30 frames

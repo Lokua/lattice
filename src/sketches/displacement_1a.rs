@@ -23,7 +23,7 @@ const GRID_SIZE: usize = 128;
 pub struct Model {
     grid: Vec<Vec2>,
     displacer_configs: Vec<DisplacerConfig>,
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     gradient: Gradient<LinSrgb>,
     ellipses: Vec<(Vec2, f32, LinSrgb)>,
@@ -34,7 +34,7 @@ pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     let h = SKETCH_CONFIG.h;
     let grid_w = w as f32 - 80.0;
     let grid_h = h as f32 - 80.0;
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::new(vec![
         Control::slider("gradient_spread", 0.5, (0.0, 1.0), 0.0001),
@@ -131,8 +131,13 @@ pub fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation, &Controls) -> R + Send + Sync>>;
+type AnimationFn<R> = Option<
+    Arc<
+        dyn Fn(&Displacer, &Animation<FrameTiming>, &Controls) -> R
+            + Send
+            + Sync,
+    >,
+>;
 
 struct DisplacerConfig {
     displacer: Displacer,
@@ -153,7 +158,11 @@ impl DisplacerConfig {
         }
     }
 
-    pub fn update(&mut self, animation: &Animation, controls: &Controls) {
+    pub fn update(
+        &mut self,
+        animation: &Animation<FrameTiming>,
+        controls: &Controls,
+    ) {
         if let Some(position_fn) = &self.position_animation {
             self.displacer.position =
                 position_fn(&self.displacer, animation, controls);

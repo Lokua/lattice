@@ -19,7 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
@@ -36,7 +36,7 @@ struct ShaderParams {
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::with_previous(vec![
         Control::slider_norm("a", 0.5),

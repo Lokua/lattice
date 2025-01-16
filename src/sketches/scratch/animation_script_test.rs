@@ -17,7 +17,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation_script: AnimationScript,
+    animation_script: AnimationScript<FrameTiming>,
     controls: Controls,
     wr: WindowRect,
     radius: f32,
@@ -34,7 +34,7 @@ pub fn init_model(_app: &App, wr: WindowRect) -> Model {
 
     let animation_script = AnimationScript::new(
         to_absolute_path(file!(), "./animation_script_test.toml"),
-        Animation::new(SKETCH_CONFIG.bpm),
+        Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm)),
     );
 
     Model {

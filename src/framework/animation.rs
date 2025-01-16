@@ -54,21 +54,12 @@ pub struct Trigger {
 }
 
 #[derive(Clone, Debug)]
-pub struct Animation<T: TimingSource = FrameTiming> {
+pub struct Animation<T: TimingSource> {
     timing: T,
 }
 
-// Backwards compatible constructor
-impl Animation<FrameTiming> {
-    pub fn new(bpm: f32) -> Self {
-        Self {
-            timing: FrameTiming::new(bpm, frame_controller::fps()),
-        }
-    }
-}
-
 impl<T: TimingSource> Animation<T> {
-    pub fn with_timing(timing: T) -> Self {
+    pub fn new(timing: T) -> Self {
         Self { timing }
     }
 
@@ -378,7 +369,7 @@ pub mod tests {
     }
 
     fn create_instance() -> Animation<FrameTiming> {
-        Animation::new(BPM)
+        Animation::new(FrameTiming::new(BPM))
     }
 
     #[test]
@@ -427,7 +418,7 @@ pub mod tests {
     #[serial]
     fn test_trigger_on_beat() {
         init(0);
-        let animation = Animation::new(BPM);
+        let animation = create_instance();
         let mut trigger = animation.create_trigger(1.0, 0.0);
 
         assert!(
@@ -452,7 +443,7 @@ pub mod tests {
     #[serial]
     fn test_trigger_with_delay() {
         init(0);
-        let animation = Animation::new(BPM);
+        let animation = create_instance();
         let mut trigger = animation.create_trigger(2.0, 0.5);
 
         assert!(

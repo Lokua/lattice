@@ -67,7 +67,7 @@ struct ShaderParams {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation,
+    animation: Animation<FrameTiming>,
     controls: Controls,
     wr: WindowRect,
     render_pipeline: wgpu::RenderPipeline,
@@ -164,7 +164,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::checkbox("draw_nannou_rect", false),
     ]);
 
-    let animation = Animation::new(SKETCH_CONFIG.bpm);
+    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     Model {
         animation,
