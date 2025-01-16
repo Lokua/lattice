@@ -3,7 +3,6 @@ use midir::MidiInput;
 use midir::MidiOutput;
 use std::error::Error;
 use std::thread;
-use std::time::Duration;
 
 use super::prelude::*;
 
@@ -88,22 +87,27 @@ impl MidiControls {
         let state = self.state.clone();
         let configs = self.configs.clone();
 
-        match on_message(move |message| {
-            if message.len() >= 3 {
-                let status = message[0];
-                let channel = status & 0x0F;
-                let cc = message[1];
-                let value = message[2] as f32 / 127.0;
+        debug!("start called");
 
-                for (name, config) in configs.iter() {
-                    if config.channel == channel && config.cc == cc {
-                        let mapped_value =
-                            value * (config.max - config.min) + config.min;
-                        state.lock().unwrap().set(name, mapped_value);
+        match on_message(
+            move |message| {
+                if message.len() >= 3 {
+                    let status = message[0];
+                    let channel = status & 0x0F;
+                    let cc = message[1];
+                    let value = message[2] as f32 / 127.0;
+
+                    for (name, config) in configs.iter() {
+                        if config.channel == channel && config.cc == cc {
+                            let mapped_value =
+                                value * (config.max - config.min) + config.min;
+                            state.lock().unwrap().set(name, mapped_value);
+                        }
                     }
                 }
-            }
-        }) {
+            },
+            "[MidiControls]",
+        ) {
             Ok(_) => {
                 self.is_active = true;
                 info!("MIDI controls initialized successfully");
@@ -150,12 +154,16 @@ impl MidiControlBuilder {
     }
 
     pub fn build(mut self) -> MidiControls {
+        debug!("build() called");
         self.controls.start();
         self.controls
     }
 }
 
-pub fn on_message<F>(callback: F) -> Result<(), Box<dyn Error>>
+pub fn on_message<F>(
+    callback: F,
+    connection_purpose: &str,
+) -> Result<(), Box<dyn Error>>
 where
     F: Fn(&[u8]) + Send + Sync + 'static,
 {
@@ -168,8 +176,12 @@ where
         .expect("Unable to find input port")
         .clone();
 
-    info!("Connecting to {}", INPUT_PORT_NAME);
+    info!(
+        "Connecting to {}, connection_purpose: {}",
+        INPUT_PORT_NAME, connection_purpose
+    );
 
+    let connection_purpose = connection_purpose.to_string();
     thread::spawn(move || {
         // _conn_in needs to be a named parameter,
         // because it needs to be kept alive until the end of the scope
@@ -185,11 +197,12 @@ where
             )
             .expect("Unable to connect");
 
-        info!("Connected to {}", INPUT_PORT_NAME);
+        info!(
+            "Connected to {}, connection_purpose: {}",
+            INPUT_PORT_NAME, connection_purpose
+        );
 
-        loop {
-            thread::sleep(Duration::from_millis(100));
-        }
+        thread::park();
     });
 
     Ok(())

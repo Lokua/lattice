@@ -271,15 +271,18 @@ fn update<S: SketchModel>(
         MIDI_MESSAGE_RX.with(|cell| {
             *cell.borrow_mut() = Some(rx);
         });
-        on_message(move |message| {
-            if message[0] == 250 {
-                tx.send(MidiInstruction::Start)
-                    .expect("Unabled to send Start instruction");
-            } else if message[0] == 252 {
-                tx.send(MidiInstruction::Stop)
-                    .expect("Unabled to send Stop instruction");
-            }
-        })
+        on_message(
+            move |message| {
+                if message[0] == 250 {
+                    tx.send(MidiInstruction::Start)
+                        .expect("Unabled to send Start instruction");
+                } else if message[0] == 252 {
+                    tx.send(MidiInstruction::Stop)
+                        .expect("Unabled to send Stop instruction");
+                }
+            },
+            "[Global Start/Stop]",
+        )
         .expect("Failed to initialize MIDI handler");
     });
 

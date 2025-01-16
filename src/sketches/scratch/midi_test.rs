@@ -2,6 +2,8 @@ use nannou::prelude::*;
 
 use crate::framework::prelude::*;
 
+// b/w Live -> 2014.12.12 Lattice MIDI Test
+
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     name: "midi_test",
     display_name: "MIDI Test",
@@ -20,6 +22,7 @@ pub struct Model {
 }
 
 pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
+    debug!("init model called");
     let midi = MidiControlBuilder::new()
         .control("a", (0, 1), 0.5)
         .control("b", (0, 2), 0.5)
