@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::env;
+use std::path::PathBuf;
 
 use geom::Ellipse;
 use nannou::color::{LinSrgb, Srgb};
@@ -66,6 +68,16 @@ pub fn bool_to_f32(cond: bool) -> f32 {
     } else {
         0.0
     }
+}
+
+pub fn to_absolute_path(
+    caller_file: &str,
+    relative_path: impl AsRef<std::path::Path>,
+) -> PathBuf {
+    PathBuf::from(caller_file)
+        .parent()
+        .expect("Failed to get parent directory")
+        .join(relative_path.as_ref())
 }
 
 pub fn create_grid<F>(

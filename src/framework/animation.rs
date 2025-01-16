@@ -60,6 +60,7 @@ pub struct Trigger {
     last_trigger_count: f32,
 }
 
+#[derive(Clone, Debug)]
 pub struct Animation {
     bpm: f32,
 }
@@ -450,19 +451,19 @@ impl Animation {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use serial_test::serial;
     use std::sync::Once;
 
     // this way each 1/16 = 1 frame, 4 frames per beat,
     // less likely to deal with precision issues.
-    const FPS: f32 = 24.0;
-    const BPM: f32 = 360.0;
+    pub const FPS: f32 = 24.0;
+    pub const BPM: f32 = 360.0;
 
     static INIT: Once = Once::new();
 
-    fn init(frame_count: u32) {
+    pub fn init(frame_count: u32) {
         INIT.call_once(|| {
             env_logger::builder().is_test(true).init();
             frame_controller::ensure_controller(FPS);
