@@ -23,6 +23,7 @@ pub mod wgpu_displacement;
 pub mod wgpu_displacement_2;
 
 pub mod scratch;
+pub use self::scratch::animation_script_test;
 pub use self::scratch::animation_test;
 pub use self::scratch::audio_test;
 pub use self::scratch::bos;
