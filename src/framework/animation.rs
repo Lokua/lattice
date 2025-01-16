@@ -11,8 +11,6 @@ pub struct Keyframe {
     pub duration: f32,
 }
 
-pub type KF = Keyframe;
-
 impl Keyframe {
     pub const END: f32 = 0.0;
 
@@ -21,12 +19,9 @@ impl Keyframe {
     }
 }
 
+pub type KF = Keyframe;
 pub fn kf(value: f32, duration: f32) -> KF {
     KF::new(value, duration)
-}
-
-pub fn kf_seq(kfs: &[(f32, f32)]) -> Vec<KF> {
-    kfs.iter().map(|kf| KF::new(kf.0, kf.1)).collect()
 }
 
 #[derive(Clone, Debug)]
@@ -48,7 +43,6 @@ impl KeyframeRandom {
 }
 
 pub type KFR = KeyframeRandom;
-
 pub fn kfr(range: (f32, f32), duration: f32) -> KFR {
     KFR::new(range, duration)
 }
