@@ -63,17 +63,14 @@ impl<T: TimingSource> Animation<T> {
         Self { timing }
     }
 
-    /// Gets the current beat position
     fn beat_position(&self) -> f32 {
         self.timing.beat_position()
     }
 
-    /// Gets total beats elapsed
     fn total_beats(&self) -> f32 {
         self.timing.total_beats()
     }
 
-    /// Converts beats to frames using timing source
     pub fn beats_to_frames(&self, beats: f32) -> f32 {
         self.timing.beats_to_frames(beats)
     }
@@ -96,7 +93,8 @@ impl<T: TimingSource> Animation<T> {
         }
     }
 
-    /// Creates a new trigger with specified interval and delay
+    /// Creates a new trigger with specified interval and delay;
+    /// Use with `should_trigger`
     pub fn create_trigger(&self, every: f32, delay: f32) -> Trigger {
         if delay >= every {
             panic!("Delay must be less than interval length");
@@ -208,7 +206,6 @@ impl<T: TimingSource> Animation<T> {
         let wrapped_beat = self.beat_position() % total_beats;
         let delay_beats = delay;
 
-        // Handle delay period
         if wrapped_beat < delay_beats {
             return keyframes[0].value;
         }
@@ -218,7 +215,6 @@ impl<T: TimingSource> Animation<T> {
             return keyframes[0].value;
         }
 
-        // Find current segment
         let mut current_segment_index = 0;
         let mut beats_elapsed = 0.0;
 
@@ -232,7 +228,6 @@ impl<T: TimingSource> Animation<T> {
 
         let current_keyframe = &keyframes[current_segment_index];
 
-        // Calculate position within current segment
         let segment_start_beats: f32 = keyframes
             .iter()
             .take(current_segment_index)
@@ -275,16 +270,13 @@ impl<T: TimingSource> Animation<T> {
         let wrapped_beat = self.beat_position() % total_beats;
         let delay_beats = delay;
 
-        // Calculate cycle based on total beats
         let cycle_float = (self.total_beats() / total_beats) + 1e-9;
         let current_cycle = cycle_float.floor() as u64;
 
-        // Handle initial case
         if self.total_beats() == 0.0 {
             return keyframes[0].generate_value(0);
         }
 
-        // Find current segment
         let mut current_segment_index = 0;
         let mut beats_elapsed = 0.0;
 
@@ -296,7 +288,6 @@ impl<T: TimingSource> Animation<T> {
             }
         }
 
-        // Calculate position within current segment
         let segment_start_beats: f32 = keyframes
             .iter()
             .take(current_segment_index)
@@ -305,7 +296,6 @@ impl<T: TimingSource> Animation<T> {
 
         let beat_in_segment = wrapped_beat - segment_start_beats;
 
-        // Generate current value
         let current_value = if current_segment_index == 0 {
             keyframes[0].generate_value(current_cycle)
         } else {
@@ -313,7 +303,6 @@ impl<T: TimingSource> Animation<T> {
                 .generate_value(current_cycle * keyframes.len() as u64)
         };
 
-        // Generate previous value
         let previous_value = if current_segment_index == 0 {
             if current_cycle == 0 {
                 keyframes[0].generate_value(0)
@@ -327,18 +316,15 @@ impl<T: TimingSource> Animation<T> {
                 .generate_value(current_cycle * keyframes.len() as u64)
         };
 
-        // Handle delay period
         if beat_in_segment < delay_beats {
             return previous_value;
         }
 
-        // Calculate ramp progress after delay
         let adjusted_beats = beat_in_segment - delay_beats;
         let ramp_progress = adjusted_beats / ramp_time;
         let clamped_progress = ramp_progress.clamp(0.0, 1.0);
         let eased_progress = ramp(clamped_progress);
 
-        // Return interpolated or final value
         if adjusted_beats <= ramp_time {
             lerp(previous_value, current_value, eased_progress)
         } else {

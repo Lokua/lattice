@@ -80,7 +80,6 @@ impl OscControls {
 
         thread::spawn(move || {
             for (packet, addr) in receiver.iter() {
-                // NOTE: sender addr is dynamically assigned by OS as its a UDP socket
                 trace!("Received OSC packet from {}", addr);
                 if let osc::Packet::Message(msg) = packet {
                     trace!("OSC message to {}: {:?}", msg.addr, msg.args);
