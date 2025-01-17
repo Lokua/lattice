@@ -16,8 +16,8 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 
 #[derive(SketchComponents)]
 pub struct Model {
-    animation: Animation<FrameTiming>,
-    animation_script: AnimationScript<FrameTiming>,
+    animation: Animation<MidiSongTiming>,
+    animation_script: AnimationScript<MidiSongTiming>,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
@@ -46,7 +46,7 @@ struct ShaderParams {
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
-    let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
+    let animation = Animation::new(MidiSongTiming::new(SKETCH_CONFIG.bpm));
 
     let animation_script = AnimationScript::new(
         to_absolute_path(file!(), "genuary_14.toml"),

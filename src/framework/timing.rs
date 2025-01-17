@@ -53,7 +53,7 @@ impl TimingSource for FrameTiming {
     }
 }
 
-pub const TIMING_CLOCK: u8 = 248;
+pub const CLOCK: u8 = 248;
 pub const START: u8 = 250;
 pub const STOP: u8 = 252;
 pub const SONG_POSITION: u8 = 242;
@@ -92,29 +92,41 @@ impl MidiSongTiming {
                     return;
                 }
                 match message[0] {
-                    TIMING_CLOCK => {
+                    CLOCK => {
                         clock_count.fetch_add(1, Ordering::SeqCst);
                     }
                     SONG_POSITION => {
                         if message.len() < 3 {
-                            return;
+                            warn!(
+                                "Received malformed SONG_POSITION message: {:?}",
+                                message
+                            );
                         }
                         // Song position is a 14-bit value split across two bytes
                         let lsb = message[1] as u32;
                         let msb = message[2] as u32;
                         let position = ((msb << 7) | lsb) as u32;
 
+                        trace!("Received SPP message: position={} (msb={}, lsb={})", position, msb, lsb);
+
                         // Convert from MIDI beats (16th notes) to our tick resolution
                         // 1 MIDI beat = 6 MIDI clock pulses
-                        let tick_pos = position * 6;
+                        let tick_pos = position * (TICKS_PER_QUARTER_NOTE / 4);
+                        trace!("Converted to ticks: {}", tick_pos);
+
                         song_position.store(tick_pos, Ordering::SeqCst);
+
                         // Reset clock count when position changes
                         clock_count.store(0, Ordering::SeqCst);
+                        trace!("Updated song position and reset clock count");
                     }
                     START => {
+                        trace!("Received START message");
                         clock_count.store(0, Ordering::SeqCst);
                     }
-                    STOP => {}
+                    STOP => {
+                        trace!("Received STOP message");
+                    }
                     _ => {}
                 }
             },

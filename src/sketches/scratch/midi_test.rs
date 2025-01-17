@@ -31,7 +31,9 @@ pub fn init_model(_app: &App, _window_rect: WindowRect) -> Model {
     Model { midi }
 }
 
-pub fn update(_app: &App, _model: &mut Model, _update: Update) {}
+pub fn update(_app: &App, m: &mut Model, _update: Update) {
+    debug!("{}", m.midi.get("a"));
+}
 
 pub fn view(app: &App, model: &Model, frame: Frame) {
     let window_rect = app
