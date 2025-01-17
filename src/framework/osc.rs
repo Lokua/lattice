@@ -85,7 +85,15 @@ impl OscControls {
                 if let osc::Packet::Message(msg) = packet {
                     trace!("OSC message to {}: {:?}", msg.addr, msg.args);
                     if let Some(config) = configs.get(&msg.addr) {
-                        if let Some(osc::Type::Float(value)) = msg.args.get(0) {
+                        let value: Option<f32> = match msg.args.get(0) {
+                            Some(osc::Type::Float(value)) => Some(*value),
+                            Some(osc::Type::Int(value)) => Some(*value as f32),
+                            Some(osc::Type::Double(value)) => {
+                                Some(*value as f32)
+                            }
+                            _ => None,
+                        };
+                        if let Some(value) = value {
                             trace!("Setting {} to {}", msg.addr, value);
                             let mapped_value =
                                 value * (config.max - config.min) + config.min;
