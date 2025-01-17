@@ -34,11 +34,9 @@ pub struct AnimationScript<T: TimingSource> {
 
 impl<T: TimingSource> AnimationScript<T> {
     pub fn new(path: PathBuf, animation: Animation<T>) -> Self {
-        // Create state to share with watcher
         let state = Arc::new(Mutex::new(None));
         let state_clone = state.clone();
 
-        // Initial load
         let config =
             Self::import_script(&path).expect("Unable to import script");
 
@@ -55,7 +53,6 @@ impl<T: TimingSource> AnimationScript<T> {
 
         script.precompute_keyframes();
 
-        // Store initial state
         *script.update_state.state.lock().unwrap() =
             Some((config, script.keyframe_sequences.clone()));
 
@@ -123,7 +120,6 @@ impl<T: TimingSource> AnimationScript<T> {
                 Err(_) => return,
             };
 
-            // Only proceed for content modifications
             if event.kind
                 != notify::EventKind::Modify(notify::event::ModifyKind::Data(
                     notify::event::DataChange::Content,

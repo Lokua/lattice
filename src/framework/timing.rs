@@ -5,19 +5,12 @@ use std::sync::{
 
 use crate::framework::prelude::*;
 
-// Core trait that defines what we need from any timing source
 pub trait TimingSource: Clone {
-    /// Get the current beat position (fractional beats from start)
     fn beat_position(&self) -> f32;
-
-    /// Get total number of beats elapsed
     fn total_beats(&self) -> f32;
-
-    /// Convert beats to frames (for compatibility with frame-based code)
     fn beats_to_frames(&self, beats: f32) -> f32;
 }
 
-// The original frame-based implementation
 #[derive(Clone)]
 pub struct FrameTiming {
     bpm: f32,
@@ -60,10 +53,8 @@ pub const SONG_POSITION: u8 = 242;
 const PULSES_PER_QUARTER_NOTE: u32 = 24;
 const TICKS_PER_QUARTER_NOTE: u32 = 960;
 
-// MIDI Song Position timing implementation
 #[derive(Clone)]
 pub struct MidiSongTiming {
-    // Atomic counters for thread safety
     clock_count: Arc<AtomicU32>,
     // In MIDI ticks (1 tick = 1/960th of a quarter note)
     song_position: Arc<AtomicU32>,
@@ -109,14 +100,11 @@ impl MidiSongTiming {
 
                         trace!("Received SPP message: position={} (msb={}, lsb={})", position, msb, lsb);
 
-                        // Convert from MIDI beats (16th notes) to our tick resolution
-                        // 1 MIDI beat = 6 MIDI clock pulses
                         let tick_pos = position * (TICKS_PER_QUARTER_NOTE / 4);
                         trace!("Converted to ticks: {}", tick_pos);
 
                         song_position.store(tick_pos, Ordering::SeqCst);
 
-                        // Reset clock count when position changes
                         clock_count.store(0, Ordering::SeqCst);
                         trace!("Updated song position and reset clock count");
                     }
@@ -142,11 +130,9 @@ impl MidiSongTiming {
     }
 
     fn get_position_in_beats(&self) -> f32 {
-        // Convert MIDI ticks to beats (quarter notes)
         let ticks = self.song_position.load(Ordering::Relaxed);
         let beats = ticks as f32 / TICKS_PER_QUARTER_NOTE as f32;
 
-        // Add fractional position from clock count
         let clock_offset = self.clock_count.load(Ordering::Relaxed) as f32
             / PULSES_PER_QUARTER_NOTE as f32;
 
@@ -170,7 +156,6 @@ impl TimingSource for MidiSongTiming {
     }
 }
 
-// Helper functions for testing
 #[cfg(test)]
 mod tests {
     use super::*;
