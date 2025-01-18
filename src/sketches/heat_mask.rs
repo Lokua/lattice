@@ -232,7 +232,7 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
     if m.wr.changed() {
         (m.grid, _) = create_grid(m.wr.w(), m.wr.h(), GRID_SIZE, vec2);
         update_positions(&m.wr, &mut m.displacer_configs);
-        m.wr.commit();
+        m.wr.mark_unchanged();
     }
 
     let custom_distance_fn: CustomDistanceFn =

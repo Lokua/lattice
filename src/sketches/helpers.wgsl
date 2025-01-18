@@ -11,6 +11,14 @@ const PHI: f32 = 1.61803398875;
 fn random_v2(p: vec2f) -> f32 {
     return fract(sin(dot(p, vec2f(12.9898, 78.233))) * 43758.5453);
 }
+// 2D noise functions adapted from:
+// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
+// Not sure what's better? random_v2 or hash...
+fn hash(p: vec2f) -> f32 {
+    let p3 = fract(vec3f(p.xyx) * 0.13);
+    let p4 = p3 + vec3f(7.0, 157.0, 113.0);
+    return fract(dot(p4, vec3f(268.5453123, 143.2354234, 424.2424234)));
+}
 
 // Basic random number generation (PCG)
 fn rand_pcg(seed: u32) -> f32 {

@@ -232,7 +232,7 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
     if m.wr.changed() {
         (m.grid, _) = create_grid(m.wr.w(), m.wr.h(), GRID_SIZE, vec2);
         update_positions(&m.wr, &mut m.displacer_configs);
-        m.wr.commit();
+        m.wr.mark_unchanged();
     }
 
     let custom_distance_fn: CustomDistanceFn =
@@ -414,7 +414,7 @@ pub fn update(_app: &App, m: &mut Model, _update: Update) {
 pub fn view(app: &App, m: &Model, frame: Frame) {
     let draw = app.draw();
 
-    draw.rect().w_h(m.wr.w(), m.wr.h()).color(hsla(
+    draw.rect().wh(m.wr.vec2()).color(hsla(
         0.0,
         0.0,
         0.03,
@@ -470,8 +470,13 @@ pub fn view(app: &App, m: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-type AnimationFn<R> =
-    Option<Arc<dyn Fn(&Displacer, &Animation<FrameTiming>, &Controls) -> R + Send + Sync>>;
+type AnimationFn<R> = Option<
+    Arc<
+        dyn Fn(&Displacer, &Animation<FrameTiming>, &Controls) -> R
+            + Send
+            + Sync,
+    >,
+>;
 
 enum DisplacerConfigKind {
     Center,
@@ -509,7 +514,11 @@ impl DisplacerConfig {
         Self::new(kind, displacer, None, None)
     }
 
-    pub fn update(&mut self, animation: &Animation<FrameTiming>, controls: &Controls) {
+    pub fn update(
+        &mut self,
+        animation: &Animation<FrameTiming>,
+        controls: &Controls,
+    ) {
         if let Some(position_fn) = &self.position_animation {
             self.displacer.position =
                 position_fn(&self.displacer, animation, controls);

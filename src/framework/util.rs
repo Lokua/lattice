@@ -405,6 +405,10 @@ pub fn average_neighbors(points: Vec<Vec2>, iterations: usize) -> Vec<Vec2> {
     }
 }
 
+pub fn on_screen(v: Vec2, wr: &WindowRect) -> bool {
+    v.x >= -wr.hw() && v.x <= wr.hw() && v.y >= -wr.hh() && v.y <= wr.hh()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
