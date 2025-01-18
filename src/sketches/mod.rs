@@ -19,6 +19,7 @@ pub mod spiral_2;
 pub mod spiral_auto;
 pub mod template;
 pub mod template_wgpu;
+pub mod wave_fract;
 pub mod wgpu_displacement;
 pub mod wgpu_displacement_2;
 
@@ -36,6 +37,7 @@ pub use self::scratch::osc_test;
 pub use self::scratch::perlin_loop;
 pub use self::scratch::responsive_test;
 pub use self::scratch::sand_line;
+pub use self::scratch::shader_experiments;
 pub use self::scratch::vertical;
 pub use self::scratch::vertical_2;
 pub use self::scratch::wgpu_compute_test;

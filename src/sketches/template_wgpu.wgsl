@@ -48,3 +48,4 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
 
     return vec4f(step(d, radius));
 }
+
