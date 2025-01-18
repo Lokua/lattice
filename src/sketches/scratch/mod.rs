@@ -11,6 +11,7 @@ pub mod osc_test;
 pub mod perlin_loop;
 pub mod responsive_test;
 pub mod sand_line;
+pub mod shader_experiments;
 pub mod vertical;
 pub mod vertical_2;
 pub mod wgpu_compute_test;
