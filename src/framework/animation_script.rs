@@ -96,7 +96,7 @@ impl<T: TimingSource> AnimationScript<T> {
             self.keyframe_sequences.insert(param.clone(), keyframes);
         }
 
-        debug!("keyframe_sequences: {:?}", self.keyframe_sequences);
+        trace!("keyframe_sequences: {:?}", self.keyframe_sequences);
     }
 
     pub fn get(&self, param: &str) -> f32 {

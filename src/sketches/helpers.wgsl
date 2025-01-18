@@ -1,9 +1,34 @@
 // Just copy these as needed into other sketches
 
+// --- CONSTANTS
+
+const PI: f32 = 3.14159265359;
+const TAU: f32 = 6.283185307179586;
+const PHI: f32 = 1.61803398875;
+
 // --- UTILS
 
 fn random_v2(p: vec2f) -> f32 {
     return fract(sin(dot(p, vec2f(12.9898, 78.233))) * 43758.5453);
+}
+
+// Basic random number generation (PCG)
+fn rand_pcg(seed: u32) -> f32 {
+    var state = seed * 747796405u + 2891336453u;
+    var word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    var result = (word >> 22u) ^ word;
+    return f32(result) / 4294967295.0;
+}
+
+// Box-Muller transform for normal distribution
+fn random_normal(seed: u32, mean: f32, stddev: f32) -> f32 {
+    let u1 = rand_pcg(seed);
+    let u2 = rand_pcg(seed + 1u);
+    
+    let mag = sqrt(-2.0 * log(u1));
+    let z0 = mag * cos(6.28318530718 * u2);
+    
+    return mean + stddev * z0;
 }
 
 // wgsl % operator is a remainder operator, not modulo
