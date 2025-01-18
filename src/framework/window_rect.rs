@@ -22,7 +22,7 @@ impl WindowRect {
             || (self.current.h() != self.last.h())
     }
 
-    pub fn commit(&mut self) {
+    pub fn mark_unchanged(&mut self) {
         self.last = self.current;
     }
 

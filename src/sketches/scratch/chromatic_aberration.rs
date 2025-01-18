@@ -52,7 +52,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
             GRID_SIZE,
             vec2,
         );
-        model.window_rect.commit();
+        model.window_rect.mark_unchanged();
     }
 }
 

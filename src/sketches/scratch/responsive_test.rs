@@ -37,7 +37,7 @@ pub fn update(_app: &App, model: &mut Model, _update: Update) {
     if model.window_rect.changed() {
         (model.grid, model.cell_size) =
             create_grid(model.window_rect.w(), model.window_rect.h(), 64, vec2);
-        model.window_rect.commit();
+        model.window_rect.mark_unchanged();
     }
 }
 

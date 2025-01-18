@@ -89,6 +89,7 @@ fn main() {
         "drop" => run_sketch!(drop),
         "drop_walk" => run_sketch!(drop_walk),
         "floor_supervisor" => run_sketch!(floor_supervisor),
+        "flow_field" => run_sketch!(flow_field),
         "genuary_1" => run_sketch!(genuary_1),
         "genuary_2" => run_sketch!(genuary_2),
         "genuary_5" => run_sketch!(genuary_5),
