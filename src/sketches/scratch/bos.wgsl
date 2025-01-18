@@ -35,12 +35,12 @@ fn fs_main(@location(0) position: vec2f) -> @location(0) vec4f {
     // return bos_05a(pos);
     // return bos_05b(pos);
     // return bos_05c(pos);
-    return bos_05d(pos);
+    // return bos_05d(pos);
     // return bos_07a(pos);
     // return bos_07b(pos);
     // return bos_07c(pos);
     // return bos_07d(pos);
-    // return bos_07e(pos);
+    return bos_07e(pos);
     // return bos_07f(pos);
     // return bos_07g(pos);
     // return bos_07h(pos);

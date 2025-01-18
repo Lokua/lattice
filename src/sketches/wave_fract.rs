@@ -11,13 +11,14 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     w: 700,
     h: 700,
     gui_w: None,
-    gui_h: Some(500),
+    gui_h: Some(540),
 };
 
 #[derive(SketchComponents)]
 pub struct Model {
     #[allow(dead_code)]
     animation: Animation<MidiSongTiming>,
+    animation_script: AnimationScript<MidiSongTiming>,
     controls: Controls,
     wr: WindowRect,
     gpu: gpu::GpuState,
@@ -32,18 +33,22 @@ struct ShaderParams {
     // wave_phase, wave_radial_freq, wave_horiz_freq, wave_vert_freq
     a: [f32; 4],
 
-    // fract_count, fract_scale, fract_color_scale, wave_power
+    // bg_freq, bg_radius, bg_gradient_strength, wave_power
     b: [f32; 4],
 
     // reduce_mix, map_mix, wave_bands, wave_threshold
     c: [f32; 4],
 
-    // fract_contrast, fract_steps, ..unused
+    // bg_invert, unused, mix_mode, unused
     d: [f32; 4],
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(MidiSongTiming::new(SKETCH_CONFIG.bpm));
+    let animation_script = AnimationScript::new(
+        to_absolute_path(file!(), "./wave_fract.toml"),
+        animation.clone(),
+    );
 
     let controls = Controls::with_previous(vec![
         Control::checkbox("animate_wave_phase", false),
@@ -54,27 +59,27 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             0.001,
             |controls: &Controls| controls.bool("animate_wave_phase"),
         ),
-        Control::slider_norm("wave_radial_freq", 0.5),
+        Control::slider("wave_radial_freq", 20.0, (0.0, 100.0), 1.0),
         Control::checkbox("link_axes", false),
-        Control::slider_norm("wave_horiz_freq", 0.5),
+        Control::slider("wave_horiz_freq", 20.0, (0.0, 100.0), 1.0),
         Control::slider_x(
             "wave_vert_freq",
-            0.5,
-            (0.0, 1.0),
-            0.001,
+            20.0,
+            (0.0, 100.0),
+            1.0,
             |controls: &Controls| controls.bool("link_axes"),
         ),
-        Control::slider_norm("wave_power", 0.5),
+        Control::slider("wave_power", 5.0, (0.0, 10.0), 0.01),
         Control::slider("wave_bands", 0.0, (2.0, 10.0), 1.0),
         Control::slider("wave_threshold", 0.0, (-1.0, 1.0), 0.001),
         Control::Separator {}, // -------------------
-        Control::slider_norm("fract_count", 0.5),
-        Control::slider_norm("fract_scale", 0.5),
-        Control::slider_norm("fract_color_scale", 0.5),
-        Control::slider("fract_contrast", 0.5, (0.0, 5.0), 0.001),
-        Control::slider("fract_steps", 0.5, (0.0, 15.0), 0.01),
+        Control::checkbox("bg_invert", false),
+        Control::slider("bg_freq", 10.0, (0.0, 100.0), 1.0),
+        Control::slider_norm("bg_radius", 0.5),
+        Control::slider_norm("bg_gradient_strength", 0.5),
         Control::Separator {}, // -------------------
         Control::slider_norm("reduce_mix", 0.5),
+        Control::select("mix_mode", "mix", &["mix", "min_max"]),
         Control::slider_norm("map_mix", 0.5),
     ]);
 
@@ -91,6 +96,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 
     Model {
         animation,
+        animation_script,
         controls,
         wr,
         gpu,
@@ -98,11 +104,13 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
 }
 
 pub fn update(app: &App, m: &mut Model, _update: Update) {
+    m.animation_script.update();
+
     let params = ShaderParams {
         resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
         a: [
             if m.controls.bool("animate_wave_phase") {
-                m.animation.loop_progress(4.0)
+                m.animation_script.get("wave_phase")
             } else {
                 m.controls.float("wave_phase")
             },
@@ -115,9 +123,9 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             },
         ],
         b: [
-            m.controls.float("fract_count"),
-            m.controls.float("fract_scale"),
-            m.controls.float("fract_color_scale"),
+            m.controls.float("bg_freq"),
+            m.controls.float("bg_radius"),
+            m.controls.float("bg_gradient_strength"),
             m.controls.float("wave_power"),
         ],
         c: [
@@ -127,9 +135,13 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
             m.controls.float("wave_threshold"),
         ],
         d: [
-            m.controls.float("fract_contrast"),
-            m.controls.float("fract_steps"),
+            bool_to_f32(m.controls.bool("bg_invert")),
             0.0,
+            match m.controls.string("mix_mode").as_str() {
+                "mix" => 0.0,
+                "min_max" => 1.0,
+                _ => unreachable!(),
+            },
             0.0,
         ],
     };

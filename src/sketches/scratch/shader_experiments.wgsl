@@ -103,20 +103,32 @@ fn distort_map(d: f32) -> vec4f {
 }
 
 fn fractal_reduce(pos: vec2f) -> f32 {
-    let iteration_count = i32(floor(params.a.x * 10.0));
-    let scale = params.a.y;
-    let color_scale = params.a.z;
+    let count = params.b.x * 10.0; 
+    let scale = params.b.y;
+    let color_scale = params.b.z;
+    
     var p = pos * scale;
     var color = 0.0;
-    for (var i = 0; i < iteration_count; i++) {
+    let MAX_ITERATIONS = 20;
+    
+    for (var i = 0; i < MAX_ITERATIONS; i++) {
+        let weight = 1.0 - smoothstep(count - 1.0, count, f32(i));
+        if (weight <= 0.0) { break; }
+        
         p = abs(p) * 2.0 - 1.0;
         let len = max(length(p), 0.001);
-        color += color_scale / len;
+        color += (color_scale / len) * weight;
     }
-    return color / f32(iteration_count);
+    
+    return color / count;
 }
+
 fn fractal_map(color_value: f32) -> vec4f {
-    return vec4f(vec3f(color_value), 1.0);
+    let contrast = params.d.x;
+    let steps = params.d.y;
+    let contrasted = pow(color_value, contrast);
+    let stepped = floor(contrasted * steps) / steps;
+    return vec4f(vec3f(stepped), 1.0);
 }
 
 fn modulo(x: f32, y: f32) -> f32 {
