@@ -1,4 +1,4 @@
-use bevy_reflect::{TypeInfo, Typed};
+use bevy_reflect::{Reflect, TypeInfo, Typed};
 use bytemuck::{Pod, Zeroable};
 use nannou::prelude::*;
 use wgpu::util::DeviceExt;
@@ -152,6 +152,11 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
         );
     }
 
+    pub fn update<P: Pod>(&self, app: &App, params: &P, vertices: &[V]) {
+        self.update_params(app, params);
+        self.update_vertex_buffer(app, vertices);
+    }
+
     pub fn render(&self, frame: &Frame) {
         let mut encoder = frame.command_encoder();
         let mut render_pass = wgpu::RenderPassBuilder::new()
@@ -214,5 +219,49 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
         }
 
         attributes
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Reflect)]
+pub struct BasicPositionVertex {
+    pub position: [f32; 2],
+}
+
+pub const QUAD_COVER_VERTICES: &[BasicPositionVertex] = &[
+    BasicPositionVertex {
+        position: [-1.0, -1.0],
+    },
+    BasicPositionVertex {
+        position: [1.0, -1.0],
+    },
+    BasicPositionVertex {
+        position: [-1.0, 1.0],
+    },
+    BasicPositionVertex {
+        position: [1.0, -1.0],
+    },
+    BasicPositionVertex {
+        position: [1.0, 1.0],
+    },
+    BasicPositionVertex {
+        position: [-1.0, 1.0],
+    },
+];
+
+impl GpuState<BasicPositionVertex> {
+    pub fn new_full_screen<P: Pod + Zeroable>(
+        app: &App,
+        shader: wgpu::ShaderModuleDescriptor,
+        initial_params: &P,
+    ) -> Self {
+        Self::new(
+            app,
+            shader,
+            initial_params,
+            Some(QUAD_COVER_VERTICES),
+            wgpu::PrimitiveTopology::TriangleList,
+            Some(wgpu::BlendState::ALPHA_BLENDING),
+        )
     }
 }
