@@ -1,5 +1,6 @@
 use nannou::prelude::*;
 
+use crate::framework::gpu_updated as gpu;
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
@@ -38,7 +39,7 @@ pub struct Model {
     wr: WindowRect,
     agents: Vec<Agent>,
     noise: PerlinNoise,
-    gpu: gpu::GpuState,
+    gpu: gpu::GpuState<Vertex>,
 }
 
 pub fn init_model(app: &App, wr: WindowRect) -> Model {
@@ -71,24 +72,33 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     };
 
     let shader = wgpu::include_wgsl!("./flow_field.wgsl");
-    let config = gpu::PipelineConfig {
-        topology: wgpu::PrimitiveTopology::TriangleList,
-        vertex_data: None, // Dynamic vertex data
-        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-    };
-    let empty_vertices: Vec<Vertex> = vec![
+    let initial_vertices: Vec<Vertex> = vec![
         Vertex {
             position: [0.0, 0.0],
             color: [1.0, 0.0, 0.0, 1.0],
         };
         MAX_COUNT * 6
     ];
-    let gpu = gpu::GpuState::new_test(
+
+    let gpu = gpu::GpuState::new(
         app,
         shader,
         &params,
-        Some(&empty_vertices),
-        config,
+        Some(&initial_vertices),
+        &[
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 0,
+                format: wgpu::VertexFormat::Float32x2,
+            },
+            wgpu::VertexAttribute {
+                offset: 8,
+                shader_location: 1,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+        ],
+        wgpu::PrimitiveTopology::TriangleList,
+        Some(wgpu::BlendState::ALPHA_BLENDING),
     );
 
     Model {
@@ -149,12 +159,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ));
     }
 
-    app.main_window().queue().write_buffer(
-        &m.gpu.vertex_buffer.as_ref().unwrap(),
-        0,
-        bytemuck::cast_slice(&vertices),
-    );
-
+    m.gpu.update_vertex_buffer(app, &vertices);
     m.gpu.update_params(app, &params);
 }
 
