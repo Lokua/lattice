@@ -1,4 +1,3 @@
-use gpu_updated::BasicPositionVertex;
 use nannou::prelude::*;
 
 use crate::framework::gpu_updated as gpu;
@@ -23,7 +22,7 @@ pub struct Model {
     animation_script: AnimationScript<MidiSongTiming>,
     controls: Controls,
     wr: WindowRect,
-    gpu: gpu::GpuState<BasicPositionVertex>,
+    gpu: gpu::GpuState<gpu::BasicPositionVertex>,
 }
 
 #[repr(C)]
@@ -94,14 +93,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
     };
 
     let shader = wgpu::include_wgsl!("./wave_fract.wgsl");
-    let gpu = gpu::GpuState::new(
-        app,
-        shader,
-        &params,
-        Some(gpu::QUAD_COVER_VERTICES),
-        wgpu::PrimitiveTopology::TriangleList,
-        Some(wgpu::BlendState::ALPHA_BLENDING),
-    );
+    let gpu = gpu::GpuState::new_full_screen(app, shader, &params);
 
     Model {
         animation,
