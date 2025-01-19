@@ -148,8 +148,7 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         ));
     }
 
-    m.gpu.update_vertex_buffer(app, &vertices);
-    m.gpu.update_params(app, &params);
+    m.gpu.update(app, &params, &vertices);
 }
 
 pub fn view(_app: &App, m: &Model, frame: Frame) {
