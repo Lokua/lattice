@@ -184,10 +184,7 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
         let mut attributes = Vec::new();
         let mut offset = 0;
 
-        let type_info = V::type_info();
-        println!("Type info: {:?}", type_info);
-
-        match type_info {
+        match V::type_info() {
             TypeInfo::Struct(struct_info) => {
                 for (i, field) in
                     struct_info.field_names().into_iter().enumerate()
