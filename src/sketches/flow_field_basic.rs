@@ -1,10 +1,13 @@
+use std::time::Instant;
+
+use nannou::color::*;
 use nannou::prelude::*;
 
 use crate::framework::prelude::*;
 
 pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
-    name: "flow_field",
-    display_name: "Flow Field",
+    name: "flow_field_basic",
+    display_name: "Flow Field Basic",
     play_mode: PlayMode::Loop,
     fps: 60.0,
     bpm: 134.0,
@@ -13,21 +16,6 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
     gui_w: None,
     gui_h: Some(300),
 };
-
-const MAX_COUNT: usize = 10_000;
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct Vertex {
-    position: [f32; 2],
-    color: [f32; 4],
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
-struct ShaderParams {
-    resolution: [f32; 4],
-}
 
 #[derive(SketchComponents)]
 #[sketch(clear_color = "hsla(1.0, 1.0, 1.0, 1.0)")]
@@ -38,10 +26,9 @@ pub struct Model {
     wr: WindowRect,
     agents: Vec<Agent>,
     noise: PerlinNoise,
-    gpu: gpu::GpuState,
 }
 
-pub fn init_model(app: &App, wr: WindowRect) -> Model {
+pub fn init_model(_app: &App, wr: WindowRect) -> Model {
     let animation = Animation::new(FrameTiming::new(SKETCH_CONFIG.bpm));
 
     let controls = Controls::with_previous(vec![
@@ -58,7 +45,7 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
             ],
         ),
         Control::checkbox("randomize_point_size", false),
-        Control::slider("agent_count", 1_000.0, (10.0, MAX_COUNT as f32), 1.0),
+        Control::slider("agent_count", 1_000.0, (10.0, 10_000.0), 1.0),
         Control::slider("noise_scale", 100.0, (1.0, 1_000.0), 0.01),
         Control::slider("noise_strength", 10.0, (1.0, 20.0), 0.1),
         Control::slider("noise_vel", 0.01, (0.0, 0.02), 0.000_01),
@@ -66,42 +53,18 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         Control::slider_norm("bg_alpha", 0.02),
     ]);
 
-    let params = ShaderParams {
-        resolution: [0.0; 4],
-    };
-
-    let shader = wgpu::include_wgsl!("./flow_field.wgsl");
-    let config = gpu::PipelineConfig {
-        topology: wgpu::PrimitiveTopology::TriangleList,
-        vertex_data: None, // Dynamic vertex data
-        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-    };
-    let empty_vertices: Vec<Vertex> = vec![
-        Vertex {
-            position: [0.0, 0.0],
-            color: [1.0, 0.0, 0.0, 1.0],
-        };
-        MAX_COUNT * 6
-    ];
-    let gpu = gpu::GpuState::new_test(
-        app,
-        shader,
-        &params,
-        Some(&empty_vertices),
-        config,
-    );
-
     Model {
         animation,
         controls,
         wr,
         agents: vec![],
         noise: PerlinNoise::new(512),
-        gpu,
     }
 }
 
-pub fn update(app: &App, m: &mut Model, _update: Update) {
+pub fn update(_app: &App, m: &mut Model, _update: Update) {
+    let start = Instant::now();
+
     if m.controls.any_changed_in(&["agent_count"]) {
         let agent_count = m.controls.float("agent_count") as usize;
 
@@ -134,33 +97,35 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
         agent.constrain(&m.wr);
     });
 
-    let params = ShaderParams {
-        resolution: [m.wr.w(), m.wr.h(), 0.0, 0.0],
-    };
-
-    #[allow(unused_variables)]
-    let randomize_point_size = m.controls.bool("randomize_point_size");
-
-    let mut vertices = Vec::new();
-    for agent in &m.agents {
-        vertices.extend(generate_quad_vertices(
-            [agent.pos.x / m.wr.hw(), agent.pos.y / m.wr.hh()],
-            0.002,
-        ));
-    }
-
-    app.main_window().queue().write_buffer(
-        &m.gpu.vertex_buffer.as_ref().unwrap(),
-        0,
-        bytemuck::cast_slice(&vertices),
-    );
-
-    m.gpu.update_params(app, &params);
+    debug!("update: {:?}", start.elapsed());
 }
 
-pub fn view(_app: &App, m: &Model, frame: Frame) {
-    frame.clear(hsla(1.0, 1.0, 1.0, m.controls.float("bg_alpha")));
-    m.gpu.render(&frame);
+pub fn view(app: &App, m: &Model, frame: Frame) {
+    let start = Instant::now();
+
+    let draw = app.draw();
+
+    draw.rect().wh(m.wr.vec2()).color(hsla(
+        1.0,
+        1.0,
+        1.0,
+        m.controls.float("bg_alpha"),
+    ));
+
+    let randomize_point_size = m.controls.bool("randomize_point_size");
+
+    m.agents.iter().for_each(|agent| {
+        let radius = ternary!(randomize_point_size, random_f32(), 1.0);
+
+        draw.ellipse()
+            .radius(radius)
+            .xy(agent.pos)
+            .color(hsla(0.7, 0.2, 0.02, 1.0));
+    });
+
+    draw.to_frame(app, &frame).unwrap();
+
+    debug!("draw: {:?}", start.elapsed());
 }
 
 fn random_point(wr: &WindowRect) -> Vec2 {
@@ -250,33 +215,4 @@ impl Agent {
             self.pos.y = -wr.hh();
         }
     }
-}
-
-fn generate_quad_vertices(center: [f32; 2], size: f32) -> Vec<Vertex> {
-    vec![
-        Vertex {
-            position: [center[0] - size, center[1] - size],
-            color: [1.0, 0.0, 0.0, 1.0],
-        },
-        Vertex {
-            position: [center[0] + size, center[1] - size],
-            color: [0.0, 1.0, 0.0, 1.0],
-        },
-        Vertex {
-            position: [center[0] + size, center[1] + size],
-            color: [0.0, 0.0, 1.0, 1.0],
-        },
-        Vertex {
-            position: [center[0] - size, center[1] - size],
-            color: [1.0, 0.0, 0.0, 1.0],
-        },
-        Vertex {
-            position: [center[0] + size, center[1] + size],
-            color: [0.0, 0.0, 1.0, 1.0],
-        },
-        Vertex {
-            position: [center[0] - size, center[1] + size],
-            color: [1.0, 1.0, 0.0, 1.0],
-        },
-    ]
 }

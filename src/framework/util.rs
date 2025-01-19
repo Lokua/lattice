@@ -18,6 +18,17 @@ macro_rules! string_vec {
     ($($x:expr),* $(,)?) => (vec![$($x.to_string()),*]);
 }
 
+#[macro_export]
+macro_rules! ternary {
+    ($condition: expr, $_true: expr, $_false: expr) => {
+        if $condition {
+            $_true
+        } else {
+            $_false
+        }
+    };
+}
+
 pub trait IntoLinSrgb {
     fn into_lin_srgb(self) -> LinSrgb;
 }

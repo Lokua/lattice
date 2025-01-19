@@ -18,4 +18,5 @@ pub use crate::framework::timing::*;
 pub use crate::framework::util::*;
 pub use crate::framework::window_rect::*;
 pub use crate::string_vec;
+pub use crate::ternary;
 pub use derives::*;

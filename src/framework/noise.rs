@@ -15,6 +15,7 @@ impl PerlinNoise {
         self.noise = Perlin::new().set_seed(seed);
     }
 
+    /// Returns random value in the range [-1.0, 1.0]
     pub fn get<const N: usize>(&self, point: [f32; N]) -> f32
     where
         Perlin: NoiseFn<[f64; N]>,

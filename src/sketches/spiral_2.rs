@@ -182,7 +182,6 @@ pub fn update(app: &App, m: &mut Model, _update: Update) {
     };
 
     m.gpu.update_params(app, &params);
-    m.controls.mark_unchanged();
 }
 
 pub fn view(_app: &App, m: &Model, frame: Frame) {
