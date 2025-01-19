@@ -6,6 +6,7 @@ pub mod drop;
 pub mod drop_walk;
 pub mod floor_supervisor;
 pub mod flow_field;
+pub mod flow_field_basic;
 pub mod genuary_1;
 pub mod genuary_14;
 pub mod genuary_2;
