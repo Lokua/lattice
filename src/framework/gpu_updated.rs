@@ -1,7 +1,8 @@
 use bevy_reflect::{Reflect, TypeInfo, Typed};
 use bytemuck::{Pod, Zeroable};
 use nannou::prelude::*;
-use wgpu::util::DeviceExt;
+
+use super::prelude::*;
 
 pub struct GpuState<V: Pod + Zeroable> {
     render_pipeline: wgpu::RenderPipeline,
@@ -16,7 +17,7 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
     pub fn new<P: Pod + Zeroable>(
         app: &App,
         shader: wgpu::ShaderModuleDescriptor,
-        initial_params: &P,
+        params: &P,
         vertices: Option<&[V]>,
         topology: wgpu::PrimitiveTopology,
         blend: Option<wgpu::BlendState>,
@@ -30,7 +31,7 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
         let params_buffer =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Params Buffer"),
-                contents: bytemuck::bytes_of(initial_params),
+                contents: bytemuck::bytes_of(params),
                 usage: wgpu::BufferUsages::UNIFORM
                     | wgpu::BufferUsages::COPY_DST,
             });
@@ -83,13 +84,16 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
             (None, 0)
         };
 
-        let vertex_attributes = &Self::infer_vertex_attributes();
-
+        let vertex_attributes = if vertices.is_some() {
+            Self::infer_vertex_attributes()
+        } else {
+            vec![]
+        };
         let vertex_buffers = if vertices.is_some() {
             vec![wgpu::VertexBufferLayout {
                 array_stride: std::mem::size_of::<V>() as u64,
                 step_mode: wgpu::VertexStepMode::Vertex,
-                attributes: vertex_attributes,
+                attributes: &vertex_attributes,
             }]
         } else {
             vec![]
@@ -171,8 +175,8 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
             render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             render_pass.draw(0..self.n_vertices, 0..1);
         } else {
-            // Procedural rendering
-            render_pass.draw(0..3, 0..1);
+            error!("Use render_procedural if not using a vertex buffer");
+            panic!();
         }
     }
 
@@ -196,7 +200,10 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
                             "[f32; 2]" => wgpu::VertexFormat::Float32x2,
                             "[f32; 3]" => wgpu::VertexFormat::Float32x3,
                             "[f32; 4]" => wgpu::VertexFormat::Float32x4,
-                            t => panic!("Unsupported vertex field type: {}", t),
+                            t => {
+                                error!("Unsupported vertex field type: {}", t);
+                                panic!();
+                            }
                         };
 
                         attributes.push(wgpu::VertexAttribute {
@@ -215,7 +222,10 @@ impl<V: Pod + Zeroable + Typed> GpuState<V> {
                     }
                 }
             }
-            _ => panic!("Type must be a struct"),
+            _ => {
+                error!("Type must be a struct");
+                panic!();
+            }
         }
 
         attributes
@@ -253,15 +263,46 @@ impl GpuState<BasicPositionVertex> {
     pub fn new_full_screen<P: Pod + Zeroable>(
         app: &App,
         shader: wgpu::ShaderModuleDescriptor,
-        initial_params: &P,
+        params: &P,
     ) -> Self {
         Self::new(
             app,
             shader,
-            initial_params,
+            params,
             Some(QUAD_COVER_VERTICES),
             wgpu::PrimitiveTopology::TriangleList,
             Some(wgpu::BlendState::ALPHA_BLENDING),
         )
+    }
+}
+
+/// Specialized implementation for procedural rendering,
+/// when there is no VertexInput in shader
+impl GpuState<()> {
+    pub fn new_procedural<P: Pod + Zeroable>(
+        app: &App,
+        shader: wgpu::ShaderModuleDescriptor,
+        params: &P,
+    ) -> Self {
+        Self::new(
+            app,
+            shader,
+            params,
+            None,
+            wgpu::PrimitiveTopology::TriangleList,
+            Some(wgpu::BlendState::ALPHA_BLENDING),
+        )
+    }
+
+    pub fn render_procedural(&self, frame: &Frame, vertex_count: u32) {
+        let mut encoder = frame.command_encoder();
+        let mut render_pass = wgpu::RenderPassBuilder::new()
+            .color_attachment(frame.texture_view(), |color| {
+                color.load_op(wgpu::LoadOp::Load)
+            })
+            .begin(&mut encoder);
+        render_pass.set_pipeline(&self.render_pipeline);
+        render_pass.set_bind_group(0, &self.params_bind_group, &[]);
+        render_pass.draw(0..vertex_count, 0..1);
     }
 }
