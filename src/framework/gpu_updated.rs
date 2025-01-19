@@ -1,15 +1,9 @@
+use bevy_reflect::{TypeInfo, Typed};
+use bytemuck::{Pod, Zeroable};
 use nannou::prelude::*;
 use wgpu::util::DeviceExt;
 
-static FLOW_FIELD_VERTEX_ATTRS: &[wgpu::VertexAttribute] = &wgpu::vertex_attr_array![
-    0 => Float32x2,
-    1 => Float32x4,
-    // 1 => Float32x2,
-    // 2 => Float32,
-    // 3 => Float32x4
-];
-
-pub struct GpuState<V: bytemuck::Pod + bytemuck::Zeroable> {
+pub struct GpuState<V: Pod + Zeroable> {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: Option<wgpu::Buffer>,
     params_buffer: wgpu::Buffer,
@@ -18,14 +12,12 @@ pub struct GpuState<V: bytemuck::Pod + bytemuck::Zeroable> {
     _marker: std::marker::PhantomData<V>,
 }
 
-impl<V: bytemuck::Pod + bytemuck::Zeroable> GpuState<V> {
-    pub fn new<P: bytemuck::Pod + bytemuck::Zeroable>(
+impl<V: Pod + Zeroable + Typed> GpuState<V> {
+    pub fn new<P: Pod + Zeroable>(
         app: &App,
         shader: wgpu::ShaderModuleDescriptor,
         initial_params: &P,
         vertices: Option<&[V]>,
-        vertex_attributes: &[wgpu::VertexAttribute],
-        // vertex_layout: &[wgpu::VertexAttribute],
         topology: wgpu::PrimitiveTopology,
         blend: Option<wgpu::BlendState>,
     ) -> Self {
@@ -91,16 +83,13 @@ impl<V: bytemuck::Pod + bytemuck::Zeroable> GpuState<V> {
             (None, 0)
         };
 
-        let vertex_attributes =
-            &Self::infer_vertex_attributes(&vertices.unwrap());
+        let vertex_attributes = &Self::infer_vertex_attributes();
 
         let vertex_buffers = if vertices.is_some() {
             vec![wgpu::VertexBufferLayout {
                 array_stride: std::mem::size_of::<V>() as u64,
                 step_mode: wgpu::VertexStepMode::Vertex,
-                // attributes: FLOW_FIELD_VERTEX_ATTRS,
                 attributes: vertex_attributes,
-                // attributes: vertex_layout,
             }]
         } else {
             vec![]
@@ -147,7 +136,7 @@ impl<V: bytemuck::Pod + bytemuck::Zeroable> GpuState<V> {
         }
     }
 
-    pub fn update_params<P: bytemuck::Pod>(&self, app: &App, params: &P) {
+    pub fn update_params<P: Pod>(&self, app: &App, params: &P) {
         app.main_window().queue().write_buffer(
             &self.params_buffer,
             0,
@@ -182,72 +171,47 @@ impl<V: bytemuck::Pod + bytemuck::Zeroable> GpuState<V> {
         }
     }
 
-    // pub fn render(&self, frame: &Frame) {
-    //     let mut encoder = frame.command_encoder();
-    //     let mut render_pass = wgpu::RenderPassBuilder::new()
-    //         .color_attachment(frame.texture_view(), |color| {
-    //             color.load_op(wgpu::LoadOp::Load)
-    //         })
-    //         .begin(&mut encoder);
-    //     render_pass.set_pipeline(&self.render_pipeline);
-    //     render_pass.set_bind_group(0, &self.params_bind_group, &[]);
-
-    //     if let Some(ref vertex_buffer) = self.vertex_buffer {
-    //         render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-    //         render_pass.draw(0..self.n_vertices, 0..1);
-    //     } else {
-    //         // When no vertex buffer is provided, use vertex_index
-    //         render_pass.draw(0..6000000, 0..1); // TODO: Make this configurable
-    //     }
-    // }
-
-    // // Add new method for procedural rendering with custom vertex count
-    // pub fn render_procedural(&self, frame: &Frame, vertex_count: u32) {
-    //     let mut encoder = frame.command_encoder();
-    //     let mut render_pass = wgpu::RenderPassBuilder::new()
-    //         .color_attachment(frame.texture_view(), |color| {
-    //             color.load_op(wgpu::LoadOp::Load)
-    //         })
-    //         .begin(&mut encoder);
-    //     render_pass.set_pipeline(&self.render_pipeline);
-    //     render_pass.set_bind_group(0, &self.params_bind_group, &[]);
-    //     render_pass.draw(0..vertex_count, 0..1);
-    // }
-
-    fn infer_vertex_attributes(vertices: &[V]) -> Vec<wgpu::VertexAttribute> {
-        if vertices.is_empty() {
-            panic!("Vertex data cannot be empty when inferring attributes");
-        }
-
+    fn infer_vertex_attributes() -> Vec<wgpu::VertexAttribute> {
         let mut attributes = Vec::new();
         let mut offset = 0;
-        let vertex_size = std::mem::size_of::<V>();
 
-        // // Examine chunks of the vertex size that could represent f32 arrays
-        // while offset < vertex_size {
-        //     let remaining_size = vertex_size - offset;
+        let type_info = V::type_info();
+        println!("Type info: {:?}", type_info);
 
-        //     // Determine the largest possible f32 array at this offset
-        //     let format = if remaining_size >= 16 {
-        //         (16, wgpu::VertexFormat::Float32x4)
-        //     } else if remaining_size >= 12 {
-        //         (12, wgpu::VertexFormat::Float32x3)
-        //     } else if remaining_size >= 8 {
-        //         (8, wgpu::VertexFormat::Float32x2)
-        //     } else if remaining_size >= 4 {
-        //         (4, wgpu::VertexFormat::Float32)
-        //     } else {
-        //         panic!("Unexpected remaining size: {}", remaining_size);
-        //     };
+        match type_info {
+            TypeInfo::Struct(struct_info) => {
+                for (i, field) in
+                    struct_info.field_names().into_iter().enumerate()
+                {
+                    if let Some(field_info) = struct_info.field(field) {
+                        println!("Field: {} -> {:?}", field, field_info);
 
-        //     attributes.push(wgpu::VertexAttribute {
-        //         offset: offset as u64,
-        //         shader_location: attributes.len() as u32,
-        //         format: format.1,
-        //     });
+                        let format = match field_info.type_path() {
+                            "f32" => wgpu::VertexFormat::Float32,
+                            "[f32; 2]" => wgpu::VertexFormat::Float32x2,
+                            "[f32; 3]" => wgpu::VertexFormat::Float32x3,
+                            "[f32; 4]" => wgpu::VertexFormat::Float32x4,
+                            t => panic!("Unsupported vertex field type: {}", t),
+                        };
 
-        //     offset += format.0;
-        // }
+                        attributes.push(wgpu::VertexAttribute {
+                            offset: offset as u64,
+                            shader_location: i as u32,
+                            format,
+                        });
+
+                        offset += match format {
+                            wgpu::VertexFormat::Float32 => 4,
+                            wgpu::VertexFormat::Float32x2 => 8,
+                            wgpu::VertexFormat::Float32x3 => 12,
+                            wgpu::VertexFormat::Float32x4 => 16,
+                            _ => unreachable!(),
+                        };
+                    }
+                }
+            }
+            _ => panic!("Type must be a struct"),
+        }
 
         attributes
     }

@@ -1,3 +1,4 @@
+use bevy_reflect::Reflect;
 use nannou::prelude::*;
 
 use crate::framework::gpu_updated as gpu;
@@ -18,7 +19,7 @@ pub const SKETCH_CONFIG: SketchConfig = SketchConfig {
 const MAX_COUNT: usize = 10_000;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, Reflect)]
 struct Vertex {
     position: [f32; 2],
     color: [f32; 4],
@@ -85,18 +86,6 @@ pub fn init_model(app: &App, wr: WindowRect) -> Model {
         shader,
         &params,
         Some(&initial_vertices),
-        &[
-            wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 0,
-                format: wgpu::VertexFormat::Float32x2,
-            },
-            wgpu::VertexAttribute {
-                offset: 8,
-                shader_location: 1,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-        ],
         wgpu::PrimitiveTopology::TriangleList,
         Some(wgpu::BlendState::ALPHA_BLENDING),
     );
