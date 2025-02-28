@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Scalable Concurrent Containers"><title>scc - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="scc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../scc/index.html">scc</a><span class="version">2.3.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#scalable-concurrent-containers" title="Scalable Concurrent Containers">Scalable Concurrent Containers</a><ul><li><a href="#features" title="Features">Features</a></li><li><a href="#concurrent-and-asynchronous-containers" title="Concurrent and Asynchronous Containers">Concurrent and Asynchronous Containers</a></li><li><a href="#utilities-for-concurrent-programming" title="Utilities for Concurrent Programming">Utilities for Concurrent Programming</a></li><li><a href="#hashmap" title="`HashMap`"><code>HashMap</code></a></li><li><a href="#hashset" title="`HashSet`"><code>HashSet</code></a></li><li><a href="#hashindex" title="`HashIndex`"><code>HashIndex</code></a></li><li><a href="#hashcache" title="`HashCache`"><code>HashCache</code></a></li><li><a href="#treeindex" title="`TreeIndex`"><code>TreeIndex</code></a></li><li><a href="#bag" title="`Bag`"><code>Bag</code></a></li><li><a href="#queue" title="`Queue`"><code>Queue</code></a></li><li><a href="#stack" title="`Stack`"><code>Stack</code></a></li><li><a href="#linkedlist" title="`LinkedList`"><code>LinkedList</code></a></li><li><a href="#performance" title="Performance">Performance</a></li><li><a href="#changelog" title="Changelog">Changelog</a></li></ul></li></ul><h3><a href="#reexports">Crate Items</a></h3><ul class="block"><li><a href="#reexports" title="Re-exports">Re-exports</a></li><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#traits" title="Traits">Traits</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>scc</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/scc/lib.rs.html#1-83">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="scalable-concurrent-containers"><a class="doc-anchor" href="#scalable-concurrent-containers">§</a>Scalable Concurrent Containers</h2>
+<p><a href="https://crates.io/crates/scc"><img src="https://img.shields.io/crates/v/scc" alt="Cargo" /></a>
+<img src="https://img.shields.io/crates/l/scc" alt="Crates.io" />
+<img src="https://img.shields.io/github/actions/workflow/status/wvwwvwwv/scalable-concurrent-containers/scc.yml?branch=main" alt="GitHub Workflow Status" /></p>
+<p>A collection of high-performance containers and utilities for concurrent and asynchronous programming.</p>
+<h5 id="features"><a class="doc-anchor" href="#features">§</a>Features</h5>
+<ul>
+<li>Asynchronous counterparts of blocking and synchronous methods.</li>
+<li><a href="https://github.com/indexmap-rs/equivalent"><code>Equivalent</code></a>, <a href="https://github.com/tokio-rs/loom"><code>Loom</code></a> and <a href="https://github.com/serde-rs/serde"><code>Serde</code></a> support: <code>features = ["equivalent", "loom", "serde"]</code>.</li>
+<li>Near-linear scalability.</li>
+<li>No spin-locks and no busy loops.</li>
+<li>SIMD lookup to scan multiple entries in parallel: require <code>RUSTFLAGS='-C target_feature=+avx2'</code> on <code>x86_64</code>.</li>
+</ul>
+<h5 id="concurrent-and-asynchronous-containers"><a class="doc-anchor" href="#concurrent-and-asynchronous-containers">§</a>Concurrent and Asynchronous Containers</h5>
+<ul>
+<li><a href="#hashmap"><code>HashMap</code></a> is a concurrent and asynchronous hash map.</li>
+<li><a href="#hashset"><code>HashSet</code></a> is a concurrent and asynchronous hash set.</li>
+<li><a href="#hashindex"><code>HashIndex</code></a> is a read-optimized concurrent and asynchronous hash map.</li>
+<li><a href="#hashcache"><code>HashCache</code></a> is a 32-way associative cache backed by <a href="#hashmap"><code>HashMap</code></a>.</li>
+<li><a href="#treeindex"><code>TreeIndex</code></a> is a read-optimized concurrent and asynchronous B-plus tree.</li>
+</ul>
+<h5 id="utilities-for-concurrent-programming"><a class="doc-anchor" href="#utilities-for-concurrent-programming">§</a>Utilities for Concurrent Programming</h5>
+<ul>
+<li><a href="#linkedlist"><code>LinkedList</code></a> is a type trait implementing a lock-free concurrent singly linked list.</li>
+<li><a href="#queue"><code>Queue</code></a> is a concurrent lock-free first-in-first-out container.</li>
+<li><a href="#stack"><code>Stack</code></a> is a concurrent lock-free last-in-first-out container.</li>
+<li><a href="#bag"><code>Bag</code></a> is a concurrent lock-free unordered opaque container.</li>
+</ul>
+<h3 id="hashmap"><a class="doc-anchor" href="#hashmap">§</a><code>HashMap</code></h3>
+<p><a href="#hashmap"><code>HashMap</code></a> is a concurrent hash map optimized for highly parallel write-heavy workloads. <a href="#hashmap"><code>HashMap</code></a> is structured as a lock-free stack of entry bucket arrays. The entry bucket array is managed by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>, thus enabling lock-free access to it and non-blocking container resizing. Each bucket is a fixed-size array of entries, protected by a read-write lock that simultaneously provides blocking and asynchronous methods.</p>
+<h4 id="locking-behavior"><a class="doc-anchor" href="#locking-behavior">§</a>Locking behavior</h4><h5 id="entry-access-fine-grained-locking"><a class="doc-anchor" href="#entry-access-fine-grained-locking">§</a>Entry access: fine-grained locking</h5>
+<p>Read/write access to an entry is serialized by the read-write lock in the bucket containing the entry. There are no container-level locks; therefore, the larger the container gets, the lower the chance of the bucket-level lock being contended.</p>
+<h5 id="resize-lock-free"><a class="doc-anchor" href="#resize-lock-free">§</a>Resize: lock-free</h5>
+<p>Resizing of a <a href="#hashmap"><code>HashMap</code></a> is entirely non-blocking and lock-free; resizing does not block any other read/write access to the container or resizing attempts. <em>Resizing is analogous to pushing a new bucket array into a lock-free stack</em>. Each entry in the old bucket array will be incrementally relocated to the new bucket array upon future access to the container, and the old bucket array will eventually be dropped after it becomes empty.</p>
+<h4 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h4>
+<p>If the key is unique, an entry can be inserted. The inserted entry can be updated, read, and removed synchronously or asynchronously.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashMap;
+
+<span class="kw">let </span>hashmap: HashMap&lt;u64, u32&gt; = HashMap::default();
+
+<span class="macro">assert!</span>(hashmap.insert(<span class="number">1</span>, <span class="number">0</span>).is_ok());
+<span class="macro">assert!</span>(hashmap.insert(<span class="number">1</span>, <span class="number">1</span>).is_err());
+<span class="macro">assert_eq!</span>(hashmap.upsert(<span class="number">1</span>, <span class="number">1</span>).unwrap(), <span class="number">0</span>);
+<span class="macro">assert_eq!</span>(hashmap.update(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>, v| { <span class="kw-2">*</span>v = <span class="number">3</span>; <span class="kw-2">*</span>v }).unwrap(), <span class="number">3</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">3</span>);
+<span class="macro">assert_eq!</span>(hashmap.remove(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap(), (<span class="number">1</span>, <span class="number">3</span>));
+
+hashmap.entry(<span class="number">7</span>).or_insert(<span class="number">17</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">7</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">17</span>);
+
+<span class="kw">let </span>future_insert = hashmap.insert_async(<span class="number">2</span>, <span class="number">1</span>);
+<span class="kw">let </span>future_remove = hashmap.remove_async(<span class="kw-2">&amp;</span><span class="number">1</span>);</code></pre></div>
+<p>The <code>Entry</code> API of <a href="#hashmap"><code>HashMap</code></a> is helpful if the workflow is complicated.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashMap;
+
+<span class="kw">let </span>hashmap: HashMap&lt;u64, u32&gt; = HashMap::default();
+
+hashmap.entry(<span class="number">3</span>).or_insert(<span class="number">7</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">3</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v), <span class="prelude-val">Some</span>(<span class="number">7</span>));
+
+hashmap.entry(<span class="number">4</span>).and_modify(|v| { <span class="kw-2">*</span>v += <span class="number">1 </span>}).or_insert(<span class="number">5</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">4</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v), <span class="prelude-val">Some</span>(<span class="number">5</span>));</code></pre></div>
+<p><a href="#hashmap"><code>HashMap</code></a> does not provide an <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html"><code>Iterator</code></a> since it is impossible to confine the lifetime of <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html#associatedtype.Item"><code>Iterator::Item</code></a> to the <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html">Iterator</a>. The limitation can be circumvented by relying on interior mutability, e.g., letting the returned reference hold a lock. However, it may lead to a deadlock if not correctly used, and frequent acquisition of locks may impact performance. Therefore, <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html"><code>Iterator</code></a> is not implemented; instead, <a href="#hashmap"><code>HashMap</code></a> provides several methods to iterate over entries synchronously or asynchronously: <code>any</code>, <code>any_async</code>, <code>first_entry</code>, <code>first_entry_async</code>, <code>prune</code>, <code>prune_async</code>, <code>retain</code>, <code>retain_async</code>, <code>scan</code>, <code>scan_async</code>, <code>OccupiedEntry::next</code>, and <code>OccupiedEntry::next_async</code>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashMap;
+
+<span class="kw">let </span>hashmap: HashMap&lt;u64, u32&gt; = HashMap::default();
+
+<span class="macro">assert!</span>(hashmap.insert(<span class="number">1</span>, <span class="number">0</span>).is_ok());
+<span class="macro">assert!</span>(hashmap.insert(<span class="number">2</span>, <span class="number">1</span>).is_ok());
+
+<span class="comment">// Entries can be modified or removed via `retain`.
+</span><span class="kw">let </span><span class="kw-2">mut </span>acc = <span class="number">0</span>;
+hashmap.retain(|k, v_mut| { acc += <span class="kw-2">*</span>k; <span class="kw-2">*</span>v_mut = <span class="number">2</span>; <span class="bool-val">true </span>});
+<span class="macro">assert_eq!</span>(acc, <span class="number">3</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">2</span>);
+<span class="macro">assert_eq!</span>(hashmap.read(<span class="kw-2">&amp;</span><span class="number">2</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">2</span>);
+
+<span class="comment">// `any` returns `true` when an entry satisfying the predicate is found.
+</span><span class="macro">assert!</span>(hashmap.insert(<span class="number">3</span>, <span class="number">2</span>).is_ok());
+<span class="macro">assert!</span>(hashmap.any(|k, <span class="kw">_</span>| <span class="kw-2">*</span>k == <span class="number">3</span>));
+
+<span class="comment">// Multiple entries can be removed through `retain`.
+</span>hashmap.retain(|k, v| <span class="kw-2">*</span>k == <span class="number">1 </span>&amp;&amp; <span class="kw-2">*</span>v == <span class="number">2</span>);
+
+<span class="comment">// `hash_map::OccupiedEntry` also can return the next closest occupied entry.
+</span><span class="kw">let </span>first_entry = hashmap.first_entry();
+<span class="macro">assert_eq!</span>(<span class="kw-2">*</span>first_entry.as_ref().unwrap().key(), <span class="number">1</span>);
+<span class="kw">let </span>second_entry = first_entry.and_then(|e| e.next());
+<span class="macro">assert!</span>(second_entry.is_none());
+
+<span class="kw">fn </span>is_send&lt;T: Send&gt;(f: <span class="kw-2">&amp;</span>T) -&gt; bool {
+    <span class="bool-val">true
+</span>}
+
+<span class="comment">// Asynchronous iteration over entries using `scan_async`.
+</span><span class="kw">let </span>future_scan = hashmap.scan_async(|k, v| <span class="macro">println!</span>(<span class="string">"{k} {v}"</span>));
+<span class="macro">assert!</span>(is_send(<span class="kw-2">&amp;</span>future_scan));
+
+<span class="comment">// Asynchronous iteration over entries using the `Entry` API.
+</span><span class="kw">let </span>future_iter = <span class="kw">async </span>{
+    <span class="kw">let </span><span class="kw-2">mut </span>iter = hashmap.first_entry_async().<span class="kw">await</span>;
+    <span class="kw">while let </span><span class="prelude-val">Some</span>(entry) = iter {
+        <span class="comment">// `OccupiedEntry` can be sent across awaits and threads.
+        </span><span class="macro">assert!</span>(is_send(<span class="kw-2">&amp;</span>entry));
+        <span class="macro">assert_eq!</span>(<span class="kw-2">*</span>entry.key(), <span class="number">1</span>);
+        iter = entry.next_async().<span class="kw">await</span>;
+    }
+};
+<span class="macro">assert!</span>(is_send(<span class="kw-2">&amp;</span>future_iter));</code></pre></div>
+<h3 id="hashset"><a class="doc-anchor" href="#hashset">§</a><code>HashSet</code></h3>
+<p><a href="#hashset"><code>HashSet</code></a> is a special version of <a href="#hashmap"><code>HashMap</code></a> where the value type is <code>()</code>.</p>
+<h4 id="examples-1"><a class="doc-anchor" href="#examples-1">§</a>Examples</h4>
+<p>Most <a href="#hashset"><code>HashSet</code></a> methods are identical to that of <a href="#hashmap"><code>HashMap</code></a> except that they do not receive a value argument, and some <a href="#hashmap"><code>HashMap</code></a> methods for value modification are not implemented for <a href="#hashset"><code>HashSet</code></a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashSet;
+
+<span class="kw">let </span>hashset: HashSet&lt;u64&gt; = HashSet::default();
+
+<span class="macro">assert!</span>(hashset.read(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>| <span class="bool-val">true</span>).is_none());
+<span class="macro">assert!</span>(hashset.insert(<span class="number">1</span>).is_ok());
+<span class="macro">assert!</span>(hashset.read(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>| <span class="bool-val">true</span>).unwrap());
+
+<span class="kw">let </span>future_insert = hashset.insert_async(<span class="number">2</span>);
+<span class="kw">let </span>future_remove = hashset.remove_async(<span class="kw-2">&amp;</span><span class="number">1</span>);</code></pre></div>
+<h3 id="hashindex"><a class="doc-anchor" href="#hashindex">§</a><code>HashIndex</code></h3>
+<p><a href="#hashindex"><code>HashIndex</code></a> is a read-optimized version of <a href="#hashmap"><code>HashMap</code></a>. In a <a href="#hashindex"><code>HashIndex</code></a>, not only is the memory of the bucket array managed by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>, but also that of entry buckets is protected by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>, enabling lock-free-read access to individual entries.</p>
+<h4 id="entry-lifetime"><a class="doc-anchor" href="#entry-lifetime">§</a>Entry lifetime</h4>
+<p><code>HashIndex</code> does not drop removed entries immediately; instead, they are dropped when one of the following conditions is met.</p>
+<ol>
+<li><a href="https://docs.rs/sdd/latest/sdd/struct.Epoch.html"><code>Epoch</code></a> reaches the next generation since the last entry was removed in a bucket, and the bucket is write-accessed.</li>
+<li><code>HashIndex</code> is cleared, or resized.</li>
+<li>Buckets full of removed entries occupy 50% of the capacity.</li>
+</ol>
+<p>Those conditions do not guarantee that the removed entry will be dropped within a definite period of time; therefore, <code>HashIndex</code> would not be an optimal choice if the workload is write-heavy and the entry size is large.</p>
+<h4 id="examples-2"><a class="doc-anchor" href="#examples-2">§</a>Examples</h4>
+<p>The <code>peek</code> and <code>peek_with</code> methods are completely lock-free.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashIndex;
+
+<span class="kw">let </span>hashindex: HashIndex&lt;u64, u32&gt; = HashIndex::default();
+
+<span class="macro">assert!</span>(hashindex.insert(<span class="number">1</span>, <span class="number">0</span>).is_ok());
+
+<span class="comment">// `peek` and `peek_with` are lock-free.
+</span><span class="macro">assert_eq!</span>(hashindex.peek_with(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">0</span>);
+
+<span class="kw">let </span>future_insert = hashindex.insert_async(<span class="number">2</span>, <span class="number">1</span>);
+<span class="kw">let </span>future_remove = hashindex.remove_if_async(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>| <span class="bool-val">true</span>);</code></pre></div>
+<p>The <code>Entry</code> API of <a href="#hashindex"><code>HashIndex</code></a> can update an existing entry.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashIndex;
+
+<span class="kw">let </span>hashindex: HashIndex&lt;u64, u32&gt; = HashIndex::default();
+<span class="macro">assert!</span>(hashindex.insert(<span class="number">1</span>, <span class="number">1</span>).is_ok());
+
+<span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>o) = hashindex.get(<span class="kw-2">&amp;</span><span class="number">1</span>) {
+    <span class="comment">// Create a new version of the entry.
+    </span>o.update(<span class="number">2</span>);
+};
+
+<span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>o) = hashindex.get(<span class="kw-2">&amp;</span><span class="number">1</span>) {
+    <span class="comment">// Update the entry in place.
+    </span><span class="kw">unsafe </span>{ <span class="kw-2">*</span>o.get_mut() = <span class="number">3</span>; }
+};</code></pre></div>
+<p>An <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html"><code>Iterator</code></a> is implemented for <a href="#hashindex"><code>HashIndex</code></a> because any derived references can survive as long as the associated <code>ebr::Guard</code> lives.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::ebr::Guard;
+<span class="kw">use </span>scc::HashIndex;
+
+<span class="kw">let </span>hashindex: HashIndex&lt;u64, u32&gt; = HashIndex::default();
+
+<span class="macro">assert!</span>(hashindex.insert(<span class="number">1</span>, <span class="number">0</span>).is_ok());
+
+<span class="comment">// Existing values can be replaced with a new one.
+</span>hashindex.get(<span class="kw-2">&amp;</span><span class="number">1</span>).unwrap().update(<span class="number">1</span>);
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="comment">// An `Guard` has to be supplied to `iter`.
+</span><span class="kw">let </span><span class="kw-2">mut </span>iter = hashindex.iter(<span class="kw-2">&amp;</span>guard);
+
+<span class="comment">// The derived reference can live as long as `guard`.
+</span><span class="kw">let </span>entry_ref = iter.next().unwrap();
+<span class="macro">assert_eq!</span>(iter.next(), <span class="prelude-val">None</span>);
+
+drop(hashindex);
+
+<span class="comment">// The entry can be read after `hashindex` is dropped.
+</span><span class="macro">assert_eq!</span>(entry_ref, (<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">1</span>));</code></pre></div>
+<h3 id="hashcache"><a class="doc-anchor" href="#hashcache">§</a><code>HashCache</code></h3>
+<p><a href="#hashcache"><code>HashCache</code></a> is a 32-way associative concurrent cache based on the <a href="#hashmap"><code>HashMap</code></a> implementation. <a href="#hashcache"><code>HashCache</code></a> does not keep track of the least recently used entry in the entire cache. Instead, each bucket maintains a doubly linked list of occupied entries, which is updated on entry access.</p>
+<h4 id="examples-3"><a class="doc-anchor" href="#examples-3">§</a>Examples</h4>
+<p>The LRU entry in a bucket is evicted when a new entry is inserted, and the bucket is full.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::HashCache;
+
+<span class="kw">let </span>hashcache: HashCache&lt;u64, u32&gt; = HashCache::with_capacity(<span class="number">100</span>, <span class="number">2000</span>);
+
+<span class="doccomment">/// The capacity cannot exceed the maximum capacity.
+</span><span class="macro">assert_eq!</span>(hashcache.capacity_range(), <span class="number">128</span>..=<span class="number">2048</span>);
+
+<span class="doccomment">/// If the bucket corresponding to `1` or `2` is full, the LRU entry will be evicted.
+</span><span class="macro">assert!</span>(hashcache.put(<span class="number">1</span>, <span class="number">0</span>).is_ok());
+<span class="macro">assert!</span>(hashcache.put(<span class="number">2</span>, <span class="number">0</span>).is_ok());
+
+<span class="doccomment">/// `1` becomes the most recently accessed entry in the bucket.
+</span><span class="macro">assert!</span>(hashcache.get(<span class="kw-2">&amp;</span><span class="number">1</span>).is_some());
+
+<span class="doccomment">/// An entry can be normally removed.
+</span><span class="macro">assert_eq!</span>(hashcache.remove(<span class="kw-2">&amp;</span><span class="number">2</span>).unwrap(), (<span class="number">2</span>, <span class="number">0</span>));</code></pre></div>
+<h3 id="treeindex"><a class="doc-anchor" href="#treeindex">§</a><code>TreeIndex</code></h3>
+<p><a href="#treeindex"><code>TreeIndex</code></a> is a B-plus tree variant optimized for read operations. <a href="https://crates.io/crates/sdd"><code>sdd</code></a> protects the memory used by individual entries, thus enabling lock-free read access to them.</p>
+<h4 id="locking-behavior-1"><a class="doc-anchor" href="#locking-behavior-1">§</a>Locking behavior</h4>
+<p>Read access is always lock-free and non-blocking. Write access to an entry is lock-free and non-blocking as long as no structural changes are required. However, when nodes are split or merged by a write operation, other write operations on keys in the affected range are blocked.</p>
+<h4 id="entry-lifetime-1"><a class="doc-anchor" href="#entry-lifetime-1">§</a>Entry lifetime</h4>
+<p><code>TreeIndex</code> does not drop removed entries immediately. Instead, they are dropped when the leaf node is cleared or split, and this makes <code>TreeIndex</code> a sub-optimal choice if the workload is write-heavy.</p>
+<h4 id="examples-4"><a class="doc-anchor" href="#examples-4">§</a>Examples</h4>
+<p>If the key is unique, an entry can be inserted, read, and removed afterward. Locks are acquired or awaited only when internal nodes are split or merged.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::TreeIndex;
+
+<span class="kw">let </span>treeindex: TreeIndex&lt;u64, u32&gt; = TreeIndex::new();
+
+<span class="macro">assert!</span>(treeindex.insert(<span class="number">1</span>, <span class="number">2</span>).is_ok());
+
+<span class="comment">// `peek` and `peek_with` are lock-free.
+</span><span class="macro">assert_eq!</span>(treeindex.peek_with(<span class="kw-2">&amp;</span><span class="number">1</span>, |<span class="kw">_</span>, v| <span class="kw-2">*</span>v).unwrap(), <span class="number">2</span>);
+<span class="macro">assert!</span>(treeindex.remove(<span class="kw-2">&amp;</span><span class="number">1</span>));
+
+<span class="kw">let </span>future_insert = treeindex.insert_async(<span class="number">2</span>, <span class="number">3</span>);
+<span class="kw">let </span>future_remove = treeindex.remove_if_async(<span class="kw-2">&amp;</span><span class="number">1</span>, |v| <span class="kw-2">*</span>v == <span class="number">2</span>);</code></pre></div>
+<p>Entries can be scanned without acquiring any locks.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::TreeIndex;
+<span class="kw">use </span>sdd::Guard;
+
+<span class="kw">let </span>treeindex: TreeIndex&lt;u64, u32&gt; = TreeIndex::new();
+
+<span class="macro">assert!</span>(treeindex.insert(<span class="number">1</span>, <span class="number">10</span>).is_ok());
+<span class="macro">assert!</span>(treeindex.insert(<span class="number">2</span>, <span class="number">11</span>).is_ok());
+<span class="macro">assert!</span>(treeindex.insert(<span class="number">3</span>, <span class="number">13</span>).is_ok());
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="comment">// `iter` iterates over entries without acquiring a lock.
+</span><span class="kw">let </span><span class="kw-2">mut </span>iter = treeindex.iter(<span class="kw-2">&amp;</span>guard);
+<span class="macro">assert_eq!</span>(iter.next().unwrap(), (<span class="kw-2">&amp;</span><span class="number">1</span>, <span class="kw-2">&amp;</span><span class="number">10</span>));
+<span class="macro">assert_eq!</span>(iter.next().unwrap(), (<span class="kw-2">&amp;</span><span class="number">2</span>, <span class="kw-2">&amp;</span><span class="number">11</span>));
+<span class="macro">assert_eq!</span>(iter.next().unwrap(), (<span class="kw-2">&amp;</span><span class="number">3</span>, <span class="kw-2">&amp;</span><span class="number">13</span>));
+<span class="macro">assert!</span>(iter.next().is_none());</code></pre></div>
+<p>A specific range of keys can be scanned.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::ebr::Guard;
+<span class="kw">use </span>scc::TreeIndex;
+
+<span class="kw">let </span>treeindex: TreeIndex&lt;u64, u32&gt; = TreeIndex::new();
+
+<span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
+    <span class="macro">assert!</span>(treeindex.insert(i, <span class="number">10</span>).is_ok());
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="macro">assert_eq!</span>(treeindex.range(<span class="number">1</span>..<span class="number">1</span>, <span class="kw-2">&amp;</span>guard).count(), <span class="number">0</span>);
+<span class="macro">assert_eq!</span>(treeindex.range(<span class="number">4</span>..<span class="number">8</span>, <span class="kw-2">&amp;</span>guard).count(), <span class="number">4</span>);
+<span class="macro">assert_eq!</span>(treeindex.range(<span class="number">4</span>..=<span class="number">8</span>, <span class="kw-2">&amp;</span>guard).count(), <span class="number">5</span>);</code></pre></div>
+<h3 id="bag"><a class="doc-anchor" href="#bag">§</a><code>Bag</code></h3>
+<p><a href="#bag"><code>Bag</code></a> is a concurrent lock-free unordered container. <a href="#bag"><code>Bag</code></a> is completely opaque, disallowing access to contained instances until they are popped. <a href="#bag"><code>Bag</code></a> is especially efficient if the number of contained instances can be maintained under <code>ARRAY_LEN (default: usize::BITS / 2)</code></p>
+<h4 id="examples-5"><a class="doc-anchor" href="#examples-5">§</a>Examples</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::Bag;
+
+<span class="kw">let </span>bag: Bag&lt;usize&gt; = Bag::default();
+
+bag.push(<span class="number">1</span>);
+<span class="macro">assert!</span>(!bag.is_empty());
+<span class="macro">assert_eq!</span>(bag.pop(), <span class="prelude-val">Some</span>(<span class="number">1</span>));
+<span class="macro">assert!</span>(bag.is_empty());</code></pre></div>
+<h3 id="queue"><a class="doc-anchor" href="#queue">§</a><code>Queue</code></h3>
+<p><a href="#queue">Queue</a> is a concurrent lock-free first-in-first-out container backed by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>.</p>
+<h4 id="examples-6"><a class="doc-anchor" href="#examples-6">§</a>Examples</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::Queue;
+
+<span class="kw">let </span>queue: Queue&lt;usize&gt; = Queue::default();
+
+queue.push(<span class="number">1</span>);
+<span class="macro">assert!</span>(queue.push_if(<span class="number">2</span>, |e| e.map_or(<span class="bool-val">false</span>, |x| <span class="kw-2">**</span>x == <span class="number">1</span>)).is_ok());
+<span class="macro">assert!</span>(queue.push_if(<span class="number">3</span>, |e| e.map_or(<span class="bool-val">false</span>, |x| <span class="kw-2">**</span>x == <span class="number">1</span>)).is_err());
+<span class="macro">assert_eq!</span>(queue.pop().map(|e| <span class="kw-2">**</span>e), <span class="prelude-val">Some</span>(<span class="number">1</span>));
+<span class="macro">assert_eq!</span>(queue.pop().map(|e| <span class="kw-2">**</span>e), <span class="prelude-val">Some</span>(<span class="number">2</span>));
+<span class="macro">assert!</span>(queue.pop().is_none());</code></pre></div>
+<h3 id="stack"><a class="doc-anchor" href="#stack">§</a><code>Stack</code></h3>
+<p><a href="#stack"><code>Stack</code></a> is a concurrent lock-free last-in-first-out container backed by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>.</p>
+<h4 id="examples-7"><a class="doc-anchor" href="#examples-7">§</a>Examples</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::Stack;
+
+<span class="kw">let </span>stack: Stack&lt;usize&gt; = Stack::default();
+
+stack.push(<span class="number">1</span>);
+stack.push(<span class="number">2</span>);
+<span class="macro">assert_eq!</span>(stack.pop().map(|e| <span class="kw-2">**</span>e), <span class="prelude-val">Some</span>(<span class="number">2</span>));
+<span class="macro">assert_eq!</span>(stack.pop().map(|e| <span class="kw-2">**</span>e), <span class="prelude-val">Some</span>(<span class="number">1</span>));
+<span class="macro">assert!</span>(stack.pop().is_none());</code></pre></div>
+<h3 id="linkedlist"><a class="doc-anchor" href="#linkedlist">§</a><code>LinkedList</code></h3>
+<p><a href="#linkedlist"><code>LinkedList</code></a> is a type trait that implements lock-free concurrent singly linked list operations backed by <a href="https://crates.io/crates/sdd"><code>sdd</code></a>. It additionally provides a method for marking a linked list entry to denote a user-defined state.</p>
+<h4 id="examples-8"><a class="doc-anchor" href="#examples-8">§</a>Examples</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::ebr::{AtomicShared, Guard, Shared};
+<span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="kw">let </span>head: L = L::default();
+<span class="kw">let </span>tail: Shared&lt;L&gt; = Shared::new(L(AtomicShared::null(), <span class="number">1</span>));
+
+<span class="comment">// A new entry is pushed.
+</span><span class="macro">assert!</span>(head.push_back(tail.clone(), <span class="bool-val">false</span>, Relaxed, <span class="kw-2">&amp;</span>guard).is_ok());
+<span class="macro">assert!</span>(!head.is_marked(Relaxed));
+
+<span class="comment">// Users can mark a flag on an entry.
+</span>head.mark(Relaxed);
+<span class="macro">assert!</span>(head.is_marked(Relaxed));
+
+<span class="comment">// `next_ptr` traverses the linked list.
+</span><span class="kw">let </span>next_ptr = head.next_ptr(Relaxed, <span class="kw-2">&amp;</span>guard);
+<span class="macro">assert_eq!</span>(next_ptr.as_ref().unwrap().<span class="number">1</span>, <span class="number">1</span>);
+
+<span class="comment">// Once `tail` is deleted, it becomes invisible.
+</span>tail.delete_self(Relaxed);
+<span class="macro">assert!</span>(head.next_ptr(Relaxed, <span class="kw-2">&amp;</span>guard).is_null());</code></pre></div>
+<h3 id="performance"><a class="doc-anchor" href="#performance">§</a>Performance</h3><h4 id="hashmap-tail-latency"><a class="doc-anchor" href="#hashmap-tail-latency">§</a><a href="#hashmap"><code>HashMap</code></a> Tail Latency</h4>
+<p>The expected tail latency of a distribution of latencies of 1048576 insertion operations (<code>K = u64, V = u64</code>) ranges from 180 microseconds to 200 microseconds on Apple M2 Max.</p>
+<h4 id="hashmap-and-hashindex-throughput"><a class="doc-anchor" href="#hashmap-and-hashindex-throughput">§</a><a href="#hashmap"><code>HashMap</code></a> and <a href="#hashindex"><code>HashIndex</code></a> Throughput</h4>
+<ul>
+<li><a href="https://github.com/wvwwvwwv/conc-map-bench">Results on Apple M2 Max (12 cores)</a>.</li>
+<li><a href="https://github.com/wvwwvwwv/conc-map-bench/tree/Intel">Results on Intel Xeon (32 cores, avx2)</a>.</li>
+</ul>
+<h3 id="changelog"><a class="doc-anchor" href="#changelog">§</a><a href="https://github.com/wvwwvwwv/scalable-concurrent-containers/blob/main/CHANGELOG.md">Changelog</a></h3></div></details><h2 id="reexports" class="section-header">Re-exports<a href="#reexports" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name" id="reexport.Bag"><code>pub use bag::<a class="struct" href="bag/struct.Bag.html" title="struct scc::bag::Bag">Bag</a>;</code></div></li><li><div class="item-name" id="reexport.HashCache"><code>pub use hash_cache::<a class="struct" href="hash_cache/struct.HashCache.html" title="struct scc::hash_cache::HashCache">HashCache</a>;</code></div></li><li><div class="item-name" id="reexport.HashIndex"><code>pub use hash_index::<a class="struct" href="hash_index/struct.HashIndex.html" title="struct scc::hash_index::HashIndex">HashIndex</a>;</code></div></li><li><div class="item-name" id="reexport.HashMap"><code>pub use hash_map::<a class="struct" href="hash_map/struct.HashMap.html" title="struct scc::hash_map::HashMap">HashMap</a>;</code></div></li><li><div class="item-name" id="reexport.HashSet"><code>pub use hash_set::<a class="struct" href="hash_set/struct.HashSet.html" title="struct scc::hash_set::HashSet">HashSet</a>;</code></div></li><li><div class="item-name" id="reexport.Queue"><code>pub use queue::<a class="struct" href="queue/struct.Queue.html" title="struct scc::queue::Queue">Queue</a>;</code></div></li><li><div class="item-name" id="reexport.Stack"><code>pub use stack::<a class="struct" href="stack/struct.Stack.html" title="struct scc::stack::Stack">Stack</a>;</code></div></li><li><div class="item-name" id="reexport.TreeIndex"><code>pub use tree_index::<a class="struct" href="tree_index/struct.TreeIndex.html" title="struct scc::tree_index::TreeIndex">TreeIndex</a>;</code></div></li><li><div class="item-name" id="reexport.ebr"><code>pub use <a class="mod" href="../sdd/index.html" title="mod sdd">sdd</a> as ebr;</code></div></li></ul><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="bag/index.html" title="mod scc::bag">bag</a></div><div class="desc docblock-short"><a href="bag/struct.Bag.html" title="struct scc::bag::Bag"><code>Bag</code></a> is a lock-free concurrent unordered instance container.</div></li><li><div class="item-name"><a class="mod" href="hash_cache/index.html" title="mod scc::hash_cache">hash_<wbr>cache</a></div><div class="desc docblock-short"><a href="hash_cache/struct.HashCache.html" title="struct scc::hash_cache::HashCache"><code>HashCache</code></a> is a concurrent and asynchronous 32-way associative cache backed by
+<a href="hash_map/struct.HashMap.html" title="struct scc::hash_map::HashMap"><code>HashMap</code></a>.</div></li><li><div class="item-name"><a class="mod" href="hash_index/index.html" title="mod scc::hash_index">hash_<wbr>index</a></div><div class="desc docblock-short"><a href="hash_index/struct.HashIndex.html" title="struct scc::hash_index::HashIndex"><code>HashIndex</code></a> is a read-optimized concurrent and asynchronous hash map.</div></li><li><div class="item-name"><a class="mod" href="hash_map/index.html" title="mod scc::hash_map">hash_<wbr>map</a></div><div class="desc docblock-short"><a href="hash_map/struct.HashMap.html" title="struct scc::hash_map::HashMap"><code>HashMap</code></a> is a concurrent and asynchronous hash map.</div></li><li><div class="item-name"><a class="mod" href="hash_set/index.html" title="mod scc::hash_set">hash_<wbr>set</a></div><div class="desc docblock-short"><a href="hash_set/struct.HashSet.html" title="struct scc::hash_set::HashSet"><code>HashSet</code></a> is a concurrent and asynchronous hash set.</div></li><li><div class="item-name"><a class="mod" href="queue/index.html" title="mod scc::queue">queue</a></div><div class="desc docblock-short"><a href="queue/struct.Queue.html" title="struct scc::queue::Queue"><code>Queue</code></a> is a lock-free concurrent first-in-first-out container.</div></li><li><div class="item-name"><a class="mod" href="stack/index.html" title="mod scc::stack">stack</a></div><div class="desc docblock-short"><a href="stack/struct.Stack.html" title="struct scc::stack::Stack"><code>Stack</code></a> is a lock-free concurrent last-in-first-out container.</div></li><li><div class="item-name"><a class="mod" href="tree_index/index.html" title="mod scc::tree_index">tree_<wbr>index</a></div><div class="desc docblock-short"><a href="tree_index/struct.TreeIndex.html" title="struct scc::tree_index::TreeIndex"><code>TreeIndex</code></a> is a read-optimized concurrent and asynchronous B-plus tree.</div></li></ul><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.LinkedEntry.html" title="struct scc::LinkedEntry">Linked<wbr>Entry</a></div><div class="desc docblock-short"><a href="struct.LinkedEntry.html" title="struct scc::LinkedEntry"><code>Entry</code></a> stores an instance of <code>T</code> and a link to the next entry.</div></li></ul><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.Comparable.html" title="trait scc::Comparable">Comparable</a></div><div class="desc docblock-short">Key ordering trait.</div></li><li><div class="item-name"><a class="trait" href="trait.Equivalent.html" title="trait scc::Equivalent">Equivalent</a></div><div class="desc docblock-short">Key equivalence trait.</div></li><li><div class="item-name"><a class="trait" href="trait.LinkedList.html" title="trait scc::LinkedList">Linked<wbr>List</a></div><div class="desc docblock-short"><a href="trait.LinkedList.html" title="trait scc::LinkedList"><code>LinkedList</code></a> is a type trait implementing a lock-free singly linked list.</div></li></ul></section></div></main></body></html>

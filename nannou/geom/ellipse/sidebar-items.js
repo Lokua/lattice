@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Circumference","Ellipse","Section","TriangleIndices","TriangleVertices","Triangles"],"trait":["EllipseScalar"]};

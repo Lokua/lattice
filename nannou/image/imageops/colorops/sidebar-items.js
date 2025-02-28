@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["brighten","brighten_in_place","contrast","contrast_in_place","dither","grayscale","huerotate","huerotate_in_place","index_colors","invert"],"struct":["BiLevel"],"trait":["ColorMap"]};

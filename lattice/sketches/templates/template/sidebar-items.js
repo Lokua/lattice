@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SKETCH_CONFIG"],"fn":["init"],"struct":["Template"]};

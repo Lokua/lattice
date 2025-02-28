@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["builder","vertex"],"struct":["Mesh"],"type":["Colors","Indices","MeshType","Points","TexCoords"]};

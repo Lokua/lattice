@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CLOCK","CONTINUE","MTC_QUARTER_FRAME","PULSES_PER_QUARTER_NOTE","SONG_POSITION","START","STOP","TICKS_PER_QUARTER_NOTE"],"enum":["Timing"],"struct":["FrameTiming","HybridTiming","ManualTiming","MidiSongTiming","OscTransportTiming"],"trait":["TimingSource"]};

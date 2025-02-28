@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["N_LINES","SKETCH_CONFIG","SPACING","STROKE_WEIGHT"],"fn":["generate_jerky_points","generate_points_using_chaikin_smoothing","generate_points_using_kernel_smoothing","generate_slant_points","init_model","update","view"],"struct":["LineParams","Model"]};

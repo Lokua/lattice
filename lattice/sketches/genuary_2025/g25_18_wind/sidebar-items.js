@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_COUNT","SKETCH_CONFIG","VERTEX_TYPE_AGENT","VERTEX_TYPE_BG"],"fn":["generate_quad_vertices","init_model","random_point","update","view"],"struct":["Agent","Model","ShaderParams","Vertex"]};

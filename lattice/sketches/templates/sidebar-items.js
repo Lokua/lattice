@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["basic_cube_shader_template","fullscreen_shader_template","template"]};

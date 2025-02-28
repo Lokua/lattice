@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["N_BANDS","SKETCH_CONFIG"],"fn":["init_model","update","view"],"struct":["Model"]};

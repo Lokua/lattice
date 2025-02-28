@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["path","path_with_capacity"],"struct":["Builder","Path"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PlayMode"],"struct":["SketchAdapter","SketchConfig"],"trait":["Sketch","SketchModel"]};

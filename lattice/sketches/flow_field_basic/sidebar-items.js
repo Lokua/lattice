@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SKETCH_CONFIG"],"fn":["init_model","random_point","update","view"],"struct":["Agent","Model"]};

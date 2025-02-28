@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Tessellation of 2D fill and stroke operations."><title>lyon_tessellation - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="lyon_tessellation" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button><a class="logo-container" href="../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt=""></a></nav><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt="logo"></a><h2><a href="../lyon_tessellation/index.html">lyon_<wbr>tessellation</a><span class="version">0.17.10</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#overview" title="Overview">Overview</a></li><li><a href="#the-tessellation-pipeline" title="The tessellation pipeline">The tessellation pipeline</a><ul><li><a href="#the-input-iterators" title="The input: iterators">The input: iterators</a></li><li><a href="#the-output-geometry-builders" title="The output: geometry builders">The output: geometry builders</a></li><li><a href="#rendering-the-tessellated-geometry" title="Rendering the tessellated geometry">Rendering the tessellated geometry</a></li><li><a href="#flattening-and-tolerance" title="Flattening and tolerance">Flattening and tolerance</a></li></ul></li><li><a href="#examples" title="Examples">Examples</a></li></ul><h3><a href="#reexports">Crate Items</a></h3><ul class="block"><li><a href="#reexports" title="Re-exports">Re-exports</a></li><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#traits" title="Traits">Traits</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>lyon_tessellation</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/lyon_tessellation/lib.rs.html#1-759">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Tessellation of 2D fill and stroke operations.</p>
+<svg viewBox="0 0 600.0 300.0" height="300" width="600">
+  <g transform="translate(0,-752.36216)">
+    <path style="fill:none;stroke:#ff9955;" d="m 346.4,790.7 186.8,11.2 -213.6,25.9 196.8,12.7 -185.1,41.4 192.4,24.4 -205.5,10.3 194.1,33.4 -97.3,25.5 -96.9,-58.9"/>
+    <path style="fill:#ffb380;stroke:none;" d="m 59.1,965.3 -15.1,-48.7 13.0,-34.4 -11.5,-54.2 26.7,-37.1 73.2,-19.2 114.4,30.4 -17.0,38.0 1.1,15.3 13.4,-8.1 14.8,6.8 -5.2,48.2 -16.8,4.8 -11.4,43.5 -40.4,29.9 -31.3,-3.0 0,28.2 19.0,8.3 -44.2,19.0 -10.6,-25.1 9.9,-3.8 0,-28.2 z"/>
+    <path style="fill:#de8787;stroke:none;" d="m 106.4,853.1 2.2,67.9 49.6,0.7 13.7,-22.9 -20.6,-3.8 -4.5,-44.2 -17.5,-13.7 z"/>
+    <path style="fill:#a02c2c;stroke:none;" d="m 108.74845,940.94089 61.08369,3.05419 -13.74383,15.27092 -33.59604,-3.05418 z"/>
+    <path style="fill:#784421;stroke:none;" d="m 176.93475,845.6345 20.51653,4.85918 -5.39908,30.7748 -12.68786,-1.88968 z"/>
+    <path style="fill:#784421;stroke:none;" d="m 78.4,882.0 9.4,-3.2 3.7,-30.7 -13.2,8.6 z"/>
+    <path style="fill:none;stroke:#ff9955;stroke-linecap:round;stroke-linejoin:round;" d="m 333.2,965.3 -15.1,-48.7 13.0,-34.4 -11.5,-54.2 26.7,-37.1 73.2,-19.2 114.4,30.4 -17.0,38.0 1.2,15.3 13.2,-8.0 14.8,6.8 -5.2,48.2 -16.8,4.8 -11.4,43.5 -40.4,29.9 -31.3,-3.0 0,28.2 19.0,8.3 -44.2,19.0 -10.6,-25.1 9.9,-3.8 0,-28.2 z"/>
+    <path style="fill:none;stroke:#de8787;stroke-linecap:round;stroke-linejoin:round;" d="m 380.5,853.1 2.2,67.9 49.6,0.7 13.7,-22.9 -20.6,-3.8 -4.5,-44.2 -17.5,-13.7 z"/>
+    <path style="fill:none;stroke:#a02c2c;stroke-linecap:round;stroke-linejoin:round;" d="m 382.8,940.9 61.0,3.0 -13.7,15.2 -33.5,-3.0 z"/>
+    <path style="fill:none;stroke:#803300;stroke-linecap:round;stroke-linejoin:round;" d="m 451.0,845.6 20.5,4.8 -5.3,30.7 -12.6,-1.8 z"/>
+    <path style="fill:none;stroke:#803300;stroke-linecap:round;stroke-linejoin:round;" d="m 352.5,882.0 9.4,-3.2 3.7,-30.7 -13.2,8.6 z"/>
+    <path style="fill:none;stroke:#803300;stroke-linecap:round;stroke-linejoin:round;" d="m 352.5,856.4 9.3,22.2"/>
+    <path style="fill:none;stroke:#de8787;stroke-linecap:round;stroke-linejoin:round;" d="m 380.8,853.3 40.2,-2.5 -38.3,70.1 42.6,-25.9 6.6,26.5"/>
+    <path style="fill:none;stroke:#803300;stroke-linecap:round;stroke-linejoin:round;" d="m 471.4,850.4 -17.6,28.6"/>
+    <path style="fill:none;stroke:#a02c2c;stroke-linecap:round;stroke-linejoin:round;" d="m 443.3,943.9 -46.7,12.2"/>
+    <path style="fill:none;stroke:#ff9955;stroke-linecap:round;stroke-linejoin:round;" d="m 540.7,902.0 -22.5,-46.9 5.7,51.7"/>
+    <path style="fill:none;stroke:#ff9955;stroke-linecap:round;stroke-linejoin:round;" d="m 512.2,950.2 -71.0,27.1 -26.1,-1.7 25.3,30.1 -25.1,-1.7 44.0,10.3 -53.8,-6.1"/>
+    <path style="fill:none;stroke:#ff9955;stroke-linecap:round;stroke-linejoin:round;" d="m 518.5,8.3 27.5,-1.2"/>
+  </g>
+</svg>
+<p>This crate is reexported in <a href="https://docs.rs/lyon/">lyon</a>.</p>
+<h3 id="overview"><a class="doc-anchor" href="#overview">§</a>Overview</h3>
+<p>The most interesting types and traits of this crate are:</p>
+<ul>
+<li><a href="struct.FillTessellator.html">FillTessellator</a> - Tessellator for complex path fill operations.</li>
+<li><a href="struct.StrokeTessellator.html">StrokeTessellator</a> - Tessellator for complex path stroke operations.</li>
+<li><a href="geometry_builder/trait.GeometryBuilder.html"><code>GeometryBuilder</code></a> - (See the documentation of the
+<a href="geometry_builder/index.html">geometry_builder module</a>) which the above two are built on. This trait
+provides an interface for types that help with building and assembling the vertices and triangles that
+form the tessellation, usually in the form of arbitrary vertex and index buffers.</li>
+</ul>
+<h3 id="the-tessellation-pipeline"><a class="doc-anchor" href="#the-tessellation-pipeline">§</a>The tessellation pipeline</h3><svg xmlns="http://www.w3.org/2000/svg" width="280mm" height="42mm" viewBox="0 0 280 42">
+  <defs>
+    <marker id="e" orient="auto" overflow="visible">
+      <path fill="#59f" fill-rule="evenodd" stroke="#59f" stroke-width=".532" d="M-4 0l-2 2 7-2-7-2z"/>
+    </marker>
+    <marker id="d" orient="auto" overflow="visible">
+      <path fill-rule="evenodd" stroke="#000" stroke-width=".532" d="M-4 0l-2 2 7-2-7-2z"/>
+    </marker>
+    <marker id="c" orient="auto" overflow="visible">
+      <path fill="#59f" fill-rule="evenodd" stroke="#59f" stroke-width=".532" d="M-4 0l-2 2 7-2-7-2z"/>
+    </marker>
+    <marker id="b" orient="auto" overflow="visible">
+      <path fill-rule="evenodd" stroke="#000" stroke-width=".532" d="M-4 0l-2 2 7-2-7-2z"/>
+    </marker>
+    <marker id="a" orient="auto" overflow="visible">
+      <path fill-rule="evenodd" stroke="#000" stroke-width=".532" d="M-4 0l-2 2 7-2-7-2z"/>
+    </marker>
+  </defs>
+  <path fill="#fff" stroke="#000" stroke-opacity=".56" stroke-width=".26" stroke-miterlimit="4.27" d="M39.55 17.37h15.8l2.15-1.7 2.06 1.7h15.36V38.8H39.55zM194.65 31.3h21.58l2.1-1.83 2.04 1.82h35.07v7.07h-60.8zM77.7 19.5h54.6l3.3-2.58 3.17 2.57h52.56v19H77.7z" color="#000" overflow="visible" stroke-linecap="round" stroke-linejoin="round"/>
+  <g color="#000">
+    <path fill="#80b3ff" d="M194.6 20.37h50.65v8.73H194.6z" overflow="visible"/>
+    <path fill="#d5f6ff" d="M194.6 19.3h50.65v8.74H194.6z" overflow="visible"/>
+  </g>
+  <g color="#000">
+    <path fill="#2a7fff" d="M221.6 5.74h21.56v8.73H221.6z" overflow="visible"/>
+    <path fill="#d5f6ff" d="M221.6 4.68h21.56v8.73H221.6z" overflow="visible"/>
+  </g>
+  <g color="#000">
+    <path fill="#2a7fff" d="M154.38 5.74h47.4v8.73h-47.4z" overflow="visible"/>
+    <path fill="#d5f6ff" d="M154.38 4.68h47.4v8.73h-47.4z" overflow="visible"/>
+  </g>
+  <g color="#000">
+    <path fill="#2a7fff" d="M91.94 5.74h39.34v8.73H91.94z" overflow="visible"/>
+    <path fill="#d5f6ff" d="M91.94 4.68h39.34v8.73H91.94z" overflow="visible"/>
+  </g>
+  <g color="#000">
+    <path fill="#2a7fff" d="M3.04 5.74H75.2v8.73H3.03z" overflow="visible"/>
+    <path fill="#d5f6ff" d="M3.04 4.68H75.2v8.73H3.03z" overflow="visible"/>
+  </g>
+  <text x="93.73" y="266.09" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="93.73" y="266.09">FillTessellator</tspan>
+  </text>
+  <text x="155.37" y="265.58" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="155.37" y="265.58">GeometryBuilder</tspan>
+  </text>
+  <text x="223.1" y="266.02" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="223.1" y="266.02">output</tspan>
+  </text>
+  <text x="196.17" y="280.9" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="196.17" y="280.9">VertexConstructor</tspan>
+  </text>
+  <text x="5.13" y="266.09" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="5.13" y="266.09">Iterator&lt;PathEvent&gt;</tspan>
+  </text>
+  <text x="79.79" y="282.2" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="79.79" y="282.2" fill="navy" font-size="4.23">builder.add_vertex(FillVertex) -&gt; VertexId;</tspan><tspan x="79.79" y="289.09" fill="navy" font-size="4.23">builder.add_triangle(VertexId, <tspan stroke-width=".07" style="line-height:1.75010836px;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;text-transform:none;text-orientation:mixed;shape-padding:0" white-space="normal">VertexId, VertexId);</tspan></tspan>
+  </text>
+  <path fill="none" stroke="#000" stroke-width=".3" stroke-miterlimit="4.4" d="M76.94 265l13.64-.1" marker-end="url(#a)" transform="translate(0 -255)"/>
+  <path fill="none" stroke="#000" stroke-width=".3" stroke-miterlimit="4.4" d="M132.86 265l19.55-.1" marker-end="url(#b)" transform="translate(0 -255)"/>
+  <path fill="#59f" fill-rule="evenodd" stroke="#59f" stroke-width=".3" stroke-miterlimit="4.4" d="M203.38 264.53l8.27 8.26" marker-end="url(#c)" transform="translate(0 -255)"/>
+  <path fill="none" stroke="#000" stroke-width=".3" stroke-miterlimit="4.4" d="M203.38 264.53l16 .06" marker-end="url(#d)" transform="translate(0 -255)"/>
+  <text x="196.69" y="291.41" stroke-width=".26" style="line-height:6.61458302px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="196.69" y="291.41" fill="navy" font-size="4.23">FillVertex -&gt; CustomVertex</tspan>
+  </text>
+  <path fill="#59f" fill-rule="evenodd" stroke="#59f" stroke-width=".3" stroke-miterlimit="4.4" d="M212.97 272.98l6.75-6.5" marker-end="url(#e)" transform="translate(0 -255)"/>
+  <g fill="none" stroke="#000" stroke-width=".26">
+    <path d="M7.2 30.1l2.98 1.72h3.24l1.78-1.8 2.62-.75 2.08 1.83-1.6 2.87-5.64 1.54-3.5-1.62zM32.6 30.1l-3 1.72H26.4l-1.78-1.8-2.62-.75-2.08 1.83 1.6 2.87 5.64 1.54 3.5-1.62zM15 20.67l-.5 4.42 1.34 1 1.63-1.57-1.06-4.03zM24.53 20.67l.5 4.42-1.33 1-1.63-1.57 1.06-4.03z"/>
+  </g>
+  <path fill="#b7c8c4" fill-rule="evenodd" stroke="#000" stroke-width=".15" d="M251.68 19.5l2.98 1.74h3.23l1.78-1.8 2.62-.75 2.07 1.82-1.6 2.87-5.63 1.53-3.5-1.63z" stroke-linecap="round" stroke-linejoin="round"/>
+  <path fill="#b7c8c4" fill-rule="evenodd" stroke="#000" stroke-width=".15" d="M277.07 19.5l-2.98 1.74h-3.24l-1.8-1.8-2.6-.75-2.1 1.82L266 23.4l5.63 1.53 3.5-1.63zM259.48 10.08l-.5 4.42 1.33 1 1.65-1.55-1.07-4.03zM269 10.08l.52 4.42-1.34 1-1.64-1.55 1.07-4.03z" stroke-linecap="round" stroke-linejoin="round"/>
+  <path fill="none" stroke="#000" stroke-width=".15" d="M258.97 14.5l2.98-.55-2.47-3.87M266.54 13.95l2.98.55-1.9-4.58M254.66 21.24l-1 2.06 4.23-2.06-.76 3.7 2.54-5.5 3.1 3.95-.48-4.7M275.1 23.3l-1-2.06-2.5 3.7-.74-3.7-4.4-2.55-.48 4.7 4.88-2.16" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="43.5" y="277.68" stroke-width=".26" style="line-height:6.61458349px" font-size="5.29" font-family="Sans" letter-spacing="0" word-spacing="0" transform="translate(0 -255)">
+    <tspan x="43.5" y="277.68" fill="navy" font-size="3.88">MoveTo(Point)</tspan><tspan x="43.5" y="284.66" fill="navy" font-size="3.88">LineTo(Point)</tspan><tspan x="43.5" y="291.65" fill="navy" font-size="3.88">Close</tspan>
+  </text>
+</svg>
+<p>The figure above shows a simplified summary of each step of the fill tessellation pipeline.</p>
+<h4 id="the-input-iterators"><a class="doc-anchor" href="#the-input-iterators">§</a>The input: iterators</h4>
+<p>The path tessellators are not tied to a particular data structure. Instead they consume
+iterators of flattened path events.
+A <a href="https://docs.rs/lyon_path/*/lyon_path/struct.Path.html">Path struct</a> in the crate
+<a href="https://docs.rs/lyon_path/*/lyon_path/">lyon_path</a> is provided for convenience
+(but is optional).</p>
+<h4 id="the-output-geometry-builders"><a class="doc-anchor" href="#the-output-geometry-builders">§</a>The output: geometry builders</h4>
+<p>The tessellators are parametrized over a type implementing the
+<a href="geometry_builder/trait.GeometryBuilder.html">GeometryBuilder trait</a>.
+This trait provides some simple methods to add vertices and triangles, without enforcing
+any particular representation for the resulting geometry. This is important because each
+application will usually want to work with its own vertex type tailored a certain rendering
+model.</p>
+<p>Applications can implement the <code>GeometryBuilder&lt;Point&gt;</code> trait in order to
+generate vertex buffers and index buffers with custom vertex types.</p>
+<p>The structs <a href="geometry_builder/struct.VertexBuffers.html">VertexBuffers</a> and
+<a href="geometry_builder/struct.BuffersBuilder.html">geometry_buider::BuffersBuilder</a> are provided
+for convenience. <code>VertexBuffers&lt;T&gt;</code> is contains a <code>Vec&lt;T&gt;</code> for the vertices and a <code>Vec&lt;u16&gt;</code>
+for the indices.</p>
+<p><code>BuffersBuilder</code> is generic over a <code>VertexConstructor&lt;InputVertex, OutputVertex&gt;</code> trait which
+creates the application’s output vertices from the tessellator input vertices (either <code>FillVertex</code>
+or <code>StrokeVertex</code>).</p>
+<h4 id="rendering-the-tessellated-geometry"><a class="doc-anchor" href="#rendering-the-tessellated-geometry">§</a>Rendering the tessellated geometry</h4>
+<p>The tessellators produce geometry in the form of vertex and index buffers which are expected
+to be rendered using the equivalent of OpenGL’s <code>glDrawElements</code> with mode <code>GL_TRIANGLES</code> available
+under various names in the different graphics APIs.
+There is an <a href="https://github.com/nical/lyon/tree/master/examples/wgpu">example</a> showing how
+it can be done with wgpu.</p>
+<h4 id="flattening-and-tolerance"><a class="doc-anchor" href="#flattening-and-tolerance">§</a>Flattening and tolerance</h4>
+<p>Most tessellators in this crate currently operate on flattened paths (paths or shapes represented
+by sequences of line segments). when paths contain bézier curves or arcs, the latter need to be
+approximated with sequences of line segments. This approximation depends on a <code>tolerance</code> parameter
+which represents the maximum distance between a curve and its flattened approximation.</p>
+<p>More explanation about flattening and tolerance in the <a href="https://docs.rs/lyon_geom/#flattening">lyon_geom crate</a>.</p>
+<h3 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h3>
+<ul>
+<li><a href="fill/struct.FillTessellator.html#examples">Tessellating path fills</a>.</li>
+<li><a href="stroke/struct.StrokeTessellator.html#examples">Tessellating path strokes</a>.</li>
+<li><a href="geometry_builder/index.html#generating-custom-vertices">Generating custom vertices</a>.</li>
+<li><a href="geometry_builder/index.html#generating-a-completely-custom-output">Generating completely custom output</a>.</li>
+<li><a href="geometry_builder/index.html#writing-a-tessellator">Writing a tessellator</a>.</li>
+</ul>
+</div></details><h2 id="reexports" class="section-header">Re-exports<a href="#reexports" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name" id="reexport.path"><code>pub use <a class="mod" href="../lyon_path/index.html" title="mod lyon_path">lyon_path</a> as path;</code></div></li><li><div class="item-name" id="reexport.geom"><code>pub use crate::path::<a class="mod" href="../lyon_geom/index.html" title="mod lyon_geom">geom</a>;</code></div></li></ul><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="geometry_builder/index.html" title="mod lyon_tessellation::geometry_builder">geometry_<wbr>builder</a></div><div class="desc docblock-short">Tools to help with generating vertex and index buffers.</div></li><li><div class="item-name"><a class="mod" href="math/index.html" title="mod lyon_tessellation::math">math</a></div><div class="desc docblock-short">f32 version of the lyon_geom types used everywhere. Most other lyon crates
+reexport them.</div></li></ul><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.BuffersBuilder.html" title="struct lyon_tessellation::BuffersBuilder">Buffers<wbr>Builder</a></div><div class="desc docblock-short">A temporary view on a <code>VertexBuffers</code> object which facilitate the population of vertex and index
+data.</div></li><li><div class="item-name"><a class="struct" href="struct.Count.html" title="struct lyon_tessellation::Count">Count</a></div><div class="desc docblock-short">Number of vertices and indices added during the tessellation.</div></li><li><div class="item-name"><a class="struct" href="struct.EventQueue.html" title="struct lyon_tessellation::EventQueue">Event<wbr>Queue</a></div><div class="desc docblock-short">A queue of sorted events for the fill tessellator’s sweep-line algorithm.</div></li><li><div class="item-name"><a class="struct" href="struct.EventQueueBuilder.html" title="struct lyon_tessellation::EventQueueBuilder">Event<wbr>Queue<wbr>Builder</a></div></li><li><div class="item-name"><a class="struct" href="struct.FillBuilder.html" title="struct lyon_tessellation::FillBuilder">Fill<wbr>Builder</a></div></li><li><div class="item-name"><a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">Fill<wbr>Options</a></div><div class="desc docblock-short">Parameters for the fill tessellator.</div></li><li><div class="item-name"><a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">Fill<wbr>Tessellator</a></div><div class="desc docblock-short">A Context object that can tessellate fill operations for complex paths.</div></li><li><div class="item-name"><a class="struct" href="struct.FillVertex.html" title="struct lyon_tessellation::FillVertex">Fill<wbr>Vertex</a></div><div class="desc docblock-short">Extra vertex information from the <code>FillTessellator</code>, accessible when building vertices.</div></li><li><div class="item-name"><a class="struct" href="struct.StrokeBuilder.html" title="struct lyon_tessellation::StrokeBuilder">Stroke<wbr>Builder</a></div><div class="desc docblock-short">A builder that tessellates a stroke directly without allocating any intermediate data structure.</div></li><li><div class="item-name"><a class="struct" href="struct.StrokeOptions.html" title="struct lyon_tessellation::StrokeOptions">Stroke<wbr>Options</a></div><div class="desc docblock-short">Parameters for the tessellator.</div></li><li><div class="item-name"><a class="struct" href="struct.StrokeTessellator.html" title="struct lyon_tessellation::StrokeTessellator">Stroke<wbr>Tessellator</a></div><div class="desc docblock-short">A Context object that can tessellate stroke operations for complex paths.</div></li><li><div class="item-name"><a class="struct" href="struct.StrokeVertex.html" title="struct lyon_tessellation::StrokeVertex">Stroke<wbr>Vertex</a></div><div class="desc docblock-short">Extra vertex information from the <code>StrokeTessellator</code> accessible when building vertices.</div></li><li><div class="item-name"><a class="struct" href="struct.VertexBuffers.html" title="struct lyon_tessellation::VertexBuffers">Vertex<wbr>Buffers</a></div><div class="desc docblock-short">Structure that holds the vertex and index data.</div></li><li><div class="item-name"><a class="struct" href="struct.VertexId.html" title="struct lyon_tessellation::VertexId">Vertex<wbr>Id</a></div><div class="desc docblock-short">A virtual vertex offset in a geometry.</div></li><li><div class="item-name"><a class="struct" href="struct.VertexSourceIterator.html" title="struct lyon_tessellation::VertexSourceIterator">Vertex<wbr>Source<wbr>Iterator</a></div><div class="desc docblock-short">An iterator over the sources of a given vertex.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.FillRule.html" title="enum lyon_tessellation::FillRule">Fill<wbr>Rule</a></div><div class="desc docblock-short">The fill rule defines how to determine what is inside and what is outside of the shape.</div></li><li><div class="item-name"><a class="enum" href="enum.GeometryBuilderError.html" title="enum lyon_tessellation::GeometryBuilderError">Geometry<wbr>Builder<wbr>Error</a></div><div class="desc docblock-short">An error that can happen while generating geometry.</div></li><li><div class="item-name"><a class="enum" href="enum.InternalError.html" title="enum lyon_tessellation::InternalError">Internal<wbr>Error</a></div><div class="desc docblock-short">Describes an unexpected error happening during tessellation.</div></li><li><div class="item-name"><a class="enum" href="enum.LineCap.html" title="enum lyon_tessellation::LineCap">LineCap</a></div><div class="desc docblock-short">Line cap as defined by the SVG specification.</div></li><li><div class="item-name"><a class="enum" href="enum.LineJoin.html" title="enum lyon_tessellation::LineJoin">Line<wbr>Join</a></div><div class="desc docblock-short">Line join as defined by the SVG specification.</div></li><li><div class="item-name"><a class="enum" href="enum.Order.html" title="enum lyon_tessellation::Order">Order</a></div><div class="desc docblock-short">Before or After. Used to describe position relative to a join.</div></li><li><div class="item-name"><a class="enum" href="enum.Orientation.html" title="enum lyon_tessellation::Orientation">Orientation</a></div><div class="desc docblock-short">Vertical or Horizontal.</div></li><li><div class="item-name"><a class="enum" href="enum.Side.html" title="enum lyon_tessellation::Side">Side</a></div><div class="desc docblock-short">Left or right.</div></li><li><div class="item-name"><a class="enum" href="enum.TessellationError.html" title="enum lyon_tessellation::TessellationError">Tessellation<wbr>Error</a></div><div class="desc docblock-short">The fill tessellator’s error enumeration.</div></li><li><div class="item-name"><a class="enum" href="enum.VertexSource.html" title="enum lyon_tessellation::VertexSource">Vertex<wbr>Source</a></div><div class="desc docblock-short">Where a vertex produced by a tessellator comes from in the original path.</div></li></ul><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">Fill<wbr>Geometry<wbr>Builder</a></div><div class="desc docblock-short">A Geometry builder to interface with the <a href="../struct.FillTessellator.html"><code>FillTessellator</code></a>.</div></li><li><div class="item-name"><a class="trait" href="trait.FillVertexConstructor.html" title="trait lyon_tessellation::FillVertexConstructor">Fill<wbr>Vertex<wbr>Constructor</a></div><div class="desc docblock-short">A trait specifying how to create vertex values.</div></li><li><div class="item-name"><a class="trait" href="trait.GeometryBuilder.html" title="trait lyon_tessellation::GeometryBuilder">Geometry<wbr>Builder</a></div><div class="desc docblock-short">An interface separating tessellators and other geometry generation algorithms from the
+actual vertex construction.</div></li><li><div class="item-name"><a class="trait" href="trait.StrokeGeometryBuilder.html" title="trait lyon_tessellation::StrokeGeometryBuilder">Stroke<wbr>Geometry<wbr>Builder</a></div><div class="desc docblock-short">A Geometry builder to interface with the <a href="../struct.StrokeTessellator.html"><code>StrokeTessellator</code></a>.</div></li><li><div class="item-name"><a class="trait" href="trait.StrokeVertexConstructor.html" title="trait lyon_tessellation::StrokeVertexConstructor">Stroke<wbr>Vertex<wbr>Constructor</a></div><div class="desc docblock-short">A trait specifying how to create vertex values.</div></li></ul><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">Tessellation<wbr>Result</a></div><div class="desc docblock-short">The fill tessellator’s result type.</div></li></ul></section></div></main></body></html>

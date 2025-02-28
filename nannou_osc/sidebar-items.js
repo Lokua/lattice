@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CommunicationError","Error","Packet","Type"],"fn":["decode","default_ipv4_addr","encode","msg","receiver","sender"],"mod":["address","decoder","encoder","recv","send"],"struct":["Array","Bundle","Color","Connected","Message","MidiMessage","Time","TimeError","Unconnected"]};

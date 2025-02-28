@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OscError","OscPacket","OscType"],"mod":["address","decoder","encoder"],"struct":["OscArray","OscBundle","OscColor","OscMessage","OscMidiMessage","OscTime","OscTimeError"],"type":["Result"]};

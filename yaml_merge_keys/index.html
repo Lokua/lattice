@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="YAML Merge Keys"><title>yaml_merge_keys - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="yaml_merge_keys" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../yaml_merge_keys/index.html">yaml_<wbr>merge_<wbr>keys</a><span class="version">0.7.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#example" title="Example">Example</a></li></ul><h3><a href="#reexports">Crate Items</a></h3><ul class="block"><li><a href="#reexports" title="Re-exports">Re-exports</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>yaml_merge_keys</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/yaml_merge_keys/lib.rs.html#7-130">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>YAML Merge Keys</p>
+<p>The YAML Merge Key extension is not supported by the core YAML crate, but can be implemented
+after parsing. This crate transforms a parsed YAML document and merges dictionaries together.</p>
+<h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
+<p>This crate provides a function which implements the <a href="http://yaml.org/type/merge.html">YAML Merge Key extension</a>. Given a YAML
+document from <code>yaml-rust</code> (or <code>serde_yaml</code> with the <code>serde_yaml</code> feature), it will return
+a YAML document with the merge keys removed and merged into their owning dictionaries.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>yaml_rust::YamlLoader;
+<span class="kw">use </span>yaml_merge_keys::merge_keys;
+
+<span class="comment">// YAML document contents.
+</span><span class="kw">let </span>raw = <span class="string">"\
+ref: &amp;ref
+    merged_key: merged
+    added_key: merged
+dict:
+    &lt;&lt;: *ref
+    top_key: given
+    merged_key: given
+"</span>;
+<span class="kw">let </span>merged = <span class="string">"\
+ref:
+    merged_key: merged
+    added_key: merged
+dict:
+    top_key: given
+    merged_key: given
+    added_key: merged
+"</span>;
+
+<span class="comment">// Parse the YAML documents.
+</span><span class="kw">let </span>raw_yaml = YamlLoader::load_from_str(raw).unwrap().remove(<span class="number">0</span>);
+<span class="kw">let </span>merged_yaml = YamlLoader::load_from_str(merged).unwrap().remove(<span class="number">0</span>);
+
+<span class="comment">// Merge the keys.
+</span><span class="kw">let </span>merged_keys = merge_keys(raw_yaml).unwrap();
+
+<span class="comment">// The keys have been merged.
+</span><span class="macro">assert_eq!</span>(merged_keys, merged_yaml);
+
+<span class="comment">// Using `serde_yaml` is also supported with the feature.
+</span><span class="attr">#[cfg(feature = <span class="string">"serde_yaml"</span>)]
+</span>{
+    <span class="kw">use </span>yaml_merge_keys::merge_keys_serde;
+
+    <span class="kw">let </span>raw_yaml = serde_yaml::from_str(raw).unwrap();
+    <span class="kw">let </span>merged_yaml: serde_yaml::Value = serde_yaml::from_str(merged).unwrap();
+
+    <span class="kw">let </span>merged_keys = merge_keys_serde(raw_yaml).unwrap();
+
+    <span class="macro">assert_eq!</span>(merged_keys, merged_yaml);
+}</code></pre></div>
+<h2 id="example"><a class="doc-anchor" href="#example">§</a>Example</h2><div class="example-wrap"><pre class="language-yaml"><code>---
+- &amp;CENTER { x: 1, y: 2 }
+- &amp;LEFT { x: 0, y: 2 }
+- &amp;BIG { r: 10 }
+- &amp;SMALL { r: 1 }
+
+# All the following maps are equal:
+
+- # Explicit keys
+  x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- # Merge one map
+  &lt;&lt; : *CENTER
+  r: 10
+  label: center/big
+
+- # Merge multiple maps
+  &lt;&lt; : [ *CENTER, *BIG ]
+  label: center/big
+
+- # Override
+  &lt;&lt; : [ *BIG, *LEFT, *SMALL ]
+  x: 1
+  label: center/big</code></pre></div></div></details><h2 id="reexports" class="section-header">Re-exports<a href="#reexports" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name" id="reexport.serde_yaml"><code>pub use <a class="mod" href="../serde_yaml/index.html" title="mod serde_yaml">serde_yaml</a>;</code></div></li><li><div class="item-name" id="reexport.serde_yml"><code>pub use <a class="mod" href="../serde_yml/index.html" title="mod serde_yml">serde_yml</a>;</code></div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.MergeKeyError.html" title="enum yaml_merge_keys::MergeKeyError">Merge<wbr>KeyError</a></div><div class="desc docblock-short">Errors which may occur when performing the YAML merge key process.</div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.merge_keys.html" title="fn yaml_merge_keys::merge_keys">merge_<wbr>keys</a></div><div class="desc docblock-short">Handle merge keys in a YAML document.</div></li><li><div class="item-name"><a class="fn" href="fn.merge_keys_serde.html" title="fn yaml_merge_keys::merge_keys_serde">merge_<wbr>keys_<wbr>serde</a></div><div class="desc docblock-short">Handle merge keys in a serde YAML document.</div></li><li><div class="item-name"><a class="fn" href="fn.merge_keys_serde_yml.html" title="fn yaml_merge_keys::merge_keys_serde_yml">merge_<wbr>keys_<wbr>serde_<wbr>yml</a></div><div class="desc docblock-short">Handle merge keys in a serde YAML document.</div></li></ul></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Constrain","Kind","Mode","Shape"],"struct":["Breakpoint"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["approximate_signed_area","approximate_sub_path_signed_area"],"struct":["SignedAreas"]};

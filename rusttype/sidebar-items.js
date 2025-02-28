@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error","Segment","SharedBytes"],"fn":["point","vector"],"mod":["gpu_cache"],"struct":["Codepoint","Contour","Curve","Font","FontCollection","Glyph","GlyphId","GlyphIter","HMetrics","IntoFontsIter","LayoutIter","Line","Point","PositionedGlyph","Rect","Scale","ScaledGlyph","SharedGlyphData","VMetrics","Vector"],"trait":["IntoGlyphId"]};

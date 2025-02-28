@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["bag","hash_cache","hash_index","hash_map","hash_set","queue","stack","tree_index"],"struct":["LinkedEntry"],"trait":["Comparable","Equivalent","LinkedList"]};

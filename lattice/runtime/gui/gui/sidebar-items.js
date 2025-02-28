@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GUI_WIDTH"],"fn":["calculate_gui_dimensions","draw_adv_button","draw_alert_panel","draw_avg_fps","draw_clear_button","draw_clear_cache_button","draw_copy_controls","draw_pause_button","draw_queue_record_button","draw_record_button","draw_reset_button","draw_save_button","draw_sketch_controls","draw_sketch_selector","init","update"]};

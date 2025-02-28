@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_DROPS","SKETCH_CONFIG"],"fn":["gen_color","init_model","palette_by_name","update","view"],"struct":["Dropper","Model","Walker"],"type":["ColorFn","DropFn"]};

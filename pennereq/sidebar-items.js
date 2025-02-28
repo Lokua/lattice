@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["map","map_clamp"],"mod":["back","bounce","circ","cubic","elastic","expo","quad","quart","quint","sine"]};

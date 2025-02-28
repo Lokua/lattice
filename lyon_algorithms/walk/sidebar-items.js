@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["walk_along_path"],"struct":["PathWalker","RegularPattern","RepeatedPattern"],"trait":["Pattern"]};

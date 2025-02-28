@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["color_picker"],"struct":["Egui","FrameCtx","Input","Renderer"]};

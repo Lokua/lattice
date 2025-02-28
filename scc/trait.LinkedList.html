@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="`LinkedList` is a type trait implementing a lock-free singly linked list."><title>LinkedList in scc - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="scc" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc trait"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../scc/index.html">scc</a><span class="version">2.3.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Linked<wbr>List</a></h2><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.link_ref" title="link_ref">link_ref</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.delete_self" title="delete_self">delete_self</a></li><li><a href="#method.is_clear" title="is_clear">is_clear</a></li><li><a href="#method.is_deleted" title="is_deleted">is_deleted</a></li><li><a href="#method.is_marked" title="is_marked">is_marked</a></li><li><a href="#method.mark" title="mark">mark</a></li><li><a href="#method.next_ptr" title="next_ptr">next_ptr</a></li><li><a href="#method.next_shared" title="next_shared">next_shared</a></li><li><a href="#method.push_back" title="push_back">push_back</a></li><li><a href="#method.unmark" title="unmark">unmark</a></li></ul><h3><a href="#object-safety">Object Safety</a></h3><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate scc</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="index.html">scc</a></span><h1>Trait <span class="trait">LinkedList</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/scc/linked_list.rs.html#7-355">source</a> </span></div><pre class="rust item-decl"><code>pub trait LinkedList: <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a> {
+    // Required method
+    fn <a href="#tymethod.link_ref" class="fn">link_ref</a>(&amp;self) -&gt; &amp;<a class="struct" href="../sdd/atomic_shared/struct.AtomicShared.html" title="struct sdd::atomic_shared::AtomicShared">AtomicShared</a>&lt;Self&gt;;
+
+    // Provided methods
+    fn <a href="#method.is_clear" class="fn">is_clear</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.mark" class="fn">mark</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.unmark" class="fn">unmark</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.is_marked" class="fn">is_marked</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.delete_self" class="fn">delete_self</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.is_deleted" class="fn">is_deleted</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a> { ... }
+<span class="item-spacer"></span>    fn <a href="#method.push_back" class="fn">push_back</a>&lt;'g&gt;(
+        &amp;self,
+        entry: <a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;,
+        mark: <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a>,
+        order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>,
+        guard: &amp;'g <a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../sdd/ptr/struct.Ptr.html" title="struct sdd::ptr::Ptr">Ptr</a>&lt;'g, Self&gt;, <a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.next_ptr" class="fn">next_ptr</a>&lt;'g&gt;(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>, guard: &amp;'g <a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>) -&gt; <a class="struct" href="../sdd/ptr/struct.Ptr.html" title="struct sdd::ptr::Ptr">Ptr</a>&lt;'g, Self&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.next_shared" class="fn">next_shared</a>(
+        &amp;self,
+        order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>,
+        guard: &amp;<a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;&gt; { ... }
+}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p><a href="trait.LinkedList.html" title="trait scc::LinkedList"><code>LinkedList</code></a> is a type trait implementing a lock-free singly linked list.</p>
+</div></details><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.link_ref" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#13">source</a><h4 class="code-header">fn <a href="#tymethod.link_ref" class="fn">link_ref</a>(&amp;self) -&gt; &amp;<a class="struct" href="../sdd/atomic_shared/struct.AtomicShared.html" title="struct sdd::atomic_shared::AtomicShared">AtomicShared</a>&lt;Self&gt;</h4></section></summary><div class="docblock"><p>Returns a reference to the forward link.</p>
+<p>The pointer value may be tagged if <a href="trait.LinkedList.html#method.mark"><code>Self::mark</code></a> or <a href="trait.LinkedList.html#method.delete_self"><code>Self::delete_self</code></a> has been
+invoked. The <a href="../sdd/atomic_shared/struct.AtomicShared.html" title="struct sdd::atomic_shared::AtomicShared"><code>AtomicShared</code></a> must only be updated through <a href="trait.LinkedList.html" title="trait scc::LinkedList"><code>LinkedList</code></a> in order to keep
+the linked list consistent.</p>
+</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.is_clear" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#40-42">source</a><h4 class="code-header">fn <a href="#method.is_clear" class="fn">is_clear</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Returns <code>true</code> if <code>self</code> is reachable and not marked.</p>
+<h5 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::{AtomicShared, Tag};
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(head.is_clear(Relaxed));
+<span class="macro">assert!</span>(head.mark(Relaxed));
+<span class="macro">assert!</span>(!head.is_clear(Relaxed));
+<span class="macro">assert!</span>(head.delete_self(Relaxed));
+<span class="macro">assert!</span>(!head.is_clear(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.mark" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#67-70">source</a><h4 class="code-header">fn <a href="#method.mark" class="fn">mark</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Marks <code>self</code> with an internal flag to denote that <code>self</code> is in a special state.</p>
+<p>Returns <code>false</code> if a flag has already been marked on <code>self</code>.</p>
+<h5 id="examples-1"><a class="doc-anchor" href="#examples-1">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::AtomicShared;
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(head.mark(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.unmark" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#98-101">source</a><h4 class="code-header">fn <a href="#method.unmark" class="fn">unmark</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Removes any mark from <code>self</code>.</p>
+<p>Returns <code>false</code> if no flag has been marked on <code>self</code>.</p>
+<h5 id="examples-2"><a class="doc-anchor" href="#examples-2">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::AtomicShared;
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(!head.unmark(Relaxed));
+<span class="macro">assert!</span>(head.mark(Relaxed));
+<span class="macro">assert!</span>(head.unmark(Relaxed));
+<span class="macro">assert!</span>(!head.is_marked(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.is_marked" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#126-128">source</a><h4 class="code-header">fn <a href="#method.is_marked" class="fn">is_marked</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Returns <code>true</code> if <code>self</code> has a mark on it.</p>
+<h5 id="examples-3"><a class="doc-anchor" href="#examples-3">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::AtomicShared;
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(!head.is_marked(Relaxed));
+<span class="macro">assert!</span>(head.mark(Relaxed));
+<span class="macro">assert!</span>(head.is_marked(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.delete_self" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#159-169">source</a><h4 class="code-header">fn <a href="#method.delete_self" class="fn">delete_self</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Deletes <code>self</code>.</p>
+<p>Returns <code>false</code> if <code>self</code> already has <code>deleted</code> marked on it.</p>
+<h5 id="examples-4"><a class="doc-anchor" href="#examples-4">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::{AtomicShared, Guard, Shared};
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="kw">let </span>head: L = L::default();
+<span class="kw">let </span>tail: Shared&lt;L&gt; = Shared::new(L::default());
+<span class="macro">assert!</span>(head.push_back(tail.clone(), <span class="bool-val">false</span>, Relaxed, <span class="kw-2">&amp;</span>guard).is_ok());
+
+tail.delete_self(Relaxed);
+<span class="macro">assert!</span>(head.next_ptr(Relaxed, <span class="kw-2">&amp;</span>guard).as_ref().is_none());</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.is_deleted" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#194-197">source</a><h4 class="code-header">fn <a href="#method.is_deleted" class="fn">is_deleted</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a></h4></section></summary><div class="docblock"><p>Returns <code>true</code> if <code>self</code> has been deleted.</p>
+<h5 id="examples-5"><a class="doc-anchor" href="#examples-5">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::AtomicShared;
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>entry: L = L::default();
+<span class="macro">assert!</span>(!entry.is_deleted(Relaxed));
+entry.delete_self(Relaxed);
+<span class="macro">assert!</span>(entry.is_deleted(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.push_back" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#236-274">source</a><h4 class="code-header">fn <a href="#method.push_back" class="fn">push_back</a>&lt;'g&gt;(
+    &amp;self,
+    entry: <a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;,
+    mark: <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a>,
+    order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>,
+    guard: &amp;'g <a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../sdd/ptr/struct.Ptr.html" title="struct sdd::ptr::Ptr">Ptr</a>&lt;'g, Self&gt;, <a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;&gt;</h4></section></summary><div class="docblock"><p>Appends the given entry to <code>self</code> and returns a pointer to the entry.</p>
+<p>If <code>mark</code> is given <code>true</code>, it atomically marks an internal flag on <code>self</code> when updating
+the linked list, otherwise it removes marks.</p>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>Returns the supplied <a href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared"><code>Shared</code></a> when it finds <code>self</code> deleted.</p>
+<h5 id="examples-6"><a class="doc-anchor" href="#examples-6">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::{AtomicShared, Guard, Shared};
+<span class="kw">use </span>std::sync::atomic::Ordering::{Relaxed, Release};
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(head.push_back(Shared::new(L::default()), <span class="bool-val">true</span>, Release, <span class="kw-2">&amp;</span>guard).is_ok());
+<span class="macro">assert!</span>(head.is_marked(Relaxed));
+<span class="macro">assert!</span>(head.push_back(Shared::new(L::default()), <span class="bool-val">false</span>, Release, <span class="kw-2">&amp;</span>guard).is_ok());
+<span class="macro">assert!</span>(!head.is_marked(Relaxed));
+
+head.delete_self(Relaxed);
+<span class="macro">assert!</span>(!head.is_marked(Relaxed));
+<span class="macro">assert!</span>(head.push_back(Shared::new(L::default()), <span class="bool-val">false</span>, Release, <span class="kw-2">&amp;</span>guard).is_err());</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.next_ptr" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#307-309">source</a><h4 class="code-header">fn <a href="#method.next_ptr" class="fn">next_ptr</a>&lt;'g&gt;(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>, guard: &amp;'g <a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>) -&gt; <a class="struct" href="../sdd/ptr/struct.Ptr.html" title="struct sdd::ptr::Ptr">Ptr</a>&lt;'g, Self&gt;</h4></section></summary><div class="docblock"><p>Returns the closest next valid entry.</p>
+<p>It unlinks deleted entries until it reaches a valid one.</p>
+<h5 id="examples-7"><a class="doc-anchor" href="#examples-7">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::{AtomicShared, Guard, Shared};
+<span class="kw">use </span>std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(
+    head.push_back(Shared::new(L(AtomicShared::null(), <span class="number">1</span>)), <span class="bool-val">false</span>, Release, <span class="kw-2">&amp;</span>guard).is_ok());
+head.mark(Relaxed);
+
+<span class="kw">let </span>next_ptr = head.next_ptr(Acquire, <span class="kw-2">&amp;</span>guard);
+<span class="macro">assert_eq!</span>(next_ptr.as_ref().unwrap().<span class="number">1</span>, <span class="number">1</span>);
+<span class="macro">assert!</span>(head.is_marked(Relaxed));</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.next_shared" class="method"><a class="src rightside" href="../src/scc/linked_list.rs.html#342-354">source</a><h4 class="code-header">fn <a href="#method.next_shared" class="fn">next_shared</a>(&amp;self, order: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/sync/atomic/enum.Ordering.html" title="enum core::sync::atomic::Ordering">Ordering</a>, guard: &amp;<a class="struct" href="../sdd/guard/struct.Guard.html" title="struct sdd::guard::Guard">Guard</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared">Shared</a>&lt;Self&gt;&gt;</h4></section></summary><div class="docblock"><p>Returns a <a href="../sdd/shared/struct.Shared.html" title="struct sdd::shared::Shared"><code>Shared</code></a> handle to the closest next valid entry.</p>
+<p>It unlinks deleted entries until it reaches a valid one.</p>
+<h5 id="examples-8"><a class="doc-anchor" href="#examples-8">§</a>Examples</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>scc::LinkedList;
+<span class="kw">use </span>scc::ebr::{AtomicShared, Guard, Shared};
+<span class="kw">use </span>std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
+
+<span class="attr">#[derive(Default)]
+</span><span class="kw">struct </span>L(AtomicShared&lt;L&gt;, usize);
+<span class="kw">impl </span>LinkedList <span class="kw">for </span>L {
+    <span class="kw">fn </span>link_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>AtomicShared&lt;L&gt; {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
+}
+
+<span class="kw">let </span>guard = Guard::new();
+
+<span class="kw">let </span>head: L = L::default();
+<span class="macro">assert!</span>(
+    head.push_back(Shared::new(L(AtomicShared::null(), <span class="number">1</span>)), <span class="bool-val">false</span>, Release, <span class="kw-2">&amp;</span>guard).is_ok());
+head.mark(Relaxed);
+
+<span class="kw">let </span>next_shared = head.next_shared(Acquire, <span class="kw-2">&amp;</span>guard);
+<span class="macro">assert_eq!</span>(next_shared.unwrap().<span class="number">1</span>, <span class="number">1</span>);
+<span class="macro">assert!</span>(head.is_marked(Relaxed));</code></pre></div>
+</div></details></div><h2 id="object-safety" class="section-header">Object Safety<a href="#object-safety" class="anchor">§</a></h2><div class="object-safety-info">This trait is <b>not</b> <a href="https://doc.rust-lang.org/1.83.0/reference/items/traits.html#object-safety">object safe</a>.</div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"><section id="impl-LinkedList-for-Entry%3CT%3E" class="impl"><a class="src rightside" href="../src/scc/linked_list.rs.html#483-488">source</a><a href="#impl-LinkedList-for-Entry%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="trait.LinkedList.html" title="trait scc::LinkedList">LinkedList</a> for <a class="struct" href="struct.LinkedEntry.html" title="struct scc::LinkedEntry">Entry</a>&lt;T&gt;</h3></section></div><script src="../trait.impl/scc/linked_list/trait.LinkedList.js" async></script></section></div></main></body></html>

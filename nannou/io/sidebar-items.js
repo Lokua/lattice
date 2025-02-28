@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FileError"],"fn":["load_from_json","load_from_toml","safe_file_save","save_to_json","save_to_toml","walk_dir"],"type":["JsonFileError","TomlFileLoadError","TomlFileSaveError"]};

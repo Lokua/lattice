@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_DIRECTORY_NAME"],"enum":["Error"],"fn":["collection_from_file","default","default_directory","default_notosans","from_file","id"],"struct":["Id","Ids","Map","NewIds"]};

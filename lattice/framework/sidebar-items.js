@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["animation","audio","audio_controls","automate","control_provider","control_script","controls","distance","easing","effects","frame_controller","gpu","logging","midi","midi_controls","noise","osc_controls","osc_receiver","prelude","sketch","timing","util","window_rect"]};

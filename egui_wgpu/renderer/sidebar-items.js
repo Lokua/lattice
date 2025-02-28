@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Callback","Renderer","ScreenDescriptor"],"trait":["CallbackTrait"],"type":["CallbackResources"]};

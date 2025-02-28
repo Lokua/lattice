@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_POINTS","SKETCH_CONFIG"],"fn":["generate_reference_points","init_model","update","view"],"struct":["ComputeParams","InputPoint","Model","OutputPoint"]};

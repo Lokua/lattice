@@ -1,0 +1,181 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Tools to help with generating vertex and index buffers."><title>lyon_tessellation::geometry_builder - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="lyon_tessellation" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button><a class="logo-container" href="../../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt=""></a></nav><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt="logo"></a><h2><a href="../../lyon_tessellation/index.html">lyon_<wbr>tessellation</a><span class="version">0.17.10</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module geometry_<wbr>builder</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#overview" title="Overview">Overview</a></li><li><a href="#do-i-need-to-implement-geometry-builders-or-vertex-constructors" title="Do I need to implement geometry builders or vertex constructors?">Do I need to implement geometry builders or vertex constructors?</a></li><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#generating-custom-vertices" title="Generating custom vertices">Generating custom vertices</a></li><li><a href="#generating-a-completely-custom-output" title="Generating a completely custom output">Generating a completely custom output</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#traits" title="Traits">Traits</a></li><li><a href="#functions" title="Functions">Functions</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate lyon_<wbr>tessellation</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="../index.html">lyon_tessellation</a></span><h1>Module <span>geometry_builder</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/lyon_tessellation/geometry_builder.rs.html#1-589">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Tools to help with generating vertex and index buffers.</p>
+<h3 id="overview"><a class="doc-anchor" href="#overview">§</a>Overview</h3>
+<p>While it would be possible for the tessellation algorithms to manually generate vertex
+and index buffers with a certain layout, it would mean that most code using the tessellators
+have to copy and convert all generated vertices in order to have their own vertex
+layout, or de-interleaved vertex formats, which is a very common use-case.</p>
+<p>In order to flexibly and efficiently build geometry of various flavors, this module contains
+a number of builder interfaces that centered around the idea of building vertex and index
+buffers without having to know about the final vertex and index types.</p>
+<p>See:</p>
+<ul>
+<li><a href="trait.GeometryBuilder.html"><code>GeometryBuilder</code></a></li>
+<li><a href="trait.FillGeometryBuilder.html"><code>FillGeometryBuilder</code></a></li>
+<li><a href="trait.StrokeGeometryBuilder.html"><code>StrokeGeometryBuilder</code></a></li>
+</ul>
+<p>The traits above are what the tessellators interface with. It is very common to push
+vertices and indices into a pair of vectors, so to facilitate this pattern this module
+also provides:</p>
+<ul>
+<li>The struct <a href="struct.VertexBuffers.html"><code>VertexBuffers</code></a> is a simple pair of vectors of
+indices and vertices (generic parameters).</li>
+<li>The struct <a href="struct.BuffersBuilder.html"><code>BuffersBuilder</code></a> which writes into a
+<a href="struct.VertexBuffers.html"><code>VertexBuffers</code></a> and implements the various gemoetry
+builder traits. It takes care of filling the buffers while producing vertices is
+delegated to a vertex constructor.</li>
+<li>The traits <a href="trait.FillVertexConstructor.html"><code>FillVertexConstructor</code></a>,
+<a href="trait.StrokeVertexConstructor.html"><code>StrokeVertexConstructor</code></a> and
+<a href="struct.BuffersBuilder.html"><code>BuffersBuilder</code></a> in order to generate any vertex type. In the
+first example below, a struct <code>WithColor</code> implements the <code>FillVertexConstructor</code> trait in order to
+create vertices composed of a 2d position and a color value from an input 2d position.
+This separates the construction of vertex values from the assembly of the vertex buffers.
+Another, simpler example of vertex constructor is the <a href="struct.Positions.html"><code>Positions</code></a>
+constructor which just returns the vertex position untransformed.</li>
+</ul>
+<p>Geometry builders are a practical way to add one last step to the tessellation pipeline,
+such as applying a transform or clipping the geometry.</p>
+<p>While this is module designed to facilitate the generation of vertex buffers and index
+buffers, nothing prevents a given GeometryBuilder implementation to only generate a
+vertex buffer without indices, or write into a completely different format.
+These builder traits are at the end of the tessellation pipelines and are meant for
+users of this crate to be able to adapt the output of the tessellators to their own
+needs.</p>
+<h3 id="do-i-need-to-implement-geometry-builders-or-vertex-constructors"><a class="doc-anchor" href="#do-i-need-to-implement-geometry-builders-or-vertex-constructors">§</a>Do I need to implement geometry builders or vertex constructors?</h3>
+<p>If you only generate a vertex buffer and an index buffer (as a pair of standard <code>Vec</code>),
+then the simplest option is to work with custom vertex constructors and use
+<code>VertexBuffers</code> and <code>BuffersBuilder</code>.</p>
+<p>For more specific or elaborate use cases where control over where the vertices as written
+is needed such as building de-interleaved vertex buffers or writing directly into a mapped
+GPU buffer, implementing custom geometry builders is the right thing to do.</p>
+<p>Which of the vertex constructor or geometry builder traits to implement (fill/stroke/basic
+variants), depends on which tessellators the builder or constructor will interface with.</p>
+<h3 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h3><h4 id="generating-custom-vertices"><a class="doc-anchor" href="#generating-custom-vertices">§</a>Generating custom vertices</h4>
+<p>The example below implements the <code>FillVertexConstructor</code> trait in order to use a custom
+vertex type <code>MyVertex</code> (containing position and color), storing the tessellation in a
+<code>VertexBuffers&lt;MyVertex, u16&gt;</code>, and tessellates two shapes with different colors.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">extern crate </span>lyon_tessellation <span class="kw">as </span>tess;
+<span class="kw">use </span>tess::{FillVertexConstructor, VertexBuffers, BuffersBuilder, FillOptions, FillTessellator, FillVertex};
+<span class="kw">use </span>tess::math::{Point, point};
+
+<span class="comment">// Our custom vertex.
+</span><span class="attr">#[derive(Copy, Clone, Debug)]
+</span><span class="kw">pub struct </span>MyVertex {
+  position: [f32; <span class="number">2</span>],
+  color: [f32; <span class="number">4</span>],
+}
+
+<span class="comment">// The vertex constructor. This is the object that will be used to create the custom
+// verticex from the information provided by the tessellators.
+</span><span class="kw">struct </span>WithColor([f32; <span class="number">4</span>]);
+
+<span class="kw">impl </span>FillVertexConstructor&lt;MyVertex&gt; <span class="kw">for </span>WithColor {
+    <span class="kw">fn </span>new_vertex(<span class="kw-2">&amp;mut </span><span class="self">self</span>, vertex: FillVertex) -&gt; MyVertex {
+        MyVertex {
+            position: vertex.position().to_array(),
+            color: <span class="self">self</span>.<span class="number">0</span>,
+        }
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>output: VertexBuffers&lt;MyVertex, u16&gt; = VertexBuffers::new();
+    <span class="kw">let </span><span class="kw-2">mut </span>tessellator = FillTessellator::new();
+    <span class="comment">// Tessellate a red and a green circle.
+    </span>tessellator.tessellate_circle(
+        point(<span class="number">0.0</span>, <span class="number">0.0</span>),
+        <span class="number">10.0</span>,
+        <span class="kw-2">&amp;</span>FillOptions::tolerance(<span class="number">0.05</span>),
+        <span class="kw-2">&amp;mut </span>BuffersBuilder::new(
+            <span class="kw-2">&amp;mut </span>output,
+            WithColor([<span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>])
+        ),
+    );
+    tessellator.tessellate_circle(
+        point(<span class="number">10.0</span>, <span class="number">0.0</span>),
+        <span class="number">5.0</span>,
+        <span class="kw-2">&amp;</span>FillOptions::tolerance(<span class="number">0.05</span>),
+        <span class="kw-2">&amp;mut </span>BuffersBuilder::new(
+            <span class="kw-2">&amp;mut </span>output,
+            WithColor([<span class="number">0.0</span>, <span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">1.0</span>])
+        ),
+    );
+
+    <span class="macro">println!</span>(<span class="string">" -- {} vertices, {} indices"</span>, output.vertices.len(), output.indices.len());
+}</code></pre></div>
+<h4 id="generating-a-completely-custom-output"><a class="doc-anchor" href="#generating-a-completely-custom-output">§</a>Generating a completely custom output</h4>
+<p>Using <code>VertexBuffers&lt;T&gt;</code> is convenient and probably fits a lot of use cases, but
+what if we do not want to write the geometry in a pair of vectors?
+Perhaps we want to write the geometry in a different data structure or directly
+into gpu-accessible buffers mapped on the CPU?</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">extern crate </span>lyon_tessellation <span class="kw">as </span>tess;
+<span class="kw">use </span>tess::{StrokeTessellator, GeometryBuilder, StrokeGeometryBuilder, StrokeOptions, Count, GeometryBuilderError, StrokeVertex, VertexId};
+<span class="kw">use </span>tess::math::{Point, point};
+<span class="kw">use </span>tess::path::polygon::Polygon;
+<span class="kw">use </span>std::fmt::Debug;
+<span class="kw">use </span>std::u32;
+
+<span class="comment">// A geometry builder that writes the result of the tessellation to stdout instead
+// of filling vertex and index buffers.
+</span><span class="kw">pub struct </span>ToStdOut {
+    vertices: u32,
+    indices: u32,
+}
+
+<span class="kw">impl </span>ToStdOut {
+     <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{ ToStdOut { vertices: <span class="number">0</span>, indices: <span class="number">0 </span>} }
+}
+
+<span class="kw">impl </span>GeometryBuilder <span class="kw">for </span>ToStdOut {
+    <span class="kw">fn </span>begin_geometry(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="comment">// Reset the vertex in index counters.
+        </span><span class="self">self</span>.vertices = <span class="number">0</span>;
+        <span class="self">self</span>.indices = <span class="number">0</span>;
+        <span class="macro">println!</span>(<span class="string">" -- begin geometry"</span>);
+    }
+
+    <span class="kw">fn </span>end_geometry(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Count {
+        <span class="macro">println!</span>(<span class="string">" -- end geometry, {} vertices, {} indices"</span>, <span class="self">self</span>.vertices, <span class="self">self</span>.indices);
+        Count {
+            vertices: <span class="self">self</span>.vertices,
+            indices: <span class="self">self</span>.indices,
+        }
+    }
+
+    <span class="kw">fn </span>add_triangle(<span class="kw-2">&amp;mut </span><span class="self">self</span>, a: VertexId, b: VertexId, c: VertexId) {
+        <span class="macro">println!</span>(<span class="string">"triangle ({}, {}, {})"</span>, a.offset(), b.offset(), c.offset());
+        <span class="self">self</span>.indices += <span class="number">3</span>;
+    }
+
+    <span class="kw">fn </span>abort_geometry(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">" -- oops!"</span>);
+    }
+}
+
+<span class="kw">impl </span>StrokeGeometryBuilder <span class="kw">for </span>ToStdOut {
+    <span class="kw">fn </span>add_stroke_vertex(<span class="kw-2">&amp;mut </span><span class="self">self</span>, vertex: StrokeVertex) -&gt; <span class="prelude-ty">Result</span>&lt;VertexId, GeometryBuilderError&gt; {
+        <span class="macro">println!</span>(<span class="string">"vertex {:?}"</span>, vertex.position());
+        <span class="kw">if </span><span class="self">self</span>.vertices &gt;= u32::MAX {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(GeometryBuilderError::TooManyVertices);
+        }
+        <span class="self">self</span>.vertices += <span class="number">1</span>;
+        <span class="prelude-val">Ok</span>(VertexId(<span class="self">self</span>.vertices <span class="kw">as </span>u32 - <span class="number">1</span>))
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>output = ToStdOut::new();
+    <span class="kw">let </span><span class="kw-2">mut </span>tessellator = StrokeTessellator::new();
+    tessellator.tessellate_polygon(
+        Polygon {
+            points: <span class="kw-2">&amp;</span>[point(<span class="number">0.0</span>, <span class="number">0.0</span>), point(<span class="number">10.0</span>, <span class="number">0.0</span>), point(<span class="number">5.0</span>, <span class="number">5.0</span>)],
+            closed: <span class="bool-val">true</span>,
+        },
+        <span class="kw-2">&amp;</span>StrokeOptions::default(),
+        <span class="kw-2">&amp;mut </span>output,
+    );
+}</code></pre></div>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.BuffersBuilder.html" title="struct lyon_tessellation::geometry_builder::BuffersBuilder">Buffers<wbr>Builder</a></div><div class="desc docblock-short">A temporary view on a <code>VertexBuffers</code> object which facilitate the population of vertex and index
+data.</div></li><li><div class="item-name"><a class="struct" href="struct.Count.html" title="struct lyon_tessellation::geometry_builder::Count">Count</a></div><div class="desc docblock-short">Number of vertices and indices added during the tessellation.</div></li><li><div class="item-name"><a class="struct" href="struct.NoOutput.html" title="struct lyon_tessellation::geometry_builder::NoOutput">NoOutput</a></div><div class="desc docblock-short">A geometry builder that does not output any geometry.</div></li><li><div class="item-name"><a class="struct" href="struct.Positions.html" title="struct lyon_tessellation::geometry_builder::Positions">Positions</a></div><div class="desc docblock-short">A simple vertex constructor that just takes the position.</div></li><li><div class="item-name"><a class="struct" href="struct.VertexBuffers.html" title="struct lyon_tessellation::geometry_builder::VertexBuffers">Vertex<wbr>Buffers</a></div><div class="desc docblock-short">Structure that holds the vertex and index data.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.GeometryBuilderError.html" title="enum lyon_tessellation::geometry_builder::GeometryBuilderError">Geometry<wbr>Builder<wbr>Error</a></div><div class="desc docblock-short">An error that can happen while generating geometry.</div></li></ul><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::geometry_builder::FillGeometryBuilder">Fill<wbr>Geometry<wbr>Builder</a></div><div class="desc docblock-short">A Geometry builder to interface with the <a href="../struct.FillTessellator.html"><code>FillTessellator</code></a>.</div></li><li><div class="item-name"><a class="trait" href="trait.FillVertexConstructor.html" title="trait lyon_tessellation::geometry_builder::FillVertexConstructor">Fill<wbr>Vertex<wbr>Constructor</a></div><div class="desc docblock-short">A trait specifying how to create vertex values.</div></li><li><div class="item-name"><a class="trait" href="trait.GeometryBuilder.html" title="trait lyon_tessellation::geometry_builder::GeometryBuilder">Geometry<wbr>Builder</a></div><div class="desc docblock-short">An interface separating tessellators and other geometry generation algorithms from the
+actual vertex construction.</div></li><li><div class="item-name"><a class="trait" href="trait.MaxIndex.html" title="trait lyon_tessellation::geometry_builder::MaxIndex">MaxIndex</a></div><div class="desc docblock-short">Provides the maximum value of an index.</div></li><li><div class="item-name"><a class="trait" href="trait.StrokeGeometryBuilder.html" title="trait lyon_tessellation::geometry_builder::StrokeGeometryBuilder">Stroke<wbr>Geometry<wbr>Builder</a></div><div class="desc docblock-short">A Geometry builder to interface with the <a href="../struct.StrokeTessellator.html"><code>StrokeTessellator</code></a>.</div></li><li><div class="item-name"><a class="trait" href="trait.StrokeVertexConstructor.html" title="trait lyon_tessellation::geometry_builder::StrokeVertexConstructor">Stroke<wbr>Vertex<wbr>Constructor</a></div><div class="desc docblock-short">A trait specifying how to create vertex values.</div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.simple_builder.html" title="fn lyon_tessellation::geometry_builder::simple_builder">simple_<wbr>builder</a></div><div class="desc docblock-short">Creates a <code>SimpleBuffersBuilder</code>.</div></li></ul><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="type" href="type.SimpleBuffersBuilder.html" title="type lyon_tessellation::geometry_builder::SimpleBuffersBuilder">Simple<wbr>Buffers<wbr>Builder</a></div><div class="desc docblock-short">A <code>BuffersBuilder</code> that takes the actual vertex type as input.</div></li></ul></section></div></main></body></html>

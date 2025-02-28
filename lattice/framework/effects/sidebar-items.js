@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Effect","HysteresisState","Operator"],"fn":["equal_power_crossfade"],"struct":["Hysteresis","Math","Quantizer","RingModulator","Saturator","SlewLimiter","WaveFolder"]};

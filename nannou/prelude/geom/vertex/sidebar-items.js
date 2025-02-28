@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["iter_from_indices"],"struct":["IterFromIndices"],"trait":["Average","Vertex","Vertex2d","Vertex3d"],"type":["Default"]};

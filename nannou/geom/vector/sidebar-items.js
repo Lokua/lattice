@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["vec2","vec3","vec4"],"struct":["Vec2","Vec3","Vec4"],"type":["Vector2","Vector3","Vector4"]};

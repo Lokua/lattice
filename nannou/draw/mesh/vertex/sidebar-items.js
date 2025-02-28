@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["COLOR_CHANNEL_COUNT","DEFAULT_VERTEX_COLOR"],"fn":["default_tex_coords","new"],"struct":["IterFromColoredPoints","IterFromPoint2s","IterFromPoints"],"type":["Color","ColoredPoint","ColoredPoint2","Normal","Point","TexCoords","Vertex"]};

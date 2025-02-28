@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["POINTER_SPAN"],"enum":["LayoutErrorInner","NameKey","ResolveError","TypeResolution"],"fn":["ensure_block_returns"],"mod":["index"],"struct":["Alignment","GlobalCtx","LayoutError","Layouter","Namer","ResolveContext","TypeLayout"],"type":["EntryPointIndex"]};

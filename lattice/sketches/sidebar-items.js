@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["blob","breakpoints","breakpoints_2","brutalism","dev","displacement_2a","drop","drop_walk","floor_supervisor","flow_field_basic","genuary_2025","heat_mask","interference","kalos","kalos_2","sand_lines","scratch","shared","sierpinski_triangle","spiral","spiral_lines","templates","wave_fract"]};

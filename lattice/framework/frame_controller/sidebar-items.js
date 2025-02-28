@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["advance_single_frame","average_fps","clear_force_render","ensure_controller","fps","frame_count","is_paused","reset_frame_count","set_fps","set_frame_count","set_paused","wrapped_update","wrapped_view"],"static":["CONTROLLER"],"struct":["FrameController"]};

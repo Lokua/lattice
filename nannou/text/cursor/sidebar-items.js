@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["closest_cursor_index_and_xy","closest_cursor_index_on_line","closest_line","index_before_char","xy_at","xys_per_line","xys_per_line_from_text"],"struct":["Index","Xs","XysPerLine","XysPerLineFromText"]};

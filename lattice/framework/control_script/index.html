@@ -1,0 +1,741 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Provides a means of controlling sketch parameters with the various Lattice control systems from an external yaml file that can be hot-reloaded."><title>lattice::framework::control_script - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="lattice" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../lattice/index.html">lattice</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module control_<wbr>script</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#controlscript-yaml-reference" title="ControlScript YAML Reference">ControlScript YAML Reference</a></li><li><a href="#table-of-contents" title="Table of Contents">Table of Contents</a></li><li><a href="#general" title="General">General</a></li><li><a href="#ui" title="UI">UI</a><ul><li><a href="#slider" title="Slider">Slider</a></li><li><a href="#checkbox" title="Checkbox">Checkbox</a></li><li><a href="#select" title="Select">Select</a></li></ul></li><li><a href="#osc" title="OSC">OSC</a></li><li><a href="#midi" title="MIDI">MIDI</a></li><li><a href="#audio" title="Audio">Audio</a></li><li><a href="#animation" title="Animation">Animation</a><ul><li><a href="#triangle" title="Triangle">Triangle</a></li><li><a href="#automate" title="Automate">Automate</a></li></ul></li><li><a href="#modulation" title="Modulation">Modulation</a><ul><li><a href="#mod" title="Mod">Mod</a></li></ul></li><li><a href="#effects" title="Effects">Effects</a><ul><li><a href="#hysteresis" title="Hysteresis">Hysteresis</a></li><li><a href="#quantizer" title="Quantizer">Quantizer</a></li><li><a href="#ring-modulator" title="Ring Modulator">Ring Modulator</a></li><li><a href="#saturator" title="Saturator">Saturator</a></li><li><a href="#slew-limiter" title="Slew Limiter">Slew Limiter</a></li><li><a href="#wave-folder" title="Wave Folder">Wave Folder</a></li></ul></li><li><a href="#parameter-modulation" title="Parameter Modulation">Parameter Modulation</a></li><li><a href="#using-var" title="Using `var`">Using <code>var</code></a></li></ul><h3><a href="#reexports">Module Items</a></h3><ul class="block"><li><a href="#reexports" title="Re-exports">Re-exports</a></li><li><a href="#modules" title="Modules">Modules</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In lattice::<wbr>framework</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="../../index.html">lattice</a>::<wbr><a href="../index.html">framework</a></span><h1>Module <span>control_script</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/lattice/framework/control_script/mod.rs.html#1-12">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Provides a means of controlling sketch parameters with the various Lattice
+control systems from an external yaml file that can be hot-reloaded.</p>
+<h2 id="controlscript-yaml-reference"><a class="doc-anchor" href="#controlscript-yaml-reference">§</a>ControlScript YAML Reference</h2><h2 id="table-of-contents"><a class="doc-anchor" href="#table-of-contents">§</a>Table of Contents</h2>
+<ul>
+<li><a href="#general">General</a></li>
+<li><a href="#ui">UI</a>
+<ul>
+<li><a href="#slider">slider</a></li>
+<li><a href="#checkbox">checkbox</a></li>
+<li><a href="#select">select</a></li>
+</ul>
+</li>
+<li><a href="#midi">MIDI</a></li>
+<li><a href="#osc">OSC</a></li>
+<li><a href="#audio">Audio</a></li>
+<li><a href="#animation">Animation</a>
+<ul>
+<li><a href="#triangle">triangle</a></li>
+<li><a href="#automate">automate</a>
+<ul>
+<li><a href="#breakpoints">breakpoints</a></li>
+<li><a href="#kind">kind</a>
+<ul>
+<li><a href="#ramp">ramp</a></li>
+<li><a href="#step">step</a></li>
+<li><a href="#wave">wave</a></li>
+<li><a href="#random">random</a></li>
+<li><a href="#random_smooth">random_smooth</a></li>
+<li><a href="#end">end</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#modulation">Modulation</a>
+<ul>
+<li><a href="#mod">mod</a></li>
+</ul>
+</li>
+<li><a href="#effects">Effects</a>
+<ul>
+<li><a href="#hysteresis">hysteresis</a></li>
+<li><a href="#quantizer">quantizer</a></li>
+<li><a href="#ring_modulator">ring_modulator</a></li>
+<li><a href="#saturator">saturator</a></li>
+<li><a href="#slew_limiter">slew_limiter</a></li>
+<li><a href="#wave_folder">wave_folder</a></li>
+</ul>
+</li>
+<li><a href="#parameter-modulation">Parameter Modulation</a></li>
+<li><a href="#using-var">Using <code>var</code></a></li>
+</ul>
+<h2 id="general"><a class="doc-anchor" href="#general">§</a>General</h2>
+<p>Lattice provides various interfaces for controlling parameters including
+<code>Controls</code> for UI (sliders, checkboxes, and selects), <del><code>MidiControls</code></del> (TODO)
+and <code>OscControls</code> for controlling parameters from an external source,
+<code>AudioControls</code> for controlling parameters with audio or CV, and a comprehensive
+<code>Animation</code> module that can tween or generate random values and ramp to/from
+them at musical intervals. While these parameters are simple to setup, it’s a
+bit of pain to have to restart the rust sketch every time you want to change an
+animation or control configuration. For this reason Lattice provides a
+<code>ControlScript</code> mechanism that uses yaml for configuration and adds these
+controls dynamically and <em>self-updates at runtime when the yaml file is
+changed</em>, quite similar to live coding. You still have to take care to setup the
+routings in your sketch (e.g. <code>let radius = model.controls.get("radius")</code>), but
+once these routings are in place you are free to edit their ranges, values,
+timing, etc. Here’s an example that covers the overall capabilities:</p>
+<div class="example-wrap"><pre class="language-yaml"><code>radius:
+  type: slider
+  range: [50, 300]
+  default: 100
+
+# ramp up and down over 16 beats = 4 bars
+pos_x:
+  type: triangle
+  beats: 16
+  range: [-500, 500]
+
+# linearly from left to right then wiggle back and forth
+# from right to left over 2 bars
+pos_y:
+  type: automate
+  breakpoints:
+    # linearly ramp to the next position
+    - kind: ramp
+      position: 0.0
+      value: -500
+    # linearly ramp to the next position with amplitude modulation applied
+    - kind: wave
+      # transition from here to next point will take 4 beats = 1 bar
+      position: 4
+      value: 500
+      shape: sine
+      # modulate up/down from base ramp over a period of 1 beat
+      frequency: 1
+      amplitude: 100
+      constrain: clamp
+    # End right where the loop restarts to ensure smooth transition
+    - kind: end
+      position: 8
+      value: -500
+
+# And now we can do some _crazy_ stuff!
+imagination_amount:
+  type: slider
+
+imagination:
+  type: automate
+  breakpoints:
+    - kind: ramp
+      position: 0
+      value: 0
+    - kind: ramp
+      position: 3
+      # control the peak of this animation with a slider while its happening!
+      value: $imagination_amount
+    - kind: end
+      position: 6
+      value: 0
+
+imagination_folder:
+  type: effect
+  kind: wave_folder
+  gain: 2
+  # Use the same control for two parameters because, why not?
+  symmetry: $imagination_amount
+
+# effects like above need to be connected with sources:
+imagination_mod:
+  type: mod
+  source: imagination
+  modulators:
+    - imagination_folder</code></pre></div>
+<p>In your sketch, the above controls can be accessed as follows:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span><span class="kw">crate</span>::framework::prelude::<span class="kw-2">*</span>;
+
+<span class="attr">#[derive(SketchComponents)]
+</span><span class="kw">pub struct </span>Model {
+    controls: ControlScript&lt;Timing&gt;,
+}
+
+<span class="kw">pub fn </span>init_model(_app: <span class="kw-2">&amp;</span>App, _wr: WindowRect) -&gt; Model {
+    <span class="kw">let </span>controls = ControlScript::from_path(
+        to_absolute_path(<span class="macro">file!</span>(), <span class="string">"controls.yaml"</span>),
+        Timing::new(SKETCH_CONFIG.bpm),
+    );
+
+    Model { controls }
+}
+
+<span class="kw">pub fn </span>view(app: <span class="kw-2">&amp;</span>App, m: <span class="kw-2">&amp;</span>Model, frame: Frame) {
+  <span class="kw">let </span>draw = app.draw();
+
+  <span class="kw">let </span>radius = m.controls.get(<span class="string">"radius"</span>);
+  <span class="kw">let </span>pos_x = m.controls.get(<span class="string">"pos_x"</span>);
+
+  <span class="comment">// do stuff
+  // ...
+</span>}</code></pre></div>
+<p>The above example contains a bunch of YAML objects that we will refer to
+henceforth as <em>mappings</em>. All mappings in general are 1:1 mappings to their Rust
+structs. Some notes about mappings to keep in mind:</p>
+<ul>
+<li>All mappings require a <code>type</code> e.g. <code>slider</code>, <code>osc</code> or <code>automate</code>.</li>
+<li>Most, but not all, parameters can be omitted from a mapping except in cases
+where it makes no logical sense to omit them</li>
+<li>All mappings except UI controls support a <code>bypass</code> field. When this field is a
+number, that number will be used as a static value. This is useful for pausing
+animations or muting OSC streams. Any other value besides a number can be used
+to bypass the bypass.</li>
+<li>All controls support an optional <code>var</code> field. This is very useful for
+pre-loading shader uniforms before you know what the actual role or name of a
+control will be. See the <a href="#using-var">Using <code>var</code> section</a>.</li>
+<li>All numbers will be interpreted as <code>f32</code> so feel free to use integers where it
+makes sense</li>
+</ul>
+<h2 id="ui"><a class="doc-anchor" href="#ui">§</a>UI</h2>
+<p>Interface to <a href="../controls/index.html" title="mod lattice::framework::controls">Controls</a></p>
+<p>All UI controls are added to the UI in the order they are declared.</p>
+<h3 id="slider"><a class="doc-anchor" href="#slider">§</a>Slider</h3>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>slider</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+<li><code>default</code> - defaults to <code>0.5</code></li>
+<li><code>step</code> - defaults to <code>1.0</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>slider_example:
+  type: slider
+  range: [0.0, 1.0]
+  default: 0.5
+  step: 1.0</code></pre></div><h3 id="checkbox"><a class="doc-anchor" href="#checkbox">§</a>Checkbox</h3>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>checkbox</code></li>
+<li><code>default</code> - defaults to <code>false</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>checkbox_example:
+  type: checkbox
+  default: false</code></pre></div><h3 id="select"><a class="doc-anchor" href="#select">§</a>Select</h3>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>select</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+<li><code>default</code> - defaults to <code>0.5</code></li>
+<li><code>step</code> - defaults to <code>1.0</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>slider_example:
+  type: select
+  default: foo
+  options:
+    - foo
+    - bar
+    - baz</code></pre></div><h2 id="osc"><a class="doc-anchor" href="#osc">§</a>OSC</h2>
+<p>Listens for incoming floats on the port specified in the
+<a href="src/config.rs">src/config.rs</a>’s <code>OSC_PORT</code> constant (<code>2346</code>).</p>
+<p><strong>Params</strong></p>
+<p>Note that there is no <code>address</code> field; the address is taken from the mapping
+name (<code>osc_example</code> in the example below - forward slash is handled internally).</p>
+<ul>
+<li><code>type</code> - <code>osc</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+<li><code>default</code> - a default to use in the case an OSC message hasn’t arrived at
+address since the program start. Defaults to <code>0.5</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>osc_example:
+  type: osc
+  range: [0.0, 1.0]
+  default: 0.5</code></pre></div><h2 id="midi"><a class="doc-anchor" href="#midi">§</a>MIDI</h2>
+<p>Listens for incoming control change messages on the port specified in the
+<a href="src/config.rs">src/config.rs</a>’s <code>MIDI_INPUT_PORT</code> constant (currently hardcoded
+to <code>IAC Driver Lattice In</code>). MIDI values are by default scaled to a <code>[0.0, 1.0]</code>
+range.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>midi</code></li>
+<li><code>channel</code> - zero-indexed; defaults to <code>0</code></li>
+<li><code>cc</code> - zero-indexed; defaults to <code>0</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+<li><code>default</code> - a default to use in the case a CC message hasn’t arrived since the
+program start. Defaults to <code>0.0</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>midi_example:
+  type: midi
+  channel: 0
+  cc: 0
+  range: [0.0, 1.0]
+  default: 0.0</code></pre></div><h2 id="audio"><a class="doc-anchor" href="#audio">§</a>Audio</h2>
+<p>Listens for audio signals on the device specified in
+<a href="src/config.rs">src/config.rs</a>’s <code>MULTICHANNEL_AUDIO_DEVICE_NAME</code> constant and
+transforms them into a stream suitable for parameter automation/modulation.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>audio</code></li>
+<li><code>channel</code> - the zero-indexed audio channel</li>
+<li><code>slew</code> - Controls smoothing ([rise, fall]) when signal amplitude increases.
+<ul>
+<li><code>0.0</code> = instant rise/fall (no smoothing)</li>
+<li><code>1.0</code> = very slow rise/fall (maximum smoothing)</li>
+<li>defaults to <code>[0.0, 0.0]</code></li>
+</ul>
+</li>
+<li><code>detect</code> - Linearly mix between 0=peak detection and 1=RMS peak detection.
+Peak is snappier, RMS is smoother but limits amplitude more. Defaults to
+<code>0.0</code>.</li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>animation_example:
+  type: audio
+  channel: 0
+  slew: [0.3, 0.9]
+  detect: 0.0
+  range: [0.0, 100.0]</code></pre></div><h2 id="animation"><a class="doc-anchor" href="#animation">§</a>Animation</h2><h3 id="triangle"><a class="doc-anchor" href="#triangle">§</a>Triangle</h3>
+<p>A “ping pong” animation that linearly ramps from min to max and back to min as
+specified in the <code>range</code> param.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>triangle</code></li>
+<li><code>beats</code> - defaults to <code>1.0</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+<li><code>phase</code> - Phase offset expressed as percentage (0..1) of the above range. A
+phase offset of <code>0.5</code>, for example, will invert the triangle so that it ramps
+from max-min-max instead of min-max-min. Defaults to <code>0.0</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>triangle_example:
+  type: triangle
+  # 16 beats = 4 bars
+  beats: 16.0
+  range: [0.0, 1.0]
+  phase: 0.0</code></pre></div><h3 id="automate"><a class="doc-anchor" href="#automate">§</a>Automate</h3>
+<p>Advanced DAW-style animation. This is the bread-and-butter of Lattice.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - automate</li>
+<li><code>mode</code> - <code>loop</code> or <code>once</code>. Defaults to <code>loop</code></li>
+<li><code>breakpoints</code> - a list of breakpoint kinds including <code>step</code>, <code>ramp</code>, <code>wave</code>,
+<code>random</code>, and <code>random_smooth</code></li>
+</ul>
+<h4 id="breakpoints"><a class="doc-anchor" href="#breakpoints">§</a>Breakpoints</h4>
+<p>Each breakpoint shares the following <em>required</em> fields:</p>
+<ul>
+<li><code>kind</code> - one of <code>step</code>, <code>ramp</code>, <code>wave</code>, <code>random</code>, <code>random_smooth</code>, or <code>end</code>.
+See the <a href="#kind"><code>kind</code></a> section below.</li>
+<li><code>position</code> - expressed in beats. The first breakpoint must start at position
+<code>0.0</code> or the program will throw</li>
+<li><code>value</code> - the value this breakpoint will (usually) be when the timing is
+exactly at <code>position</code></li>
+</ul>
+<h4 id="kind"><a class="doc-anchor" href="#kind">§</a>Kind</h4><h5 id="ramp"><a class="doc-anchor" href="#ramp">§</a><code>ramp</code></h5>
+<p>Ramps from <code>value</code> at <code>position</code> to the next point’s value with optional easing.</p>
+<p><strong>Additional Params</strong></p>
+<ul>
+<li><code>easing</code> - a snake cased version of any of the easings defined in
+<a href="src/framework/easings.rs">src/framework/easings.rs</a>. Defaults to <code>linear</code></li>
+</ul>
+<h5 id="step"><a class="doc-anchor" href="#step">§</a><code>step</code></h5>
+<p>Holds <code>value</code> from this point’s <code>position</code> until the next point.</p>
+<h5 id="wave"><a class="doc-anchor" href="#wave">§</a><code>wave</code></h5>
+<p>Like <code>ramp</code>, but with a secondary amplitude modulation applied on top of it</p>
+<p><strong>Additional Params</strong></p>
+<ul>
+<li><code>frequency</code> - the rate of amplitude modulation, expressed in beats.</li>
+<li><code>amplitude</code>- how much above and below the base ramp to add/subtract. Defaults
+to <code>0.25</code></li>
+<li><code>width</code> - For square controls duty cycle; for sine and triangle skews the
+wave. With triangle shape, <code>0.0</code> produces a downwards saw, <code>1.0</code> an upwards
+one, and <code>0.5</code> will produce the regular triangle. Sine is similarly
+transformed into a saw-like asymmetric shape.</li>
+<li><code>shape</code> - one of <code>sine</code>, <code>triangle</code>, or <code>square</code>. Defaults to <code>sine</code></li>
+<li><code>easing</code> - a snake cased version of any of the easings defined in
+<a href="src/framework/easings.rs">src/framework/easings.rs</a>. Defaults to <code>linear</code>.
+The combination of <code>wave</code> and <code>easing</code> (especially the crazier ones like
+<code>ease_in_out_bounce</code>) and <code>clamp: fold</code> can produce some <em>very</em> complex
+waveforms!</li>
+<li><code>constrain</code> - one of <code>none</code>, <code>clamp</code>, or <code>fold</code>. Defaults to <code>none</code>.</li>
+</ul>
+<h5 id="random"><a class="doc-anchor" href="#random">§</a><code>random</code></h5>
+<p>Generates a random number somewhere above or below the set <code>value</code> by
+<code>amplitude</code> amount.</p>
+<p><strong>Additional Params</strong></p>
+<ul>
+<li><code>amplitude</code> - how much +- the random number generator will deviate from
+<code>value</code> when choosing a number</li>
+</ul>
+<h4 id="random_smooth"><a class="doc-anchor" href="#random_smooth">§</a><code>random_smooth</code></h4>
+<p>Like the <a href="#ramp"><code>ramp</code></a> type only uses perlin noise to deviate from the base
+ramp.</p>
+<p><strong>Additional Params</strong></p>
+<ul>
+<li><code>frequency</code> - the rate of amplitude modulation, expressed in beats.</li>
+<li><code>amplitude</code>- how much above and below the base ramp to add/subtract. Defaults
+to <code>0.25</code></li>
+</ul>
+<h4 id="end"><a class="doc-anchor" href="#end">§</a><code>end</code></h4>
+<p>A special breakpoint added for semantic clarity. It is identical to the step
+kind. It represents what the overall sequence will end on. In the case of
+mode=loop, this segment will never be entered; for mode=once the value that will
+be held indefinitely.</p>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>automate_example:
+  type: automate
+  mode: loop
+  breakpoints:
+    - kind: step
+      position: 0.0
+      value: 0.0
+
+    - kind: ramp
+      position: 1.0
+      value: 0.0
+      easing: linear
+
+    - kind: wave
+      position: 2.0
+      value: 1.0
+      frequency: 0.25
+      amplitude: 0.25
+      width: 0.5
+      shape: sine
+      easing: linear
+      constrain: none
+
+    - kind: random
+      position: 4.0
+      value: 0.5
+      amplitude: 0.5
+
+    - kind: random_smooth
+      position: 3.0
+      value: 0.0
+      frequency: 0.25
+      amplitude: 0.25
+
+    - kind: end
+      position: 5.0
+      value: 1.0</code></pre></div><h2 id="modulation"><a class="doc-anchor" href="#modulation">§</a>Modulation</h2><h3 id="mod"><a class="doc-anchor" href="#mod">§</a>Mod</h3>
+<p>Takes any declared control as a source and modifies its output using one or more
+modulators. A modulator can be an <a href="#effects">effect</a>, <a href="#animation">animation</a>,
+or the output of a <a href="#slider">slider</a> (TODO: validate if Osc/Midi/Audio can be
+modulators).</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>mod</code></li>
+<li><code>source</code> - name of the control to modulate</li>
+<li><code>modulators</code> - list of effect names to apply to the source</li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>mod_example:
+  type: mod
+  source: automate_example
+  modulators:
+    - wave_folder
+    # sliders act as multipliers
+    - some_slider</code></pre></div><h2 id="effects"><a class="doc-anchor" href="#effects">§</a>Effects</h2>
+<p>Effects can only be used as modulators within a <code>mod</code> configuration and cannot
+be used as sources. A single effect can be used more than once, for example you
+might have several animations that use stepped randomness and may want to smooth
+them all out with a single slew_limiter.</p>
+<h3 id="hysteresis"><a class="doc-anchor" href="#hysteresis">§</a>Hysteresis</h3>
+<p>Implements a Schmitt trigger with configurable thresholds that outputs:</p>
+<ul>
+<li><code>output_high</code> when input rises above <code>upper_threshold</code></li>
+<li><code>output_low</code> when input falls below <code>lower_threshold</code></li>
+<li>previous output when input is between thresholds</li>
+<li>input value when between thresholds and <code>pass_through</code> is true</li>
+</ul>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>hysteresis</code></li>
+<li><code>lower_threshold</code> - defaults to <code>0.3</code></li>
+<li><code>upper_threshold</code> - defaults to <code>0.7</code></li>
+<li><code>output_low</code> - The value to output when input is below the lower threshold.
+Defaults to <code>0.0</code></li>
+<li><code>output_high</code> - The value to output when input is above the upper threshold.
+Defaults to <code>1.0</code></li>
+<li><code>pass_through</code> - When true, allows values that are between the upper and lower
+thresholds to pass through. When false, binary hysteresis is applied. defaults
+to <code>false</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>hysteresis_example:
+  type: effect
+  kind: hysteresis
+  lower_threshold: 0.3
+  upper_threshold: 0.7
+  output_low: 0.0
+  output_high: 1.0
+  pass_through: false</code></pre></div><h3 id="quantizer"><a class="doc-anchor" href="#quantizer">§</a>Quantizer</h3>
+<p>Discretizes continuous input values into fixed steps, creating stair-case
+transitions.</p>
+<p>For example, with a step size of 0.25 in range (0.0, 1.0):</p>
+<ul>
+<li>Input 0.12 -&gt; Output 0.0</li>
+<li>Input 0.26 -&gt; Output 0.25</li>
+<li>Input 0.51 -&gt; Output 0.50</li>
+</ul>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>quantizer</code></li>
+<li><code>step</code> - The size of each discrete step. Defaults to <code>0.25</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>quantizer_example:
+  type: effect
+  kind: quantizer
+  step: 0.25
+  range: [0.0, 1.0]</code></pre></div><h3 id="ring-modulator"><a class="doc-anchor" href="#ring-modulator">§</a>Ring Modulator</h3>
+<p>Implements ring modulation by combining a carrier and modulator signal. Note
+that there is no actual “carrier” parameter because the modulator signal will be
+applied to the <code>source</code> field defined in a <code>mod</code> config.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>ring_modulator</code></li>
+<li><code>mix</code> - Controls the blend between carrier and modulated signal
+<ul>
+<li><code>0.0</code>: outputs carrier signal</li>
+<li><code>0.5</code>: outputs true ring modulation (carrier * modulator)</li>
+<li><code>1.0</code>: outputs modulator signal</li>
+<li>(defaults to <code>0.0</code>)</li>
+</ul>
+</li>
+<li><code>modulator</code> - name of the control to use as modulator</li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>ring_modulator_example:
+  type: effect
+  kind: ring_modulator
+  mix: 0.0
+  modulator: some_other_control
+
+rm_mod_routing:
+  type: mod
+  source: automate_example
+  modulators:
+    - ring_modulator_example</code></pre></div><h3 id="saturator"><a class="doc-anchor" href="#saturator">§</a>Saturator</h3>
+<p>Applies smooth saturation to a signal, creating a soft roll-off as values
+approach the range boundaries. Higher drive values create more aggressive
+saturation effects.</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>saturator</code></li>
+<li><code>drive</code> - defaults to <code>1.0</code></li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>saturator_example:
+  type: effect
+  kind: saturator
+  drive: 1.0
+  range: [0.0, 1.0]</code></pre></div><h3 id="slew-limiter"><a class="doc-anchor" href="#slew-limiter">§</a>Slew Limiter</h3>
+<p>Limits the rate of change (slew rate) of a signal</p>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>slew_limiter</code></li>
+<li><code>rise</code> - Controls smoothing when signal amplitude increases.
+<ul>
+<li><code>0.0</code> = instant attack (no smoothing)</li>
+<li><code>1.0</code> = very slow attack (maximum smoothing)</li>
+<li>(defaults to <code>0.0</code>)</li>
+</ul>
+</li>
+<li><code>fall</code> - Controls smoothing when signal amplitude decreases.
+<ul>
+<li><code>0.0</code> = instant decay (no smoothing)</li>
+<li><code>1.0</code> = very slow decay (maximum smoothing)</li>
+<li>(defaults to <code>0.0</code>)</li>
+</ul>
+</li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>slew_limiter_example:
+  type: effect
+  kind: slew_limiter
+  rise: 0.0
+  fall: 0.0</code></pre></div><h3 id="wave-folder"><a class="doc-anchor" href="#wave-folder">§</a>Wave Folder</h3>
+<p><strong>Params</strong></p>
+<ul>
+<li><code>type</code> - <code>effect</code></li>
+<li><code>kind</code> - <code>wave_folder</code></li>
+<li><code>gain</code> - Suggested range: 1.0 to 10.0
+<ul>
+<li>&lt;1.0: Bypassed</li>
+<li>1.0: unity gain</li>
+<li>2.0-4.0: typical folding range</li>
+<li>4.0-10.0: extreme folding</li>
+<li>(defaults to <code>1.0</code>)</li>
+</ul>
+</li>
+<li><code>iterations</code> - Suggested range: 1 to 8
+<ul>
+<li>1-2: subtle harmonics</li>
+<li>3-4: moderate complexity</li>
+<li>5+: extreme/digital sound</li>
+<li>(defaults to <code>1</code>)</li>
+</ul>
+</li>
+<li><code>symmetry</code> - changes the relative intensity of folding above vs below the
+center point by scaling the positive and negative portions differently.
+Suggested range: 0.5 to 2.0
+<ul>
+<li>1.0: perfectly symmetric</li>
+<li>&lt;1.0: negative side folds less</li>
+<li>&gt;1.0: negative side folds more</li>
+<li>(defaults to <code>1.0</code>)</li>
+</ul>
+</li>
+<li><code>bias</code> - Shifts the center point of folding, effectively moving the “zero
+crossing” point. Suggested range: -1.0 to 1.0
+<ul>
+<li>0.0: no DC offset</li>
+<li>±0.1-0.3: subtle asymmetry</li>
+<li>±0.5-1.0: extreme asymmetry</li>
+<li>(defaults to <code>0.0</code>)</li>
+</ul>
+</li>
+<li><code>shape</code> - Suggested range: -2.0 to 2.0 (values below -2.0 are hard capped)
+<ul>
+<li>&lt; 0.0: softer folding curves</li>
+<li>-1.0: perfectly sine-shaped folds</li>
+<li>&lt; -2.0: introduces intermediary folds but slight loss in overall amplitude
+around ~-2.5</li>
+<li>1.0: linear folding</li>
+<li>&gt;1.0: sharper folding edges</li>
+<li>(defaults to <code>1.0</code>)</li>
+</ul>
+</li>
+<li><code>range</code> - defaults to <code>[0.0, 1.0]</code></li>
+</ul>
+<p><strong>Example</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>wave_folder_example:
+  type: effect
+  kind: wave_folder
+  gain: 1.0
+  iterations: 1
+  symmetry: 1.0
+  bias: 0.0
+  shape: 1.0
+  range: [0.0, 1.0]</code></pre></div><h2 id="parameter-modulation"><a class="doc-anchor" href="#parameter-modulation">§</a>Parameter Modulation</h2>
+<p>In addition to use of <code>effect</code> and <code>mod</code> types to modulate the output of
+controls, Lattice supports <em>parameter modulation</em>. It’s easiest to explain with
+an example:</p>
+<div class="example-wrap"><pre class="language-yaml"><code>size_amount:
+  type: slider
+
+size:
+  type: automate
+  breakpoints:
+    - kind: ramp
+      position: 0
+      value: 0
+    - kind: ramp
+      position: 4
+      value: $size_amount # &lt;-- HERE
+    - kind: end
+      position: 8
+      value: 0</code></pre></div>
+<p>In the above example we use a UI slider to control the maximum amount of a basic
+“ramp up and back down” animation. Some rules about parameter modulation:</p>
+<ul>
+<li>Parameter modulations are denoted by the prefix <code>$</code> and the name of another
+mapping.</li>
+<li>Any animation or UI control that produces a float can be the source of
+parameter modulation.</li>
+<li><code>effect</code> and <code>mod</code> types <em>cannot</em> be the sources of parameter modulations</li>
+<li>Only named fields that are of type <code>f32</code> can be modulated. For example any
+<code>value</code> or parameter such was the Wave Folder’s <code>symmetry</code> param, but not any
+mapping’s <code>range</code> since that’s a list.</li>
+</ul>
+<h2 id="using-var"><a class="doc-anchor" href="#using-var">§</a>Using <code>var</code></h2><div class="example-wrap"><pre class="language-yaml"><code>radius:
+  var: a1
+  type: slider</code></pre></div>
+<p>In your sketch this control will be accessed via <code>m.controls.get("a1")</code>. This is
+especially useful for sketches that primarily rely on shaders - since like
+control scripts - shaders in Lattice support live reloading. Often creative
+coding is an experimental process and you may not know what controls you’ll need
+up front and it’s a huge pain to have to restart the Rust program every time you
+want to change a variable name or add a new one. To work around this, you can
+setup “banks”:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+</span><span class="kw">struct </span>ShaderParams {
+    <span class="comment">// Add a bunch of 4 member arrays that will be unpacked in your shader
+    </span>a: [f32; <span class="number">4</span>],
+    b: [f32; <span class="number">4</span>],
+    c: [f32; <span class="number">4</span>],
+    d: [f32; <span class="number">4</span>],
+    e: [f32; <span class="number">4</span>],
+    f: [f32; <span class="number">4</span>],
+}
+
+<span class="kw">pub fn </span>init_model(app: <span class="kw-2">&amp;</span>App, wr: WindowRect) -&gt; Model {
+    <span class="kw">let </span>controls = ControlScript::from_path(
+        to_absolute_path(<span class="macro">file!</span>(), <span class="string">"example.yaml"</span>),
+        Timing::new(SKETCH_CONFIG.bpm),
+    );
+
+    <span class="comment">// No point in initializing this to anything other than zero
+    // as they will just get overwritten in the update function
+    </span><span class="kw">let </span>params = ShaderParams {
+        resolution: [<span class="number">0.0</span>; <span class="number">4</span>],
+        a: [<span class="number">0.0</span>; <span class="number">4</span>],
+        b: [<span class="number">0.0</span>; <span class="number">4</span>],
+        c: [<span class="number">0.0</span>; <span class="number">4</span>],
+        d: [<span class="number">0.0</span>; <span class="number">4</span>],
+        e: [<span class="number">0.0</span>; <span class="number">4</span>],
+        f: [<span class="number">0.0</span>; <span class="number">4</span>],
+    };
+
+    <span class="kw">let </span>gpu = gpu::GpuState::new_fullscreen(
+        app,
+        wr.resolution_u32(),
+        to_absolute_path(<span class="macro">file!</span>(), <span class="string">"example.wgsl"</span>),
+        <span class="kw-2">&amp;</span>params,
+        <span class="bool-val">true</span>,
+    );
+
+    Model { controls, wr, gpu }
+}
+
+<span class="kw">pub fn </span>update(app: <span class="kw-2">&amp;</span>App, m: <span class="kw-2">&amp;mut </span>Model, _update: Update) {
+    <span class="comment">// Update ensures any file changes have propagated
+    </span>m.controls.update();
+
+    <span class="kw">let </span>params = ShaderParams {
+        a: [
+            <span class="comment">// Allows us to use `var: a1` in our control_script
+            </span>m.controls.get(<span class="string">"a1"</span>),
+            m.controls.get(<span class="string">"a2"</span>),
+            m.controls.get(<span class="string">"a3"</span>),
+            m.controls.get(<span class="string">"a4"</span>),
+        ],
+        b: [
+            m.controls.get(<span class="string">"b1"</span>),
+            m.controls.get(<span class="string">"b2"</span>),
+            m.controls.get(<span class="string">"b3"</span>),
+            m.controls.get(<span class="string">"b4"</span>),
+        ],
+        c: [
+            m.controls.get(<span class="string">"c1"</span>),
+            m.controls.get(<span class="string">"c2"</span>),
+            m.controls.get(<span class="string">"c3"</span>),
+            m.controls.get(<span class="string">"c4"</span>),
+        ],
+        <span class="comment">// ...
+    </span>};
+
+    m.gpu.update_params(app, m.wr.resolution_u32(), <span class="kw-2">&amp;</span>params);
+}</code></pre></div>
+<p>Then in your shader:</p>
+<div class="example-wrap"><pre class="language-wgsl"><code>struct Params {
+    a: vec4f,
+    b: vec4f,
+    // ...
+
+@fragment
+fn fs_main(vout: VertexOutput) -&gt; @location(0) vec4f {
+    let radius = params.a.x;
+    let pos_x = params.a.y;
+    // ...</code></pre></div>
+<p>The above is admittedly a decent amount of boilerplate, but with this setup you
+are now free to live code in your script and shaders for hours uninterrupted
+without having to stop, recompile, wait… it’s worth it.</p>
+</div></details><h2 id="reexports" class="section-header">Re-exports<a href="#reexports" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name" id="reexport.ControlScript"><code>pub use control_script::<a class="struct" href="control_script/struct.ControlScript.html" title="struct lattice::framework::control_script::control_script::ControlScript">ControlScript</a>;</code></div></li></ul><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="config/index.html" title="mod lattice::framework::control_script::config">config</a><span title="Restricted Visibility">&nbsp;🔒</span> </div><div class="desc docblock-short">Deserialization types needed for converting the Lattice yaml format into
+controls</div></li><li><div class="item-name"><a class="mod" href="control_script/index.html" title="mod lattice::framework::control_script::control_script">control_<wbr>script</a></div><div class="desc docblock-short">Provides a means of controlling sketch parameters with the various Lattice
+control systems from an external yaml file that can be hot-reloaded.</div></li><li><div class="item-name"><a class="mod" href="dep_graph/index.html" title="mod lattice::framework::control_script::dep_graph">dep_<wbr>graph</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li><li><div class="item-name"><a class="mod" href="eval_cache/index.html" title="mod lattice::framework::control_script::eval_cache">eval_<wbr>cache</a><span title="Restricted Visibility">&nbsp;🔒</span> </div></li><li><div class="item-name"><a class="mod" href="param_mod/index.html" title="mod lattice::framework::control_script::param_mod">param_<wbr>mod</a><span title="Restricted Visibility">&nbsp;🔒</span> </div><div class="desc docblock-short">Types and trait implementations to support parameter modulation.</div></li></ul></section></div></main></body></html>

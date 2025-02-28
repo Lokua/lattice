@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error","Search"],"fn":["check_dir","check_kids","check_parents"],"struct":["SearchFolder"],"type":["KidsDepth","ParentsDepth"]};

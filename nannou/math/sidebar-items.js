@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["clamp","deg_to_rad","fmod","map_range","partial_max","partial_min","rad_to_deg","rad_to_turns","turns_to_rad","two"],"mod":["num_traits"],"trait":["ConvertAngle","Mat4LookTo","Vec2Angle","Vec2Rotate"]};

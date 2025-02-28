@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Builder","BuilderWithAttributes","IdIter","Iter","IterWithAttributes","Path","PathSlice"]};

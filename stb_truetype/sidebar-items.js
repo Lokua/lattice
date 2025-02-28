@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MacEid","MacLang","MicrosoftEid","MicrosoftLang","PlatformEncodingLanguageId","PlatformId","UnicodeEid","VertexType"],"fn":["get_font_offset_for_index","is_collection","is_font"],"struct":["FontInfo","FontNameIter","HMetrics","Rect","VMetrics","Vertex"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LoopMode"],"fn":["find_assets_path","find_project_path"],"struct":["App","Builder","Proxy","SketchBuilder"],"type":["EventFn","ExitFn","ModelFn","SketchViewFn","UpdateFn","ViewFn"]};

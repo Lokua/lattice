@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["pt2","pt3","pt4"],"type":["Point2","Point3","Point4"]};

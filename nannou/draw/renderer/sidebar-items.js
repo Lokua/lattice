@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["VertexMode"],"struct":["Builder","DrawError","GlyphCache","PrimitiveRender","RenderContext","Renderer","Scissor"],"trait":["RenderPrimitive"]};

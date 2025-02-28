@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Dispatch on an `Id`’s backend to a backend-generic method."><title>gfx_select in wgpu_core - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="wgpu_core" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../wgpu_core/index.html">wgpu_<wbr>core</a><span class="version">0.17.1</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="index.html">wgpu_core</a></span><h1>Macro <span class="macro">gfx_select</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/wgpu_core/lib.rs.html#403-414">source</a> </span></div><pre class="rust item-decl"><span class="macro">macro_rules!</span> gfx_select {
+    (<span class="macro-nonterminal">$id</span>:expr =&gt; <span class="macro-nonterminal">$global</span>:ident.<span class="macro-nonterminal">$method</span>:ident( $(<span class="macro-nonterminal">$param</span>:expr),* )) =&gt; { ... };
+}</pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Dispatch on an <a href="id/struct.Id.html" title="struct wgpu_core::id::Id"><code>Id</code></a>’s backend to a backend-generic method.</p>
+<p>Uses of this macro have the form:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code>
+    <span class="macro">gfx_select!</span>(id =&gt; value.method(args...))
+</code></pre></div>
+<p>This expands to an expression that calls <code>value.method::&lt;A&gt;(args...)</code> for
+the backend <code>A</code> selected by <code>id</code>. The expansion matches on <code>id.backend()</code>,
+with an arm for each backend type in <a href="../wgpu_types/enum.Backend.html" title="enum wgpu_types::Backend"><code>wgpu_types::Backend</code></a> which calls the
+specialization of <code>method</code> for the given backend. This allows resource
+identifiers to select backends dynamically, even though many <code>wgpu_core</code>
+methods are compiled and optimized for a specific back end.</p>
+<p>This macro is typically used to call methods on <a href="global/struct.Global.html" title="struct wgpu_core::global::Global"><code>wgpu_core::global::Global</code></a>,
+many of which take a single <code>hal::Api</code> type parameter. For example, to
+create a new buffer on the device indicated by <code>device_id</code>, one would say:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="macro">gfx_select!</span>(device_id =&gt; global.device_create_buffer(device_id, ...))</code></pre></div>
+<p>where the <code>device_create_buffer</code> method is defined like this:</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">impl</span>&lt;...&gt; Global&lt;...&gt; {
+   <span class="kw">pub fn </span>device_create_buffer&lt;A: hal::Api&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, ...) -&gt; ...
+   { ... }
+}</code></pre></div>
+<p>That <code>gfx_select!</code> call uses <code>device_id</code>’s backend to select the right
+backend type <code>A</code> for a call to <code>Global::device_create_buffer&lt;A&gt;</code>.</p>
+<p>However, there’s nothing about this macro that is specific to <code>global::Global</code>.
+For example, Firefox’s embedding of <code>wgpu_core</code> defines its own types with
+methods that take <code>hal::Api</code> type parameters. Firefox uses <code>gfx_select!</code> to
+dynamically dispatch to the right specialization based on the resource’s id.</p>
+</div></details></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["color","fill","spatial","stroke"],"type":["ColorScalar","LinSrgba","Srgba"]};

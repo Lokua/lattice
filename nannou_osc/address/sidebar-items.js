@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["verify_address","verify_address_pattern"],"struct":["Matcher","OscAddress"]};

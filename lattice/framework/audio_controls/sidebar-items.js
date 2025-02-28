@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default_buffer_processor","thru_buffer_processor"],"struct":["AudioControlBuilder","AudioControlConfig","AudioControlState","AudioControls","MultichannelAudioProcessor"],"type":["BufferProcessor"]};

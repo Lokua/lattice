@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EncodingMessage"],"fn":["frames_dir","frames_to_video","video_output_path"],"struct":["RecordingState"]};

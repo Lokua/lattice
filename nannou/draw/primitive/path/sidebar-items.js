@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Options"],"fn":["points_colored_to_lyon_path","points_textured_to_lyon_path"],"struct":["Path","PathInit","PathOptions","Tessellators"],"trait":["TessellationOptions"],"type":["DrawingPath","DrawingPathFill","DrawingPathInit","DrawingPathOptions","DrawingPathStroke","PathFill","PathStroke"]};

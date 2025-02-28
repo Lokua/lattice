@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="An attribute macro that can be used to statically verify that the annotated struct or enum matches the structure of a foreign type."><title>assert_type_match in assert_type_match - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="assert_type_match" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc attr"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../assert_type_match/index.html">assert_<wbr>type_<wbr>match</a><span class="version">0.1.1</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">assert_<wbr>type_<wbr>match</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#arguments" title="Arguments">Arguments</a><ul><li><a href="#test_only" title="`test_only`"><code>test_only</code></a></li><li><a href="#from" title="`from`"><code>from</code></a></li><li><a href="#skip_name" title="`skip_name`"><code>skip_name</code></a></li><li><a href="#skip_types" title="`skip_types`"><code>skip_types</code></a></li><li><a href="#field-arguments" title="Field Arguments">Field Arguments</a></li><li><a href="#variant-arguments" title="Variant Arguments">Variant Arguments</a></li></ul></li><li><a href="#example" title="Example">Example</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate assert_<wbr>type_<wbr>match</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="index.html">assert_type_match</a></span><h1>Attribute Macro <span class="attr">assert_type_match</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/assert_type_match/lib.rs.html#147-160">source</a> </span></div><pre class="rust item-decl"><code>#[assert_type_match]</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>An attribute macro that can be used to statically verify that the annotated struct or enum
+matches the structure of a foreign type.</p>
+<p>For structs, it will verify that the fields of the annotated struct match the fields of the
+foreign struct.</p>
+<p>For enums, it will verify that the variants of the annotated enum match the variants of the
+foreign enum, and that the fields of each variant match the fields of the corresponding variant
+in the foreign enum.</p>
+<p>This will also output the original annotated struct or enum,
+unless the <code>test_only</code> argument is set to <code>true</code>.</p>
+<h2 id="arguments"><a class="doc-anchor" href="#arguments">§</a>Arguments</h2>
+<p>This macro accepts arguments to control its behavior.
+These arguments are passed as a comma-separated list after the foreign type.</p>
+<p>All boolean arguments may be set to true by using either the <code>foo</code> or <code>foo = true</code> syntax.</p>
+<h3 id="test_only"><a class="doc-anchor" href="#test_only">§</a><code>test_only</code></h3>
+<p>Type: <code>bool</code></p>
+<p>Controls whether to output the annotated struct or enum in the generated code.</p>
+<h3 id="from"><a class="doc-anchor" href="#from">§</a><code>from</code></h3>
+<p>Type: <code>bool</code></p>
+<p>Controls whether a <code>From</code> implementation should be generated.</p>
+<p>If true, two <code>From</code> implementations will be generated:
+one for converting from the annotated type to the foreign type,
+and one for converting from the foreign type to the annotated type.</p>
+<h3 id="skip_name"><a class="doc-anchor" href="#skip_name">§</a><code>skip_name</code></h3>
+<p>Type: <code>bool</code></p>
+<p>Controls whether checking that the name of the annotated struct or enum matches
+the name of the foreign type should be skipped.</p>
+<p>For example, comparing <code>struct Foo(u32)</code> to <code>struct Bar(u32)</code> would pass
+when this argument is set to <code>true</code>.</p>
+<h3 id="skip_types"><a class="doc-anchor" href="#skip_types">§</a><code>skip_types</code></h3>
+<p>Type: <code>bool</code></p>
+<p>Controls whether checking field types should be skipped.</p>
+<p>For example, comparing <code>struct Foo(i32)</code> to <code>struct Foo(f32)</code> would pass
+when this argument is set to <code>true</code>.</p>
+<h3 id="field-arguments"><a class="doc-anchor" href="#field-arguments">§</a>Field Arguments</h3>
+<p>This macro also supports field attributes.</p>
+<p>These are also defined with the <code>#[assert_type_match(...)]</code> attribute.</p>
+<h4 id="skip"><a class="doc-anchor" href="#skip">§</a><code>skip</code></h4>
+<p>Type: <code>bool</code></p>
+<p>Controls whether the field should be skipped.</p>
+<p>This allows you to skip fields that are not present on the foreign type.</p>
+<h4 id="skip_type"><a class="doc-anchor" href="#skip_type">§</a><code>skip_type</code></h4>
+<p>Type: <code>bool</code></p>
+<p>Controls whether checking the field type should be skipped.</p>
+<h3 id="variant-arguments"><a class="doc-anchor" href="#variant-arguments">§</a>Variant Arguments</h3>
+<p>This macro also supports variant attributes.</p>
+<p>These are also defined with the <code>#[assert_type_match(...)]</code> attribute.</p>
+<h4 id="skip-1"><a class="doc-anchor" href="#skip-1">§</a><code>skip</code></h4>
+<p>Type: <code>bool</code></p>
+<p>Controls whether the variant should be skipped.</p>
+<p>This allows you to skip variants that are not present on the foreign type.</p>
+<h2 id="example"><a class="doc-anchor" href="#example">§</a>Example</h2>
+<p>A passing example:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">mod </span>other {
+    <span class="kw">pub struct </span>Test {
+        <span class="kw">pub </span>x: i32,
+        <span class="kw">pub </span>y: i32,
+    }
+}
+
+<span class="attr">#[assert_type_match(other::Test)]
+</span><span class="kw">struct </span>Test {
+    x: i32,
+    y: i32,
+}</code></pre></div>
+<p>A failing example:</p>
+
+<div class="example-wrap compile_fail"><a href="#" class="tooltip" title="This example deliberately fails to compile">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">mod </span>other {
+    <span class="kw">pub struct </span>Test {
+        <span class="kw">pub </span>x: i32,
+        <span class="kw">pub </span>y: i32,
+    }
+}
+
+<span class="attr">#[assert_type_match(other::Test)]
+</span><span class="kw">struct </span>Test {
+    x: i32,
+    z: i32, <span class="comment">// Error: struct `other::Test` has no field named `z`
+</span>}</code></pre></div>
+</div></details></section></div></main></body></html>

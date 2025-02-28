@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["animation_dev","audio_controls_dev","audio_dev","control_script_dev","cv_dev","midi_dev","multiple_sketches_dev","osc_dev","osc_transport_dev","responsive_dev","shader_to_texture_dev","wgpu_compute_dev","wgpu_dev"]};

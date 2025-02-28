@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["app","sketch"],"mod":["app","color","draw","ease","event","frame","geom","glam","image","io","math","mesh","noise","prelude","rand","state","text","time","wgpu","window"]};

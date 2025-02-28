@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_MAXIMUM_CAPACITY"],"enum":["Entry"],"struct":["HashCache","OccupiedEntry","VacantEntry"],"type":["EvictedEntry"]};

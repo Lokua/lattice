@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Allows for the creation of file-serialised parallel Rust tests that won’t clash with file-serialised serial tests"><title>file_parallel in serial_test_derive - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="serial_test_derive" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc attr"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../serial_test_derive/index.html">serial_<wbr>test_<wbr>derive</a><span class="version">3.2.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="index.html">serial_test_derive</a></span><h1>Attribute Macro <span class="attr">file_parallel</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/serial_test_derive/lib.rs.html#192-194">source</a> </span></div><pre class="rust item-decl"><code>#[file_parallel]</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Allows for the creation of file-serialised parallel Rust tests that won’t clash with file-serialised serial tests</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[test]
+#[file_serial]
+</span><span class="kw">fn </span>test_serial_one() {
+  <span class="comment">// Do things
+</span>}
+
+<span class="attr">#[test]
+#[file_parallel]
+</span><span class="kw">fn </span>test_parallel_one() {
+  <span class="comment">// Do things
+</span>}
+
+<span class="attr">#[test]
+#[file_parallel]
+</span><span class="kw">fn </span>test_parallel_two() {
+  <span class="comment">// Do things
+</span>}</code></pre></div>
+<p>Effectively, this should behave like <a href="attr.parallel.html" title="attr serial_test_derive::parallel">parallel</a> but for <a href="attr.file_serial.html" title="attr serial_test_derive::file_serial">file_serial</a>.
+Note that as per <a href="attr.file_serial.html" title="attr serial_test_derive::file_serial">file_serial</a> this doesn’t do anything for <a href="attr.serial.html" title="attr serial_test_derive::serial">serial</a>/<a href="attr.parallel.html" title="attr serial_test_derive::parallel">parallel</a> tests.</p>
+<p>It also supports an optional <code>path</code> arg as well as key(s) as per <a href="attr.serial.html" title="attr serial_test_derive::serial">serial</a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[test]
+#[file_parallel(key, path =&gt; <span class="string">"/tmp/foo"</span>)]
+</span><span class="kw">fn </span>test_parallel_one() {
+  <span class="comment">// Do things
+</span>}
+
+<span class="attr">#[test]
+#[file_parallel(key, path =&gt; <span class="string">"/tmp/foo"</span>)]
+</span><span class="kw">fn </span>test_parallel_another() {
+  <span class="comment">// Do things
+</span>}</code></pre></div>
+<p>The path defaults to a reasonable temp directory for the OS if not specified. If the <code>path</code> is specified, you can only use one key.</p>
+</div></details></section></div></main></body></html>

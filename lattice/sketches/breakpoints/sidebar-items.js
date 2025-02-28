@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CURVE_RESOLUTION","LANE_PADDING","POINT_COLOR","POINT_RADIUS","SKETCH_CONFIG","TOTAL_BEATS","TRACK_HEIGHT","TRACK_PADDING"],"fn":["create_lanes","create_ramp_lane","create_random_lane","create_segments","create_step_lane","create_wave_lane","init_model","kitchen_sink","map_to_track","update","view"],"struct":["LaneSegment","Model"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ColorGradient","CylinderMapBuilder","ImageRenderer","LightSource","NoiseImage","NoiseMap","PlaneMapBuilder","SphereMapBuilder"],"trait":["NoiseMapBuilder"],"type":["Color"]};

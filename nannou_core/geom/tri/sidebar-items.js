@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["NUM_VERTICES"],"fn":["flatten_index_tris","from_index_tri","from_vertices","iter_contains","iter_from_vertices","vertices_from_iter"],"struct":["FlattenIndices","IterFromVertices","Tri","Vertices","VerticesFromIter"]};

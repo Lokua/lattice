@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["hit_test_path","path_winding_number_at_position"]};

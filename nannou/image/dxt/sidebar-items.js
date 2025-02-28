@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DXTVariant"],"struct":["DxtDecoder","DxtEncoder","DxtReader"],"type":["DXTEncoder","DXTReader","DxtVariant"]};

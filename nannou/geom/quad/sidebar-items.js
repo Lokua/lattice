@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["NUM_TRIANGLES","NUM_TRIANGLE_INDICES","NUM_VERTICES","TRIANGLE_INDEX_TRIS","TRIANGLE_INDICES"],"fn":["centroid","triangles","triangles_iter","vertices"],"struct":["Quad","Triangles","Vertices"],"type":["TrianglesIndexTris"]};

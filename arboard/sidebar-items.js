@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"struct":["Clear","Clipboard","Get","ImageData","Set"],"trait":["SetExtApple"]};

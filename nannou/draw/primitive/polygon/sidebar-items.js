@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["render_events_themed","render_points_themed"],"struct":["Polygon","PolygonInit","PolygonOptions"],"trait":["SetPolygon"],"type":["DrawingPolygon","DrawingPolygonInit"]};

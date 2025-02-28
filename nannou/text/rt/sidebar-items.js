@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["point","vector"],"mod":["gpu_cache"],"struct":["Point","Rect","Vector"]};

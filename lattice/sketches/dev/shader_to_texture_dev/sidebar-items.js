@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["BACKGROUND","FOREGROUND","SKETCH_CONFIG"],"fn":["create_cube","create_fullscreen_quad","create_vertices","init_model","update","view"],"struct":["Model","PostProcessParams","ShaderParams","Vertex"]};

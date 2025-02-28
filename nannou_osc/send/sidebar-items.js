@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_PORT"],"fn":["default_sender_socket_addr_v4"],"struct":["Sender"]};

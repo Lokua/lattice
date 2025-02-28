@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["STORE_CONTROLS_CACHE_IN_PROJECT"],"fn":["controls_storage_path","delete_stored_controls","persist_controls","stored_controls"]};

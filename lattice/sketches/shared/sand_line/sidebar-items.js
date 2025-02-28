@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CurvedDistribution","GaussianNoise","OctaveNoise","PerpendicularDistribution","SandLine","TrigFnDistribution"],"trait":["NoiseStrategy","PointDistributionStrategy"]};

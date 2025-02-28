@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["contours_to_path","index_after_cursor","path_events","rects_per_line","selected_rects_per_line"],"struct":["Rects","RectsPerLine","SelectedRects","SelectedRectsPerLine"],"type":["HalfW","X"]};

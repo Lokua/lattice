@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["dimension","orientation","position"],"struct":["Properties"],"trait":["SetSpatial"]};

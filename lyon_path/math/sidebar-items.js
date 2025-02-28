@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["point","rect","size","vector"],"type":["Angle","Point","Rect","Rotation","Scale","Size","Transform","Translation","Vector"]};

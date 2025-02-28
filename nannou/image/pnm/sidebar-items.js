@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ArbitraryTuplType","PNMSubtype","SampleEncoding"],"struct":["ArbitraryHeader","BitmapHeader","GraymapHeader","PixmapHeader","PnmDecoder","PnmEncoder","PnmHeader"],"type":["PNMEncoder","PNMHeader","PnmSubtype"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["NUM_CORNERS","NUM_SUBDIVISIONS","NUM_TRIANGLES"],"enum":["Corner"],"struct":["Corners","Padding","Rect","SubdivisionRanges","Subdivisions"],"type":["Triangles"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["register_legacy_sketches","register_sketches"]};

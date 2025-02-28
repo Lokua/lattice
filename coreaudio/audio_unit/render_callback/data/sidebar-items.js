@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Channels","ChannelsMut","Interleaved","InterleavedBytes","NonInterleaved","Raw"],"trait":["Data"]};

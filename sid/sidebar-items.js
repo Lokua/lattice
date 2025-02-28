@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Id","IdFreeList","IdRange","IdSlice","IdVec","MutIdSlice","NoneAsNullId","ReverseIdRange"],"trait":["FromUsize","Identifier","IntegerHandle","NullId","ToUsize"]};

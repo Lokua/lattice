@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FitStyle"],"fn":["fit_path","fit_rectangle"]};

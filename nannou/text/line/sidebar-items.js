@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Break"],"fn":["infos","infos_maybe_wrapped","infos_wrapped_by","rects","selected_rects","width"],"struct":["Info","Infos","NextBreak","Rects","SelectedRects"],"type":["NextBreakFnPtr"]};

@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This module provides capabilities for managing a cache of rendered glyphs in GPU memory, with the goal of minimisng the size and frequency of glyph uploads to GPU memory from the CPU."><title>rusttype::gpu_cache - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rusttype" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../rusttype/index.html">rusttype</a><span class="version">0.8.3</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module gpu_<wbr>cache</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#example" title="Example">Example</a></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#types" title="Type Aliases">Type Aliases</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate rusttype</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="../index.html">rusttype</a></span><h1>Module <span>gpu_cache</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/rusttype/gpu_cache.rs.html#1-1235">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This module provides capabilities for managing a cache of rendered glyphs in
+GPU memory, with the goal of minimisng the size and frequency of glyph
+uploads to GPU memory from the CPU.</p>
+<p>This module is optional, and not compiled by default. To use it enable the
+<code>gpu_cache</code> feature in your Cargo.toml.</p>
+<p>Typical applications that render directly with hardware graphics APIs (e.g.
+games) need text rendering. There is not yet a performant solution for high
+quality text rendering directly on the GPU that isn’t experimental research
+work. Quality is often critical for legibility, so many applications use
+text or individual characters that have been rendered on the CPU. This is
+done either ahead-of-time, giving a fixed set of fonts, characters, and
+sizes that can be used at runtime, or dynamically as text is required. This
+latter scenario is more flexible and the focus of this module.</p>
+<p>To minimise the CPU load and texture upload bandwidth saturation, recently
+used glyphs should be cached on the GPU for use by future frames. This
+module provides a mechanism for maintaining such a cache in the form of a
+single packed 2D GPU texture. When a rendered glyph is requested, it is
+either retrieved from its location in the texture if it is present or room
+is made in the cache (if necessary), the CPU renders the glyph then it is
+uploaded into a gap in the texture to be available for GPU rendering. This
+cache uses a Least Recently Used (LRU) cache eviction scheme - glyphs in the
+cache that have not been used recently are as a rule of thumb not likely to
+be used again soon, so they are the best candidates for eviction to make
+room for required glyphs.</p>
+<p>The API for the cache does not assume a particular graphics API. The
+intended usage is to queue up glyphs that need to be present for the current
+frame using <code>Cache::queue_glyph</code>, update the cache to ensure that the queued
+glyphs are present using <code>Cache::cache_queued</code> (providing a function for
+uploading pixel data), then when it’s time to render call <code>Cache::rect_for</code>
+to get the UV coordinates in the cache texture for each glyph. For a
+concrete use case see the <code>gpu_cache</code> example.</p>
+<p>Cache dimensions are immutable. If you need to change the dimensions of the
+cache texture (e.g. due to high cache pressure), rebuild a new <code>Cache</code>.
+Either from scratch or with <code>CacheBuilder::rebuild</code>.</p>
+<h2 id="example"><a class="doc-anchor" href="#example">§</a>Example</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// Build a default Cache.
+</span><span class="kw">let </span><span class="kw-2">mut </span>cache = Cache::builder().build();
+
+<span class="comment">// Queue some positioned glyphs needed for the next frame.
+</span>cache.queue_glyph(<span class="number">0</span>, glyph);
+
+<span class="comment">// Cache all queued glyphs somewhere in the cache texture.
+// If new glyph data has been drawn the closure is called to upload
+// the pixel data to GPU memory.
+</span>cache.cache_queued(|region, data| update_gpu_texture(region, data))<span class="question-mark">?</span>;
+
+<span class="comment">// Lookup a positioned glyph's texture location
+</span><span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((uv_rect, screen_rect))) = cache.rect_for(<span class="number">0</span>, <span class="kw-2">&amp;</span>glyph) {
+    <span class="comment">// Generate vertex data, etc
+</span>}</code></pre></div>
+</div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.Cache.html" title="struct rusttype::gpu_cache::Cache">Cache</a></div><div class="desc docblock-short">An implementation of a dynamic GPU glyph cache. See the module documentation
+for more information.</div></li><li><div class="item-name"><a class="struct" href="struct.CacheBuilder.html" title="struct rusttype::gpu_cache::CacheBuilder">Cache<wbr>Builder</a></div><div class="desc docblock-short">Builder &amp; rebuilder for <code>Cache</code>.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.CacheReadErr.html" title="enum rusttype::gpu_cache::CacheReadErr">Cache<wbr>Read<wbr>Err</a></div><div class="desc docblock-short">Returned from <code>Cache::rect_for</code>.</div></li><li><div class="item-name"><a class="enum" href="enum.CacheWriteErr.html" title="enum rusttype::gpu_cache::CacheWriteErr">Cache<wbr>Write<wbr>Err</a></div><div class="desc docblock-short">Returned from <code>Cache::cache_queued</code>.</div></li><li><div class="item-name"><a class="enum" href="enum.CachedBy.html" title="enum rusttype::gpu_cache::CachedBy">Cached<wbr>By</a></div><div class="desc docblock-short">Successful method of caching of the queue.</div></li></ul><h2 id="types" class="section-header">Type Aliases<a href="#types" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="type" href="type.TextureCoords.html" title="type rusttype::gpu_cache::TextureCoords">Texture<wbr>Coords</a></div><div class="desc docblock-short">Texture coordinates (floating point) of the quad for a glyph in the cache,
+as well as the pixel-space (integer) coordinates that this region should be
+drawn at.</div></li></ul></section></div></main></body></html>

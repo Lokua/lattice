@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CIRCLE_RESOLUTION","DEBUG_QUADS","GRID_SIZE","N_BANDS","SAMPLE_RATE","SKETCH_CONFIG"],"enum":["QuadShape"],"fn":["animation_fns","animations_counter_clockwise","animations_none","find_palette_by_name","generate_pattern_options","init_model","update","view","weave"],"struct":["DisplacerConfig","Model"],"type":["AnimationFn"]};

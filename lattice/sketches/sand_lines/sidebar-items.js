@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["N_LINES","SKETCH_CONFIG"],"fn":["init_model","reference_line","update","view"],"struct":["Model"],"type":["Line"]};

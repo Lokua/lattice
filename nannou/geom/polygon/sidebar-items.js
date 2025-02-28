@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["contains","triangle_indices","triangles"],"struct":["Polygon","TriangleIndices","Triangles"]};

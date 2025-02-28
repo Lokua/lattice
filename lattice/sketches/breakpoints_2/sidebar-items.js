@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SKETCH_CONFIG"],"fn":["create_modulated_points","create_points","init_model","modulated_post_pipeline","post_pipeline","update","view"],"struct":["Model"]};

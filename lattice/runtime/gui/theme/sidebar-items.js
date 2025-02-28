@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["apply","init_light_dark","setup_font"],"static":["USE_LIGHT_THEME"],"struct":["Colors"]};

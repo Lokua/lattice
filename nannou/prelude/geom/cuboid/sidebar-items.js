@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["NUM_CORNERS","NUM_FACES","NUM_SUBDIVISIONS","NUM_TRIANGLES"],"enum":["Face"],"struct":["Corners","Cuboid","FaceQuads","Faces","SubdivisionRanges","Subdivisions","Triangles"],"type":["FaceQuad"]};

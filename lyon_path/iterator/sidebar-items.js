@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["BezierSegments","Flattened","FromPolyline","Transformed"],"trait":["PathIterator"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GRID_SIZE","N_LINES","SKETCH_CONFIG"],"fn":["draw_lines","init_model","update","view"],"struct":["Model"]};

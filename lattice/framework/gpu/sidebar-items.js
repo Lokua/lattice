@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["QUAD_COVER_VERTICES"],"struct":["BasicPositionVertex","GpuState","PipelineCreationState"]};

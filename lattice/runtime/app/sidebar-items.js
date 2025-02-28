@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MIDI_MESSAGE_RX"],"enum":["MidiInstruction","UiEvent"],"fn":["event","has_no_modifiers","model","on_key_pressed","on_midi_instruction","restore_controls","run","set_window_size","update","view","view_gui"],"static":["INIT_MIDI_HANDLER"],"struct":["AppModel","UiEventSender"],"type":["UiEventReceiver"]};

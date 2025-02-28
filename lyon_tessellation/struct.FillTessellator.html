@@ -1,0 +1,267 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A Context object that can tessellate fill operations for complex paths."><title>FillTessellator in lyon_tessellation - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="lyon_tessellation" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc struct"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button><a class="logo-container" href="../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt=""></a></nav><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../lyon_tessellation/index.html"><img src="https://nical.github.io/lyon-doc/lyon-logo.svg" alt="logo"></a><h2><a href="../lyon_tessellation/index.html">lyon_<wbr>tessellation</a><span class="version">0.17.10</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Fill<wbr>Tessellator</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#overview" title="Overview">Overview</a></li><li><a href="#associating-custom-attributes-with-vertices" title="Associating custom attributes with vertices.">Associating custom attributes with vertices.</a><ul><li><a href="#vertex-sources" title="Vertex sources">Vertex sources</a></li><li><a href="#interpolated-float-attributes" title="Interpolated float attributes">Interpolated float attributes</a></li></ul></li><li><a href="#examples" title="Examples">Examples</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.builder" title="builder">builder</a></li><li><a href="#method.new" title="new">new</a></li><li><a href="#method.set_logging" title="set_logging">set_logging</a></li><li><a href="#method.tessellate" title="tessellate">tessellate</a></li><li><a href="#method.tessellate_circle" title="tessellate_circle">tessellate_circle</a></li><li><a href="#method.tessellate_ellipse" title="tessellate_ellipse">tessellate_ellipse</a></li><li><a href="#method.tessellate_path" title="tessellate_path">tessellate_path</a></li><li><a href="#method.tessellate_polygon" title="tessellate_polygon">tessellate_polygon</a></li><li><a href="#method.tessellate_rectangle" title="tessellate_rectangle">tessellate_rectangle</a></li><li><a href="#method.tessellate_with_ids" title="tessellate_with_ids">tessellate_with_ids</a></li></ul><h3><a href="#trait-implementations">Trait Implementations</a></h3><ul class="block trait-implementation"><li><a href="#impl-Default-for-FillTessellator" title="Default">Default</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-Freeze-for-FillTessellator" title="Freeze">Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-FillTessellator" title="RefUnwindSafe">RefUnwindSafe</a></li><li><a href="#impl-Send-for-FillTessellator" title="Send">Send</a></li><li><a href="#impl-Sync-for-FillTessellator" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-FillTessellator" title="Unpin">Unpin</a></li><li><a href="#impl-UnwindSafe-for-FillTessellator" title="UnwindSafe">UnwindSafe</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate lyon_<wbr>tessellation</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><span class="rustdoc-breadcrumbs"><a href="index.html">lyon_tessellation</a></span><h1>Struct <span class="struct">FillTessellator</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/lyon_tessellation/fill.rs.html#496-512">source</a> </span></div><pre class="rust item-decl"><code>pub struct FillTessellator { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>A Context object that can tessellate fill operations for complex paths.</p>
+<svg version="1.1" viewBox="0 0 400 200" height="200" width="400">
+  <g transform="translate(0,-852.36216)">
+    <path style="fill:#aad400;stroke:none;" transform="translate(0,852.36216)" d="M 20 20 L 20 180 L 180.30273 180 L 180.30273 20 L 20 20 z M 100 55 L 145 145 L 55 145 L 100 55 z "/>
+    <path style="fill:#aad400;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-" d="m 219.75767,872.36216 0,160.00004 160.30273,0 0,-160.00004 -160.30273,0 z m 80,35 45,90 -90,0 45,-90 z"/>
+    <path style="fill:none;stroke:#000000;stroke-linecap:round;stroke-linejoin:round;stroke-" d="m 220,1032.3622 35,-35.00004 125,35.00004 -35,-35.00004 35,-125 -80,35 -80,-35 35,125"/>
+    <circle r="5" cy="872.36218" cx="20" style="color:#000000;;fill:#ff6600;fill-;stroke:#000000;" />
+    <circle r="5" cx="180.10918" cy="872.61475" style="fill:#ff6600;stroke:#000000;"/>
+    <circle r="5" cy="1032.2189" cx="180.10918" style="fill:#ff6600;stroke:#000000;"/>
+    <circle r="5" cx="20.505075" cy="1032.4714" style="fill:#ff6600;stroke:#000000;"/>
+    <circle r="5" cy="907.21252" cx="99.802048" style="fill:#ff6600;stroke:#000000;"/>
+    <circle r="5" cx="55.102798" cy="997.36865" style="fill:#ff6600;stroke:#000000;"/>
+    <circle r="5" cy="997.62122" cx="145.25891" style="fill:#ff6600;stroke:#000000;"/>
+  </g>
+</svg>
+<h3 id="overview"><a class="doc-anchor" href="#overview">§</a>Overview</h3>
+<p>The most important structure is <a href="struct.FillTessellator.html"><code>FillTessellator</code></a>.
+It implements the path fill tessellation algorithm which is by far the most advanced
+feature in all lyon crates.</p>
+<p>The <code>FillTessellator</code> takes a description of the input path and
+<a href="struct.FillOptions.html"><code>FillOptions</code></a> as input. The description of the path can be an
+<code>PathEvent</code> iterator, or an iterator of <code>IdEvent</code> with an implementation of<code>PositionStore</code>
+to retrieve positions form endpoint and control point ids, and optionally an <code>AttributeStore</code>
+providing custom endpoint attributes that the tessellator can hand over to the geometry builder.</p>
+<p>The output of the tessellator is produced by the
+<a href="geometry_builder/trait.FillGeometryBuilder.html"><code>FillGeometryBuilder</code></a> (see the
+<a href="geometry_builder/index.html"><code>geometry_builder</code> documentation</a> for more details about
+how tessellators produce their output geometry, and how to generate custom vertex layouts).</p>
+<p>The <a href="https://github.com/nical/lyon/wiki/Tessellator">tessellator’s wiki page</a> is a good place
+to learn more about how the tessellator’s algorithm works. The source code also contains
+inline documentation for the adventurous who want to delve into more details.</p>
+<p>The tessellator does not handle <code>NaN</code> values in any of its inputs.</p>
+<h3 id="associating-custom-attributes-with-vertices"><a class="doc-anchor" href="#associating-custom-attributes-with-vertices">§</a>Associating custom attributes with vertices.</h3>
+<p>It is sometimes useful to be able to link vertices generated by the tessellator back
+with the path’s original data, for example to be able to add attributes that the tessellator
+does not know about (vertex color, texture coordinates, etc.).</p>
+<p>The fill tessellator has two mechanisms to help with these advanced use cases. One is
+simple to use and one that, while more complicated to use, can cover advanced scenarios.</p>
+<p>Before going delving into these mechanisms, it is important to understand that the
+vertices generated by the tessellator don’t always correspond to the vertices existing
+in the original path.</p>
+<ul>
+<li>Self-intersections, for example, introduce a new vertex where two edges meet.</li>
+<li>When several vertices are at the same position, they are merged into a single vertex
+from the point of view of the tessellator.</li>
+<li>The tessellator does not handle curves, and uses an approximation that introduces a
+number of line segments and therefore endpoints between the original endpoints of any
+quadratic or cubic bézier curve.</li>
+</ul>
+<p>This complicates the task of adding extra data to vertices without loosing the association
+during tessellation.</p>
+<h4 id="vertex-sources"><a class="doc-anchor" href="#vertex-sources">§</a>Vertex sources</h4>
+<p>This is the complicated, but most powerful mechanism. The tessellator keeps track of where
+each vertex comes from in the original path, and provides access to this information via
+an iterator of <a href="enum.VertexSource.html"><code>VertexSource</code></a> in <code>FillVertex::sources</code>.</p>
+<p>It is most common for the vertex source iterator to yield a single <code>VertexSource::Endpoint</code>
+source, which happens when the vertex directly corresponds to an endpoint of the original path.
+More complicated cases can be expressed.
+For example if a vertex is inserted at an intersection halfway in the edge AB and two thirds
+of the way through edge BC, the source for this new vertex is <code>VertexSource::Edge { from: A, to: B, t: 0.5 }</code>
+and <code>VertexSource::Edge { from: C, to: D, t: 0.666666 }</code> where A, B, C and D are endpoint IDs.</p>
+<p>To use this feature, make sure to use <code>FillTessellator::tessellate_with_ids</code> instead of
+<code>FillTessellator::tessellate</code>.</p>
+<h4 id="interpolated-float-attributes"><a class="doc-anchor" href="#interpolated-float-attributes">§</a>Interpolated float attributes</h4>
+<p>Having to iterate over potentially several sources for each vertex can be cumbersome, in addition
+to having to deal with generating proper values for the attributes of vertices that were introduced
+at intersections or along curves.</p>
+<p>In many scenarios, vertex attributes are made of floating point numbers and the most reasonable
+way to generate new attributes is to linearly interpolate these numbers between the endpoints
+of the edges they originate from.</p>
+<p>Custom endpoint attributes are represented as <code>&amp;[f32]</code> slices accessible via
+<code>FillVertex::interpolated_attributes</code>. All vertices, whether they originate from a single
+endpoint or some more complex source, have exactly the same number of attributes.
+Without having to know about the meaning of attributes, the tessellator can either
+forward the slice of attributes from a provided <code>AttributeStore</code> when possible or
+generate the values via linear interpolation.</p>
+<p>To use this feature, make sure to use <code>FillTessellator::tessellate_path</code> or
+<code>FillTessellator::tessellate_with_ids</code> instead of <code>FillTessellator::tessellate</code>.</p>
+<p>Attributes are lazily computed when calling <code>FillVertex::interpolated_attributes</code>.
+In other words they don’t add overhead when not used, however it is best to avoid calling
+interpolated_attributes several times per vertex.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// Create a simple path.
+</span><span class="kw">let </span><span class="kw-2">mut </span>path_builder = Path::builder();
+path_builder.begin(point(<span class="number">0.0</span>, <span class="number">0.0</span>));
+path_builder.line_to(point(<span class="number">1.0</span>, <span class="number">2.0</span>));
+path_builder.line_to(point(<span class="number">2.0</span>, <span class="number">0.0</span>));
+path_builder.line_to(point(<span class="number">1.0</span>, <span class="number">1.0</span>));
+path_builder.end(<span class="bool-val">true</span>);
+<span class="kw">let </span>path = path_builder.build();
+
+<span class="comment">// Create the destination vertex and index buffers.
+</span><span class="kw">let </span><span class="kw-2">mut </span>buffers: VertexBuffers&lt;Point, u16&gt; = VertexBuffers::new();
+
+{
+    <span class="kw">let </span><span class="kw-2">mut </span>vertex_builder = simple_builder(<span class="kw-2">&amp;mut </span>buffers);
+
+    <span class="comment">// Create the tessellator.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>tessellator = FillTessellator::new();
+
+    <span class="comment">// Compute the tessellation.
+    </span><span class="kw">let </span>result = tessellator.tessellate_path(
+        <span class="kw-2">&amp;</span>path,
+        <span class="kw-2">&amp;</span>FillOptions::default(),
+        <span class="kw-2">&amp;mut </span>vertex_builder
+    );
+    <span class="macro">assert!</span>(result.is_ok());
+}
+
+<span class="macro">println!</span>(<span class="string">"The generated vertices are: {:?}."</span>, <span class="kw-2">&amp;</span>buffers.vertices[..]);
+<span class="macro">println!</span>(<span class="string">"The generated indices are: {:?}."</span>, <span class="kw-2">&amp;</span>buffers.indices[..]);
+</code></pre></div>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// Create a path with three custom endpoint attributes.
+</span><span class="kw">let </span><span class="kw-2">mut </span>path_builder = Path::builder_with_attributes(<span class="number">3</span>);
+path_builder.begin(point(<span class="number">0.0</span>, <span class="number">0.0</span>), <span class="kw-2">&amp;</span>[<span class="number">0.0</span>, <span class="number">0.1</span>, <span class="number">0.5</span>]);
+path_builder.line_to(point(<span class="number">1.0</span>, <span class="number">2.0</span>), <span class="kw-2">&amp;</span>[<span class="number">1.0</span>, <span class="number">1.0</span>, <span class="number">0.1</span>]);
+path_builder.line_to(point(<span class="number">2.0</span>, <span class="number">0.0</span>), <span class="kw-2">&amp;</span>[<span class="number">1.0</span>, <span class="number">0.0</span>, <span class="number">0.8</span>]);
+path_builder.line_to(point(<span class="number">1.0</span>, <span class="number">1.0</span>), <span class="kw-2">&amp;</span>[<span class="number">0.1</span>, <span class="number">0.3</span>, <span class="number">0.5</span>]);
+path_builder.end(<span class="bool-val">true</span>);
+<span class="kw">let </span>path = path_builder.build();
+
+<span class="kw">struct </span>MyVertex {
+    x: f32, y: f32,
+    r: f32, g: f32, b: f32, a: f32,
+}
+<span class="comment">// A custom vertex constructor, see the geometry_builder module.
+</span><span class="kw">struct </span>Ctor;
+<span class="kw">impl </span>FillVertexConstructor&lt;MyVertex&gt; <span class="kw">for </span>Ctor {
+    <span class="kw">fn </span>new_vertex(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>vertex: FillVertex) -&gt; MyVertex {
+        <span class="kw">let </span>position = vertex.position();
+        <span class="kw">let </span>attrs = vertex.interpolated_attributes();
+        MyVertex {
+            x: position.x,
+            y: position.y,
+            r: attrs[<span class="number">0</span>],
+            g: attrs[<span class="number">1</span>],
+            b: attrs[<span class="number">2</span>],
+            a: <span class="number">1.0</span>,
+        }
+    }
+}
+
+<span class="comment">// Create the destination vertex and index buffers.
+</span><span class="kw">let </span><span class="kw-2">mut </span>buffers: VertexBuffers&lt;MyVertex, u16&gt; = VertexBuffers::new();
+
+{
+    <span class="comment">// We use our custom vertex constructor here.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>vertex_builder = BuffersBuilder::new(<span class="kw-2">&amp;mut </span>buffers, Ctor);
+
+    <span class="comment">// Create the tessellator.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>tessellator = FillTessellator::new();
+
+    <span class="comment">// Compute the tessellation. Here we use tessellate_with_ids
+    // which has a slightly more complicated interface. The provides
+    // the iterator as well as storage for positions and attributes at
+    // the same time.
+    </span><span class="kw">let </span>result = tessellator.tessellate_with_ids(
+        path.id_iter(), <span class="comment">// Iterator over ids in the path
+        </span><span class="kw-2">&amp;</span>path,          <span class="comment">// PositionStore
+        </span><span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>path),    <span class="comment">// AttributeStore
+        </span><span class="kw-2">&amp;</span>FillOptions::default(),
+        <span class="kw-2">&amp;mut </span>vertex_builder
+    );
+    <span class="macro">assert!</span>(result.is_ok());
+}
+</code></pre></div>
+</div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-FillTessellator" class="impl"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#520-2046">source</a><a href="#impl-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#522-548">source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>() -&gt; Self</h4></section></summary><div class="docblock"><p>Constructor.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#551-569">source</a><h4 class="code-header">pub fn <a href="#method.tessellate" class="fn">tessellate</a>(
+    &amp;mut self,
+    path: impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/iter/traits/collect/trait.IntoIterator.html" title="trait core::iter::traits::collect::IntoIterator">IntoIterator</a>&lt;Item = <a class="type" href="../lyon_path/events/type.PathEvent.html" title="type lyon_path::events::PathEvent">PathEvent</a>&gt;,
+    options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Compute the tessellation from a path iterator.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_with_ids" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#574-595">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_with_ids" class="fn">tessellate_with_ids</a>(
+    &amp;mut self,
+    path: impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/iter/traits/collect/trait.IntoIterator.html" title="trait core::iter::traits::collect::IntoIterator">IntoIterator</a>&lt;Item = <a class="type" href="../lyon_path/events/type.IdEvent.html" title="type lyon_path::events::IdEvent">IdEvent</a>&gt;,
+    positions: &amp;impl <a class="trait" href="../lyon_path/trait.PositionStore.html" title="trait lyon_path::PositionStore">PositionStore</a>,
+    custom_attributes: <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a class="trait" href="../lyon_path/trait.AttributeStore.html" title="trait lyon_path::AttributeStore">AttributeStore</a>&gt;,
+    options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Compute the tessellation using an iterator over endpoint and control
+point ids, storage for the positions and, optionally, storage for
+custom endpoint attributes.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_path" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#601-614">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_path" class="fn">tessellate_path</a>&lt;'l&gt;(
+    &amp;'l mut self,
+    path: impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="../lyon_path/path/struct.PathSlice.html" title="struct lyon_path::path::PathSlice">PathSlice</a>&lt;'l&gt;&gt;,
+    options: &amp;'l <a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    builder: &amp;'l mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Compute the tessellation from a path slice.</p>
+<p>The tessellator will internally only track vertex sources and interpolated
+attributes if the path has interpolated attributes.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_polygon" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#617-624">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_polygon" class="fn">tessellate_polygon</a>(
+    &amp;mut self,
+    polygon: <a class="struct" href="../lyon_path/polygon/struct.Polygon.html" title="struct lyon_path::polygon::Polygon">Polygon</a>&lt;'_, <a class="type" href="math/type.Point.html" title="type lyon_tessellation::math::Point">Point</a>&gt;,
+    options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Tessellate a <code>Polygon</code>.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_rectangle" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#627-634">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_rectangle" class="fn">tessellate_rectangle</a>(
+    &amp;mut self,
+    rect: &amp;<a class="type" href="math/type.Rect.html" title="type lyon_tessellation::math::Rect">Rect</a>,
+    _options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Tessellate an axis-aligned rectangle.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_circle" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#637-645">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_circle" class="fn">tessellate_circle</a>(
+    &amp;mut self,
+    center: <a class="type" href="math/type.Point.html" title="type lyon_tessellation::math::Point">Point</a>,
+    radius: <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.f32.html">f32</a>,
+    options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Tessellate a circle.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.tessellate_ellipse" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#648-663">source</a><h4 class="code-header">pub fn <a href="#method.tessellate_ellipse" class="fn">tessellate_ellipse</a>(
+    &amp;mut self,
+    center: <a class="type" href="math/type.Point.html" title="type lyon_tessellation::math::Point">Point</a>,
+    radii: <a class="type" href="math/type.Vector.html" title="type lyon_tessellation::math::Vector">Vector</a>,
+    x_rotation: <a class="type" href="math/type.Angle.html" title="type lyon_tessellation::math::Angle">Angle</a>,
+    winding: <a class="enum" href="../lyon_path/enum.Winding.html" title="enum lyon_path::Winding">Winding</a>,
+    options: &amp;<a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="type" href="type.TessellationResult.html" title="type lyon_tessellation::TessellationResult">TessellationResult</a></h4></section></summary><div class="docblock"><p>Tessellate an ellipse.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.builder" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#702-708">source</a><h4 class="code-header">pub fn <a href="#method.builder" class="fn">builder</a>&lt;'l&gt;(
+    &amp;'l mut self,
+    options: &amp;'l <a class="struct" href="struct.FillOptions.html" title="struct lyon_tessellation::FillOptions">FillOptions</a>,
+    output: &amp;'l mut dyn <a class="trait" href="trait.FillGeometryBuilder.html" title="trait lyon_tessellation::FillGeometryBuilder">FillGeometryBuilder</a>,
+) -&gt; <a class="struct" href="struct.FillBuilder.html" title="struct lyon_tessellation::FillBuilder">FillBuilder</a>&lt;'l&gt;</h4></section></summary><div class="docblock"><p>Tessellate directly from a sequence of <code>PathBuilder</code> commands, without
+creating an intermediate path data structure.</p>
+<p>The returned builder implements the <a href="https://docs.rs/lyon_path/*/lyon_path/traits/trait.PathBuilder.html"><code>lyon_path::traits::PathBuilder</code></a> trait,
+is compatible with the all <code>PathBuilder</code> adapters.
+It also has all requirements documented in <code>PathBuilder</code> (All sub-paths must be
+wrapped in a <code>begin</code>/<code>end</code> pair).</p>
+<h5 id="example"><a class="doc-anchor" href="#example">§</a>Example</h5>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>lyon_tessellation::{FillTessellator, FillOptions};
+<span class="kw">use </span>lyon_tessellation::geometry_builder::{simple_builder, VertexBuffers};
+<span class="kw">use </span>lyon_tessellation::path::traits::<span class="kw-2">*</span>;
+<span class="kw">use </span>lyon_tessellation::math::{Point, point};
+
+<span class="kw">let </span><span class="kw-2">mut </span>buffers: VertexBuffers&lt;Point, u16&gt; = VertexBuffers::new();
+<span class="kw">let </span><span class="kw-2">mut </span>vertex_builder = simple_builder(<span class="kw-2">&amp;mut </span>buffers);
+<span class="kw">let </span><span class="kw-2">mut </span>tessellator = FillTessellator::new();
+<span class="kw">let </span>options = FillOptions::default();
+
+<span class="comment">// Create a temporary builder (borrows the tessellator).
+</span><span class="kw">let </span><span class="kw-2">mut </span>builder = tessellator.builder(<span class="kw-2">&amp;</span>options, <span class="kw-2">&amp;mut </span>vertex_builder);
+
+<span class="comment">// Build the path directly in the tessellator, skipping an intermediate data
+// structure.
+</span>builder.begin(point(<span class="number">0.0</span>, <span class="number">0.0</span>));
+builder.line_to(point(<span class="number">10.0</span>, <span class="number">0.0</span>));
+builder.line_to(point(<span class="number">10.0</span>, <span class="number">10.0</span>));
+builder.line_to(point(<span class="number">0.0</span>, <span class="number">10.0</span>));
+builder.end(<span class="bool-val">true</span>);
+
+<span class="comment">// Finish the tessellation and get the result.
+</span><span class="kw">let </span>result = builder.build();</code></pre></div>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_logging" class="method"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#769-777">source</a><h4 class="code-header">pub fn <a href="#method.set_logging" class="fn">set_logging</a>(&amp;mut self, is_enabled: <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.bool.html">bool</a>)</h4></section></summary><div class="docblock"><p>Enable/disable some verbose logging during the tessellation, for
+debugging purposes.</p>
+</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Default-for-FillTessellator" class="impl"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#514-518">source</a><a href="#impl-Default-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.default" class="method trait-impl"><a class="src rightside" href="../src/lyon_tessellation/fill.rs.html#515-517">source</a><a href="#method.default" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/default/trait.Default.html#tymethod.default" class="fn">default</a>() -&gt; Self</h4></section></summary><div class='docblock'>Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.83.0/core/default/trait.Default.html#tymethod.default">Read more</a></div></details></div></details></div><h2 id="synthetic-implementations" class="section-header">Auto Trait Implementations<a href="#synthetic-implementations" class="anchor">§</a></h2><div id="synthetic-implementations-list"><section id="impl-Freeze-for-FillTessellator" class="impl"><a href="#impl-Freeze-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Freeze.html" title="trait core::marker::Freeze">Freeze</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section><section id="impl-RefUnwindSafe-for-FillTessellator" class="impl"><a href="#impl-RefUnwindSafe-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section><section id="impl-Send-for-FillTessellator" class="impl"><a href="#impl-Send-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section><section id="impl-Sync-for-FillTessellator" class="impl"><a href="#impl-Sync-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section><section id="impl-Unpin-for-FillTessellator" class="impl"><a href="#impl-Unpin-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Unpin.html" title="trait core::marker::Unpin">Unpin</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section><section id="impl-UnwindSafe-for-FillTessellator" class="impl"><a href="#impl-UnwindSafe-for-FillTessellator" class="anchor">§</a><h3 class="code-header">impl <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/panic/unwind_safe/trait.UnwindSafe.html" title="trait core::panic::unwind_safe::UnwindSafe">UnwindSafe</a> for <a class="struct" href="struct.FillTessellator.html" title="struct lyon_tessellation::FillTessellator">FillTessellator</a></h3></section></div><h2 id="blanket-implementations" class="section-header">Blanket Implementations<a href="#blanket-implementations" class="anchor">§</a></h2><div id="blanket-implementations-list"><details class="toggle implementors-toggle"><summary><section id="impl-Any-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/any.rs.html#138">source</a><a href="#impl-Any-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/any/trait.Any.html" title="trait core::any::Any">Any</a> for T<div class="where">where
+    T: 'static + ?<a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.type_id" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/any.rs.html#139">source</a><a href="#method.type_id" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/any/trait.Any.html#tymethod.type_id" class="fn">type_id</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.83.0/core/any/struct.TypeId.html" title="struct core::any::TypeId">TypeId</a></h4></section></summary><div class='docblock'>Gets the <code>TypeId</code> of <code>self</code>. <a href="https://doc.rust-lang.org/1.83.0/core/any/trait.Any.html#tymethod.type_id">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-Borrow%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/borrow.rs.html#209">source</a><a href="#impl-Borrow%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.Borrow.html" title="trait core::borrow::Borrow">Borrow</a>&lt;T&gt; for T<div class="where">where
+    T: ?<a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.borrow" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/borrow.rs.html#211">source</a><a href="#method.borrow" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.Borrow.html#tymethod.borrow" class="fn">borrow</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.reference.html">&amp;T</a></h4></section></summary><div class='docblock'>Immutably borrows from an owned value. <a href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.Borrow.html#tymethod.borrow">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-BorrowMut%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/borrow.rs.html#217">source</a><a href="#impl-BorrowMut%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.BorrowMut.html" title="trait core::borrow::BorrowMut">BorrowMut</a>&lt;T&gt; for T<div class="where">where
+    T: ?<a class="trait" href="https://doc.rust-lang.org/1.83.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.borrow_mut" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/borrow.rs.html#218">source</a><a href="#method.borrow_mut" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.BorrowMut.html#tymethod.borrow_mut" class="fn">borrow_mut</a>(&amp;mut self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/1.83.0/std/primitive.reference.html">&amp;mut T</a></h4></section></summary><div class='docblock'>Mutably borrows from an owned value. <a href="https://doc.rust-lang.org/1.83.0/core/borrow/trait.BorrowMut.html#tymethod.borrow_mut">Read more</a></div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-From%3CT%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#765">source</a><a href="#impl-From%3CT%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt; for T</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.from" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#768">source</a><a href="#method.from" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.From.html#tymethod.from" class="fn">from</a>(t: T) -&gt; T</h4></section></summary><div class="docblock"><p>Returns the argument unchanged.</p>
+</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-Into%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#748-750">source</a><a href="#impl-Into%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.into" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#758">source</a><a href="#method.into" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.Into.html#tymethod.into" class="fn">into</a>(self) -&gt; U</h4></section></summary><div class="docblock"><p>Calls <code>U::from(self)</code>.</p>
+<p>That is, this conversion is whatever the implementation of
+<code><a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.From.html" title="trait core::convert::From">From</a>&lt;T&gt; for U</code> chooses to do.</p>
+</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-TryFrom%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#805-807">source</a><a href="#impl-TryFrom%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedtype.Error-1" class="associatedtype trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#809">source</a><a href="#associatedtype.Error-1" class="anchor">§</a><h4 class="code-header">type <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html#associatedtype.Error" class="associatedtype">Error</a> = <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/convert/enum.Infallible.html" title="enum core::convert::Infallible">Infallible</a></h4></section></summary><div class='docblock'>The type returned in the event of a conversion error.</div></details><details class="toggle method-toggle" open><summary><section id="method.try_from" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#812">source</a><a href="#method.try_from" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html#tymethod.try_from" class="fn">try_from</a>(value: U) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, &lt;T as <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;U&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a>&gt;</h4></section></summary><div class='docblock'>Performs the conversion.</div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-TryInto%3CU%3E-for-T" class="impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#790-792">source</a><a href="#impl-TryInto%3CU%3E-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T, U&gt; <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryInto.html" title="trait core::convert::TryInto">TryInto</a>&lt;U&gt; for T<div class="where">where
+    U: <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedtype.Error" class="associatedtype trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#794">source</a><a href="#associatedtype.Error" class="anchor">§</a><h4 class="code-header">type <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryInto.html#associatedtype.Error" class="associatedtype">Error</a> = &lt;U as <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a></h4></section></summary><div class='docblock'>The type returned in the event of a conversion error.</div></details><details class="toggle method-toggle" open><summary><section id="method.try_into" class="method trait-impl"><a class="src rightside" href="https://doc.rust-lang.org/1.83.0/src/core/convert/mod.rs.html#797">source</a><a href="#method.try_into" class="anchor">§</a><h4 class="code-header">fn <a href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryInto.html#tymethod.try_into" class="fn">try_into</a>(self) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.83.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;U, &lt;U as <a class="trait" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html" title="trait core::convert::TryFrom">TryFrom</a>&lt;T&gt;&gt;::<a class="associatedtype" href="https://doc.rust-lang.org/1.83.0/core/convert/trait.TryFrom.html#associatedtype.Error" title="type core::convert::TryFrom::Error">Error</a>&gt;</h4></section></summary><div class='docblock'>Performs the conversion.</div></details></div></details></div></section></div></main></body></html>

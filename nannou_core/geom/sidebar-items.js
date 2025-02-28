@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["bounding_cuboid","bounding_rect","centroid","dvec2","dvec3","dvec4","ivec2","ivec3","ivec4","vec2","vec3","vec4"],"mod":["cuboid","ellipse","point","polygon","quad","range","rect","scalar","tri","vector","vertex"],"struct":["DVec2","DVec3","DVec4","IVec2","IVec3","IVec4","Vec2","Vec3","Vec4"]};

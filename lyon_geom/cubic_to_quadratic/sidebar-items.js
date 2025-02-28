@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cubic_to_monotonic_quadratics","cubic_to_quadratics","cubic_to_quadratics_with_t","single_curve_approximation","single_curve_approximation_error"]};

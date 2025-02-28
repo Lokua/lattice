@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SKETCH_CONFIG"],"fn":["disabled_unless_modes","init_model","update","view"],"struct":["Model","XModParams","XMods"],"type":["XModFn"]};

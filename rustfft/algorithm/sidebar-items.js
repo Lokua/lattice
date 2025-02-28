@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["bitreversed_transpose"],"mod":["butterflies"],"struct":["BluesteinsAlgorithm","Dft","GoodThomasAlgorithm","GoodThomasAlgorithmSmall","MixedRadix","MixedRadixSmall","RadersAlgorithm","Radix3","Radix4"]};

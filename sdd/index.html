@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Scalable Delayed Dealloc"><title>sdd - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-b0742ba02757f159.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="sdd" data-themes="" data-resource-suffix="" data-rustdoc-version="1.83.0 (90b35a623 2024-11-26)" data-channel="1.83.0" data-search-js="search-f0d225181b97f9a4.js" data-settings-js="settings-805db61a62df4bd2.js" ><script src="../static.files/storage-1d39b6787ed640ff.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-f070b9041d14864c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-0111fcff984fae8f.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../sdd/index.html">sdd</a><span class="version">3.0.5</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#scalable-delayed-dealloc" title="Scalable Delayed Dealloc">Scalable Delayed Dealloc</a><ul><li><a href="#features" title="Features">Features</a></li><li><a href="#examples" title="Examples">Examples</a></li><li><a href="#memory-overhead" title="Memory Overhead">Memory Overhead</a></li><li><a href="#performance" title="Performance">Performance</a></li><li><a href="#changelog" title="Changelog">Changelog</a></li></ul></li></ul><h3><a href="#structs">Crate Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>sdd</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/sdd/lib.rs.html#1-69">source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="scalable-delayed-dealloc"><a class="doc-anchor" href="#scalable-delayed-dealloc">§</a>Scalable Delayed Dealloc</h2>
+<p><a href="https://crates.io/crates/sdd"><img src="https://img.shields.io/crates/v/sdd" alt="Cargo" /></a>
+<img src="https://img.shields.io/crates/l/sdd" alt="Crates.io" />
+<img src="https://img.shields.io/github/actions/workflow/status/wvwwvwwv/scalable-delayed-dealloc/sdd.yml?branch=main" alt="GitHub Workflow Status" /></p>
+<p>A scalable lock-free delayed memory reclaimer that emulates garbage collection by keeping track of memory reachability.</p>
+<p>Its delayed deallocation algorithm is based on a variant of epoch-based reclamation where <em>retired</em> memory chunks are stored in thread-local storage until specific criteria are met. The <a href="https://docs.rs/crossbeam-epoch/">crossbeam_epoch</a> crate offers similar functionality, however users will find <code>sdd</code> more straightforward to use as the lifetime of a memory chunk is safely <em>managed</em>. For instance, <code>sdd::AtomicOwned</code> and <code>sdd::Owned</code> retire the contained instance when they are dropped, and <code>sdd::AtomicShared</code> and <code>sdd::Shared</code> retire the instance when the last strong reference is dropped.</p>
+<h3 id="features"><a class="doc-anchor" href="#features">§</a>Features</h3>
+<ul>
+<li>Lock-free epoch-based reclamation.</li>
+<li><a href="https://crates.io/crates/loom"><code>Loom</code></a> support: <code>features = ["loom"]</code>.</li>
+</ul>
+<h3 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h3>
+<p>This crate can be used <em>without an <code>unsafe</code> block</em>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>sdd::{suspend, AtomicOwned, AtomicShared, Guard, Owned, Ptr, Shared, Tag};
+<span class="kw">use </span>std::sync::atomic::Ordering::Relaxed;
+
+<span class="comment">// `atomic_shared` holds a strong reference to `17`.
+</span><span class="kw">let </span>atomic_shared: AtomicShared&lt;usize&gt; = AtomicShared::new(<span class="number">17</span>);
+
+<span class="comment">// `atomic_owned` owns `19`.
+</span><span class="kw">let </span>atomic_owned: AtomicOwned&lt;usize&gt; = AtomicOwned::new(<span class="number">19</span>);
+
+<span class="comment">// `guard` prevents the garbage collector from dropping reachable instances.
+</span><span class="kw">let </span>guard = Guard::new();
+
+<span class="comment">// `ptr` cannot outlive `guard`.
+</span><span class="kw">let </span><span class="kw-2">mut </span>ptr: Ptr&lt;usize&gt; = atomic_shared.load(Relaxed, <span class="kw-2">&amp;</span>guard);
+<span class="macro">assert_eq!</span>(<span class="kw-2">*</span>ptr.as_ref().unwrap(), <span class="number">17</span>);
+
+<span class="comment">// `atomic_shared` can be tagged.
+</span>atomic_shared.update_tag_if(Tag::First, |p| p.tag() == Tag::None, Relaxed, Relaxed);
+
+<span class="comment">// `ptr` is not tagged, so CAS fails.
+</span><span class="macro">assert!</span>(atomic_shared.compare_exchange(
+    ptr,
+    (<span class="prelude-val">Some</span>(Shared::new(<span class="number">18</span>)), Tag::First),
+    Relaxed,
+    Relaxed,
+    <span class="kw-2">&amp;</span>guard).is_err());
+
+<span class="comment">// `ptr` can be tagged.
+</span>ptr.set_tag(Tag::First);
+
+<span class="comment">// The ownership of the contained instance is transferred to the return value of CAS.
+</span><span class="kw">let </span>prev: Shared&lt;usize&gt; = atomic_shared.compare_exchange(
+    ptr,
+    (<span class="prelude-val">Some</span>(Shared::new(<span class="number">19</span>)), Tag::Second),
+    Relaxed,
+    Relaxed,
+    <span class="kw-2">&amp;</span>guard).unwrap().<span class="number">0</span>.unwrap();
+<span class="macro">assert_eq!</span>(<span class="kw-2">*</span>prev, <span class="number">17</span>);
+
+<span class="comment">// `17` will be garbage-collected later.
+</span>drop(prev);
+
+<span class="comment">// `sdd::AtomicShared` can be converted into `sdd::Shared`.
+</span><span class="kw">let </span>shared: Shared&lt;usize&gt; = atomic_shared.into_shared(Relaxed).unwrap();
+<span class="macro">assert_eq!</span>(<span class="kw-2">*</span>shared, <span class="number">19</span>);
+
+<span class="comment">// `18` and `19` will be garbage-collected later.
+</span>drop(shared);
+drop(atomic_owned);
+
+<span class="comment">// `17` is still valid as `guard` keeps the garbage collector from dropping it.
+</span><span class="macro">assert_eq!</span>(<span class="kw-2">*</span>ptr.as_ref().unwrap(), <span class="number">17</span>);
+
+<span class="comment">// Execution of a closure can be deferred until all the current readers are gone.
+</span>guard.defer_execute(|| <span class="macro">println!</span>(<span class="string">"deferred"</span>));
+drop(guard);
+
+<span class="comment">// `sdd::Owned` and `sdd::Shared` can be nested.
+</span><span class="kw">let </span>shared_nested: Shared&lt;Owned&lt;Shared&lt;usize&gt;&gt;&gt; = Shared::new(Owned::new(Shared::new(<span class="number">20</span>)));
+<span class="macro">assert_eq!</span>(<span class="kw-2">***</span>shared_nested, <span class="number">20</span>);
+
+<span class="comment">// If the thread is expected to lie dormant for a while, call `suspend()` to allow
+// others to reclaim the memory.
+</span>suspend();</code></pre></div>
+<h3 id="memory-overhead"><a class="doc-anchor" href="#memory-overhead">§</a>Memory Overhead</h3>
+<p>Retired instances are stored in intrusive queues in thread-local storage, and therefore, additional space for <code>Option&lt;NonNull&lt;dyn Collectible&gt;&gt;</code> is allocated per instance.</p>
+<h3 id="performance"><a class="doc-anchor" href="#performance">§</a>Performance</h3>
+<p>The average time taken to enter and exit a protected region: 2.4 nanoseconds on Apple M2 Max.</p>
+<h3 id="changelog"><a class="doc-anchor" href="#changelog">§</a><a href="https://github.com/wvwwvwwv/scalable-delayed-dealloc/blob/main/CHANGELOG.md">Changelog</a></h3></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.AtomicOwned.html" title="struct sdd::AtomicOwned">Atomic<wbr>Owned</a></div><div class="desc docblock-short"><a href="struct.AtomicOwned.html" title="struct sdd::AtomicOwned"><code>AtomicOwned</code></a> owns the underlying instance, and allows users to perform atomic operations
+on the pointer to it.</div></li><li><div class="item-name"><a class="struct" href="struct.AtomicShared.html" title="struct sdd::AtomicShared">Atomic<wbr>Shared</a></div><div class="desc docblock-short"><a href="struct.AtomicShared.html" title="struct sdd::AtomicShared"><code>AtomicShared</code></a> owns the underlying instance, and allows users to perform atomic operations
+on the pointer to it.</div></li><li><div class="item-name"><a class="struct" href="struct.Epoch.html" title="struct sdd::Epoch">Epoch</a></div><div class="desc docblock-short"><a href="struct.Epoch.html" title="struct sdd::Epoch"><code>Epoch</code></a> represents the period of time the global epoch value stays the same.</div></li><li><div class="item-name"><a class="struct" href="struct.Guard.html" title="struct sdd::Guard">Guard</a></div><div class="desc docblock-short"><a href="struct.Guard.html" title="struct sdd::Guard"><code>Guard</code></a> allows the user to read <a href="struct.AtomicShared.html" title="struct sdd::AtomicShared"><code>AtomicShared</code></a> and keeps the
+underlying instance pinned to the thread.</div></li><li><div class="item-name"><a class="struct" href="struct.Owned.html" title="struct sdd::Owned">Owned</a></div><div class="desc docblock-short"><a href="struct.Owned.html" title="struct sdd::Owned"><code>Owned</code></a> uniquely owns an instance.</div></li><li><div class="item-name"><a class="struct" href="struct.Ptr.html" title="struct sdd::Ptr">Ptr</a></div><div class="desc docblock-short"><a href="struct.Ptr.html" title="struct sdd::Ptr"><code>Ptr</code></a> points to an instance.</div></li><li><div class="item-name"><a class="struct" href="struct.Shared.html" title="struct sdd::Shared">Shared</a></div><div class="desc docblock-short"><a href="struct.Shared.html" title="struct sdd::Shared"><code>Shared</code></a> is a reference-counted handle to an instance.</div></li></ul><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.Tag.html" title="enum sdd::Tag">Tag</a></div><div class="desc docblock-short"><a href="enum.Tag.html" title="enum sdd::Tag"><code>Tag</code></a> is a four-state <code>Enum</code> that can be embedded in a pointer as the two least
+significant bits of the pointer value.</div></li></ul><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.suspend.html" title="fn sdd::suspend">suspend</a></div><div class="desc docblock-short">Suspends the garbage collector of the current thread.</div></li></ul></section></div></main></body></html>

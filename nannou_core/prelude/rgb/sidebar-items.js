@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Rgb"],"trait":["Primaries","RgbSpace","RgbStandard"],"type":["GammaSrgb","GammaSrgba","LinSrgb","LinSrgba","Rgba","Srgb","Srgba"]};

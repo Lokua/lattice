@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["cellular","chebyshev","concentric_waves","euclidean","fractal_noise","harmonic","kaleidoscope","manhattan","minkowski","moire","polar","radial_sinusoidal","ripple","spiral","topographic","vortex","wave_interference","weave","wood_grain","wood_grain_advanced"]};

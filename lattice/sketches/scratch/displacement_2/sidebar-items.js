@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GRID_SIZE","SKETCH_CONFIG"],"fn":["generate_pattern_options","init_model","trig_fn_lookup","update","view","weave"],"struct":["DisplacerConfig","Model"],"type":["AnimationFn"]};
